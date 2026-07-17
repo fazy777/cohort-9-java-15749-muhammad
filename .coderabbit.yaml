@@ -1,0 +1,7 @@
+reviews:
+  high_level_summary: true
+  review_status: true
+  poem: false
+  path_instructions:
+    - path: "**/*"
+      instructions: "Flag missing null checks as HIGH. Flag synchronous I/O in async context as HIGH. Check for proper dependency injection usage."
