@@ -4,4 +4,4 @@ reviews:
   poem: false
   path_instructions:
     - path: "**/*"
-      instructions: "Flag missing null checks as HIGH. Flag synchronous I/O in async context as HIGH. Check for proper dependency injection usage."
+      instructions: "Flag missing exception handling and null checks as HIGH. Flag raw types and unchecked casts as MEDIUM. Check for proper OOP principles and dependency injection."

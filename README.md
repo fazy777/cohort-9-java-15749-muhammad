@@ -1,11 +1,11 @@
 # 📇 Contact Management System (CMS)
 
-[![GitHub License](https://img.shields.io/github/license/fazy777/cohort-9-dotnet-12574-muhammad?color=blue)](https://github.com/fazy777/cohort-9-dotnet-12574-muhammad/blob/main/LICENSE)
-[![GitHub Issues](https://img.shields.io/github/issues/fazy777/cohort-9-dotnet-12574-muhammad?color=red)](https://github.com/fazy777/cohort-9-dotnet-12574-muhammad/issues)
+[![GitHub License](https://img.shields.io/github/license/fazy777/cohort-9-java-15749-muhammad?color=blue)](https://github.com/fazy777/cohort-9-java-15749-muhammad/blob/main/LICENSE)
+[![GitHub Issues](https://img.shields.io/github/issues/fazy777/cohort-9-java-15749-muhammad?color=red)](https://github.com/fazy777/cohort-9-java-15749-muhammad/issues)
 [![SonarQube Quality Gate](https://img.shields.io/badge/SonarQube-Passed-brightgreen?style=flat&logo=sonarqube)](#code-quality--sonarqube-integration)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/fazy777/cohort-9-dotnet-12574-muhammad/pulls)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/fazy777/cohort-9-java-15749-muhammad/pulls)
 
-A modern, secure, and responsive full-stack **Contact Management System** built using the Java and React technology stacks as defined in the project proposal.
+A modern, secure, and responsive full-stack **Contact Management System** built using Java Spring Boot and React technology stack.
 
 ---
 
@@ -171,7 +171,7 @@ erDiagram
 A clean, modular folder layout following standard full-stack development patterns:
 
 ```text
-cohort-9-dotnet-12574-muhammad/
+cohort-9-java-15749-muhammad/
 ├── Project Perposal.png              # Reference project design
 ├── README.md                         # Detailed project documentation
 ├── .coderabbit.yaml                  # Automated PR reviewer settings
@@ -212,10 +212,10 @@ cohort-9-dotnet-12574-muhammad/
 
 1. **Navigate to the Backend directory:**
    ```bash
-   cd backend
+   cd Backend/contact_managment_system/main_application
    ```
 2. **Update Connection String:**
-   Open `src/main/resources/application.properties` (or `application.yml`) and update connection configuration to match your MS SQL Server credentials:
+   Open `src/main/resources/application.properties` and update connection configuration to match your MS SQL Server credentials:
    ```properties
    spring.datasource.url=jdbc:sqlserver://YOUR_SERVER_NAME;databaseName=ContactDb;encrypt=true;trustServerCertificate=true;
    spring.datasource.username=YOUR_DB_USERNAME
@@ -235,22 +235,17 @@ cohort-9-dotnet-12574-muhammad/
 
 1. **Navigate to the Frontend directory:**
    ```bash
-   cd frontend
+   cd Frontend/contact_managment_system
    ```
 2. **Install dependencies:**
    ```bash
    npm install
    ```
-3. **Configure environment variables:**
-   Create a `.env` file in the root of the frontend folder:
-   ```env
-   REACT_APP_API_URL=http://localhost:8080/api
-   ```
-4. **Run in development mode:**
+3. **Run in development mode:**
    ```bash
-   npm start
+   npm run dev
    ```
-   The client application will spin up at `http://localhost:3000`.
+   The client application will spin up at `http://localhost:5173`.
 
 ---
 
@@ -261,7 +256,7 @@ To run code quality scans locally using SonarQube and Maven:
 1. Start your local SonarQube server (typically at `http://localhost:9000`).
 2. Run the Maven goal with your token:
    ```bash
-   cd backend
+   cd Backend/contact_managment_system/main_application
    ./mvnw clean verify sonar:sonar \
      -Dsonar.projectKey=ContactManagementSystem \
      -Dsonar.host.url=http://localhost:9000 \
@@ -276,7 +271,7 @@ Unit tests are written using JUnit 5 and Mockito.
 
 Run tests using the Maven wrapper:
 ```bash
-cd backend
+cd Backend/contact_managment_system/main_application
 ./mvnw test
 ```
 
@@ -288,3 +283,4 @@ cd backend
 * **Company / Organization:** 10Pearls
 
 *This project is licensed under the MIT License - see the LICENSE file for details.*
+
