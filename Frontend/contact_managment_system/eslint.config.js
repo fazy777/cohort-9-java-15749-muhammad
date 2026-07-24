@@ -1,3 +1,7 @@
+/**
+ * @file ESLint configuration file for JavaScript and React component linting.
+ */
+
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
@@ -19,3 +23,4 @@ export default defineConfig([
     },
   },
 ])
+
