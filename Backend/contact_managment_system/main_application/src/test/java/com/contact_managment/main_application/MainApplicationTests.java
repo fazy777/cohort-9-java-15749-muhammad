@@ -10,6 +10,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 class MainApplicationTests {
 
 	/**
+	 * Default constructor for MainApplicationTests.
+	 */
+	MainApplicationTests() {
+	}
+
+	/**
 	 * Tests whether the Spring application context loads successfully.
 	 */
 	@Test
@@ -17,4 +23,5 @@ class MainApplicationTests {
 	}
 
 }
+
 

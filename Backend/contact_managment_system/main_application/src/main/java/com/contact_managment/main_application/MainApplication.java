@@ -11,6 +11,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class MainApplication {
 
 	/**
+	 * Default constructor for MainApplication.
+	 */
+	public MainApplication() {
+	}
+
+	/**
 	 * Main entry point for launching the Spring Boot application.
 	 *
 	 * @param args command-line arguments passed during application startup
@@ -20,4 +26,5 @@ public class MainApplication {
 	}
 
 }
+
 

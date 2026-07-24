@@ -8,9 +8,19 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+/**
+ * Initializes and renders the React application into the root DOM element.
+ *
+ * @returns {void}
+ */
+function renderApp() {
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}
+
+renderApp()
+
 
