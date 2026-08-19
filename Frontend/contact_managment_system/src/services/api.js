@@ -1,15 +1,13 @@
-/**
- * @file API client services for authentication and contact management.
- */
+import { safeStorage } from '../utils/storage';
 
 const BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:8080/api';
 
 const getAuthHeader = () => {
   try {
-    const token = localStorage.getItem('cms_token');
+    const token = safeStorage.getItem('cms_token');
     return token ? { 'Authorization': `Bearer ${token}` } : {};
   } catch (e) {
-    console.error('Failed to access local storage for auth token:', e);
+    console.warn('Failed to get auth token for request header:', e);
     return {};
   }
 };

@@ -52,9 +52,14 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        userPrincipal = new UserPrincipal(1L, "John", "Doe", "john@example.com", "+123456", "pass", Collections.emptyList());
+        userPrincipal = new UserPrincipal(1L, "John", "Doe", "john@example.com", "+123456", 1L, "pass", Collections.emptyList());
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -129,5 +134,23 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.email").value("john@example.com"));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/change-password should return 200 OK")
+    void changePassword_Returns200() throws Exception {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .currentPassword("oldPassword123")
+                .newPassword("newPassword123")
+                .build();
+
+        mockMvc.perform(post("/api/auth/change-password")
+                        .with(csrf())
+                        .with(user(userPrincipal))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Password changed successfully"));
     }
 }

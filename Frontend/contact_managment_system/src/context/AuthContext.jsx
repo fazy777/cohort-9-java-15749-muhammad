@@ -1,43 +1,49 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import { api } from '../services/api';
+import { safeStorage, cleanupLegacyStorage } from '../utils/storage';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('cms_token'));
+  const [token, setToken] = useState(() => safeStorage.getItem('cms_token'));
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
-    try {
-      localStorage.removeItem('cms_token');
-      localStorage.removeItem('cms_user');
-    } catch (e) {
-      console.error('Failed to clear storage on logout:', e);
-    }
+    safeStorage.removeItem('cms_token');
+    safeStorage.removeItem('cms_user');
+    cleanupLegacyStorage();
   }, []);
 
   useEffect(() => {
+    cleanupLegacyStorage();
+
     const initAuth = async () => {
       try {
-        const savedToken = localStorage.getItem('cms_token');
-        const savedUser = localStorage.getItem('cms_user');
+        const savedToken = safeStorage.getItem('cms_token');
+        const savedUser = safeStorage.getItem('cms_user');
 
-        if (savedToken && savedUser) {
+        if (savedToken) {
           setToken(savedToken);
-          setUser(JSON.parse(savedUser));
+          if (savedUser) {
+            try {
+              setUser(JSON.parse(savedUser));
+            } catch {
+              // ignore parse errors
+            }
+          }
           try {
-            // Refresh user profile from backend
+            // Validate and refresh user profile from backend
             const freshUser = await api.getProfile();
             if (freshUser) {
               setUser(freshUser);
-              localStorage.setItem('cms_user', JSON.stringify(freshUser));
+              safeStorage.setItem('cms_user', JSON.stringify(freshUser));
             }
           } catch (err) {
-            console.error('Session token validation failed:', err);
+            console.warn('Session token validation failed:', err);
             logout();
           }
         }
@@ -67,8 +73,9 @@ export const AuthProvider = ({ children }) => {
 
     setToken(data.token);
     setUser(userObj);
-    localStorage.setItem('cms_token', data.token);
-    localStorage.setItem('cms_user', JSON.stringify(userObj));
+    safeStorage.setItem('cms_token', data.token);
+    safeStorage.setItem('cms_user', JSON.stringify(userObj));
+    cleanupLegacyStorage();
     return userObj;
   };
 
@@ -88,8 +95,9 @@ export const AuthProvider = ({ children }) => {
 
     setToken(data.token);
     setUser(userObj);
-    localStorage.setItem('cms_token', data.token);
-    localStorage.setItem('cms_user', JSON.stringify(userObj));
+    safeStorage.setItem('cms_token', data.token);
+    safeStorage.setItem('cms_user', JSON.stringify(userObj));
+    cleanupLegacyStorage();
     return userObj;
   };
 
@@ -99,10 +107,10 @@ export const AuthProvider = ({ children }) => {
       const profile = await api.getProfile();
       if (profile) {
         setUser(profile);
-        localStorage.setItem('cms_user', JSON.stringify(profile));
+        safeStorage.setItem('cms_user', JSON.stringify(profile));
       }
     } catch (err) {
-      console.error('Failed to refresh user profile:', err);
+      console.warn('Failed to refresh user profile:', err);
     }
   }, [token]);
 
@@ -130,3 +138,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

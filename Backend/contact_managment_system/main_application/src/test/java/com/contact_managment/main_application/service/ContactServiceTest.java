@@ -133,4 +133,35 @@ class ContactServiceTest {
 
         assertThrows(ResourceNotFoundException.class, () -> contactService.deleteContact(1L, 99L));
     }
+
+    @Test
+    @DisplayName("Should throw exception when page is negative")
+    void getContacts_NegativePage_ThrowsBadRequest() {
+        assertThrows(com.contact_managment.main_application.exception.BadRequestException.class,
+                () -> contactService.getContacts(1L, null, -1, 10, "firstName", "asc"));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when size is zero or exceeds maximum")
+    void getContacts_InvalidSize_ThrowsBadRequest() {
+        assertThrows(com.contact_managment.main_application.exception.BadRequestException.class,
+                () -> contactService.getContacts(1L, null, 0, 0, "firstName", "asc"));
+
+        assertThrows(com.contact_managment.main_application.exception.BadRequestException.class,
+                () -> contactService.getContacts(1L, null, 0, 101, "firstName", "asc"));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when sort field is invalid")
+    void getContacts_InvalidSortField_ThrowsBadRequest() {
+        assertThrows(com.contact_managment.main_application.exception.BadRequestException.class,
+                () -> contactService.getContacts(1L, null, 0, 10, "invalidField", "asc"));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when sort direction is invalid")
+    void getContacts_InvalidSortDir_ThrowsBadRequest() {
+        assertThrows(com.contact_managment.main_application.exception.BadRequestException.class,
+                () -> contactService.getContacts(1L, null, 0, 10, "firstName", "sideways"));
+    }
 }

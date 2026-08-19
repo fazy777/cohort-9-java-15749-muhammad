@@ -2,6 +2,160 @@ import { useState } from 'react';
 import { api } from '../services/api';
 import { Download, Upload, FileText, X, CheckCircle } from 'lucide-react';
 
+/**
+ * Escapes a field for CSV export and neutralizes spreadsheet formula injection.
+ * @param {string | null | undefined} val
+ * @returns {string}
+ */
+const serializeCsvField = (val) => {
+  if (val == null) return '""';
+  let str = String(val);
+
+  // Neutralize formula injection for spreadsheet software (Excel, Google Sheets, Calc)
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+
+  // Escape inner double quotes by doubling them
+  const escaped = str.replace(/"/g, '""');
+  return `"${escaped}"`;
+};
+
+/**
+ * Parses raw CSV text complying with RFC 4180 standard (handles quotes, commas, newlines).
+ * @param {string} text
+ * @returns {string[][]}
+ */
+const parseCsv = (text) => {
+  const rows = [];
+  let currentRow = [];
+  let currentField = '';
+  let insideQuotes = false;
+  let i = 0;
+
+  while (i < text.length) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (insideQuotes) {
+      if (char === '"') {
+        if (nextChar === '"') {
+          currentField += '"';
+          i += 2;
+          continue;
+        } else {
+          insideQuotes = false;
+          i++;
+          continue;
+        }
+      } else {
+        currentField += char;
+        i++;
+        continue;
+      }
+    } else {
+      if (char === '"') {
+        insideQuotes = true;
+        i++;
+        continue;
+      } else if (char === ',') {
+        currentRow.push(currentField);
+        currentField = '';
+        i++;
+        continue;
+      } else if (char === '\r') {
+        if (nextChar === '\n') {
+          i++;
+        }
+        currentRow.push(currentField);
+        currentField = '';
+        if (currentRow.some(col => col.trim() !== '')) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        i++;
+        continue;
+      } else if (char === '\n') {
+        currentRow.push(currentField);
+        currentField = '';
+        if (currentRow.some(col => col.trim() !== '')) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        i++;
+        continue;
+      } else {
+        currentField += char;
+        i++;
+        continue;
+      }
+    }
+  }
+
+  if (currentField.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentField);
+    if (currentRow.some(col => col.trim() !== '')) {
+      rows.push(currentRow);
+    }
+  }
+
+  return rows;
+};
+
+/**
+ * Strips formula neutralization prefix if applied during export.
+ * @param {string} val
+ * @returns {string}
+ */
+const sanitizeImportValue = (val) => {
+  if (typeof val !== 'string') return '';
+  const trimmed = val.trim();
+  if (trimmed.startsWith("'") && /^[=+\-@\t\r]/.test(trimmed.slice(1))) {
+    return trimmed.slice(1);
+  }
+  return trimmed;
+};
+
+/**
+ * Parses email entries from CSV string (e.g. "john@work.com (WORK); john@home.com (PERSONAL)").
+ * @param {string} str
+ * @returns {Array<{email: string, label: string}>}
+ */
+const parseEmailsFromCsv = (str) => {
+  if (!str || typeof str !== 'string') return [];
+  return str.split(';').map(item => {
+    const clean = item.trim();
+    const match = clean.match(/^([^()]+)(?:\s*\(([^()]+)\))?$/);
+    if (match) {
+      return {
+        email: sanitizeImportValue(match[1]),
+        label: sanitizeImportValue(match[2] || 'WORK')
+      };
+    }
+    return { email: sanitizeImportValue(clean), label: 'WORK' };
+  }).filter(e => e.email.length > 0);
+};
+
+/**
+ * Parses phone entries from CSV string (e.g. "+123456 (WORK); +654321 (MOBILE)").
+ * @param {string} str
+ * @returns {Array<{phoneNumber: string, label: string}>}
+ */
+const parsePhonesFromCsv = (str) => {
+  if (!str || typeof str !== 'string') return [];
+  return str.split(';').map(item => {
+    const clean = item.trim();
+    const match = clean.match(/^([^()]+)(?:\s*\(([^()]+)\))?$/);
+    if (match) {
+      return {
+        phoneNumber: sanitizeImportValue(match[1]),
+        label: sanitizeImportValue(match[2] || 'WORK')
+      };
+    }
+    return { phoneNumber: sanitizeImportValue(clean), label: 'WORK' };
+  }).filter(p => p.phoneNumber.length > 0);
+};
+
 export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess }) => {
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -38,18 +192,20 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
         return;
       }
 
-      // Format CSV
+      // Format CSV with RFC 4180 compliance and formula injection protection
       const headers = ['First Name', 'Last Name', 'Title', 'Emails', 'Phones', 'Notes'];
-      const rows = contacts.map(c => [
-        `"${c?.firstName || ''}"`,
-        `"${c?.lastName || ''}"`,
-        `"${c?.title || ''}"`,
-        `"${(c?.emails || []).map(e => `${e.email} (${e.label})`).join('; ')}"`,
-        `"${(c?.phones || []).map(p => `${p.phoneNumber} (${p.label})`).join('; ')}"`,
-        `"${(c?.notes || '').replace(/"/g, '""')}"`
-      ]);
+      const headerRow = headers.map(h => `"${h}"`).join(',');
 
-      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const rows = contacts.map(c => [
+        serializeCsvField(c?.firstName),
+        serializeCsvField(c?.lastName),
+        serializeCsvField(c?.title),
+        serializeCsvField((c?.emails || []).map(e => `${e.email} (${e.label || 'WORK'})`).join('; ')),
+        serializeCsvField((c?.phones || []).map(p => `${p.phoneNumber} (${p.label || 'WORK'})`).join('; ')),
+        serializeCsvField(c?.notes)
+      ].join(','));
+
+      const csvContent = [headerRow, ...rows].join('\r\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -78,29 +234,37 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
         if (file.name.endsWith('.json')) {
           const parsed = JSON.parse(text);
           if (Array.isArray(parsed)) {
-            setPreviewData(parsed);
+            const valid = parsed.filter(c => c && (c.firstName || c.lastName));
+            if (valid.length === 0) throw new Error('No valid contacts found in JSON file');
+            setPreviewData(valid);
           } else {
             throw new Error('JSON file must contain an array of contacts');
           }
         } else if (file.name.endsWith('.csv')) {
-          // Simple CSV Parser
-          const lines = text.split('\n').filter(l => l.trim() !== '');
-          if (lines.length <= 1) throw new Error('CSV file is empty or missing data rows');
-          
+          const rows = parseCsv(text);
+          if (rows.length <= 1) throw new Error('CSV file is empty or missing data rows');
+
           const parsed = [];
-          for (let i = 1; i < lines.length; i++) {
-            const cols = lines[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
+          for (let i = 1; i < rows.length; i++) {
+            const cols = rows[i];
             if (cols.length >= 2) {
-              parsed.push({
-                firstName: cols[0] || 'Unknown',
-                lastName: cols[1] || 'Contact',
-                title: cols[2] || '',
-                emails: cols[3] ? [{ email: cols[3].split(';')[0].split(' ')[0], label: 'WORK' }] : [],
-                phones: cols[4] ? [{ phoneNumber: cols[4].split(';')[0].split(' ')[0], label: 'WORK' }] : [],
-                notes: cols[5] || ''
-              });
+              const firstName = sanitizeImportValue(cols[0]);
+              const lastName = sanitizeImportValue(cols[1]);
+
+              if (firstName || lastName) {
+                parsed.push({
+                  firstName: firstName || 'Unnamed',
+                  lastName: lastName || 'Contact',
+                  title: sanitizeImportValue(cols[2] || ''),
+                  emails: parseEmailsFromCsv(cols[3] || ''),
+                  phones: parsePhonesFromCsv(cols[4] || ''),
+                  notes: sanitizeImportValue(cols[5] || '')
+                });
+              }
             }
           }
+
+          if (parsed.length === 0) throw new Error('No valid contact entries found in CSV');
           setPreviewData(parsed);
         } else {
           throw new Error('Please select a .json or .csv file');
@@ -241,3 +405,4 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
     </div>
   );
 };
+

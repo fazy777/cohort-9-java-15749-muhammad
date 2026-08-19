@@ -32,6 +32,10 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "token_version", nullable = false)
+    @Builder.Default
+    private Long tokenVersion = 1L;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -134,8 +134,9 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
             </div>
 
             <div className="form-group">
-              <label>Current Password *</label>
+              <label htmlFor="current-password">Current Password *</label>
               <input
+                id="current-password"
                 type="password"
                 className="input-control"
                 placeholder="••••••••"
@@ -146,8 +147,9 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
             </div>
 
             <div className="form-group">
-              <label>New Password *</label>
+              <label htmlFor="new-password">New Password *</label>
               <input
+                id="new-password"
                 type="password"
                 className="input-control"
                 placeholder="••••••••"
@@ -158,8 +160,9 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
             </div>
 
             <div className="form-group">
-              <label>Confirm New Password *</label>
+              <label htmlFor="confirm-password">Confirm New Password *</label>
               <input
+                id="confirm-password"
                 type="password"
                 className="input-control"
                 placeholder="••••••••"

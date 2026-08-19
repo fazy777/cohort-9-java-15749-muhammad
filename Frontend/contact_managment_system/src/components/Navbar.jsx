@@ -14,7 +14,13 @@ export const Navbar = ({ onOpenProfile }) => {
 
         {user && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div className="user-badge" onClick={onOpenProfile} title="View Profile & Settings">
+            <button
+              type="button"
+              className="user-badge"
+              onClick={onOpenProfile}
+              title="View Profile & Settings"
+              aria-label="View Profile and Settings"
+            >
               <div style={{
                 width: '32px',
                 height: '32px',
@@ -32,7 +38,7 @@ export const Navbar = ({ onOpenProfile }) => {
               <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>
                 {user.firstName} {user.lastName}
               </span>
-            </div>
+            </button>
 
             <button
               className="btn btn-secondary btn-sm"

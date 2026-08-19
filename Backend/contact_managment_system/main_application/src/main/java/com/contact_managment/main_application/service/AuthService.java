@@ -10,6 +10,7 @@ import com.contact_managment.main_application.repository.UserRepository;
 import com.contact_managment.main_application.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +27,7 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        log.info("Attempting registration for email: {} or phone: {}", request.getEmail(), request.getPhone());
+        log.debug("Registration attempt received");
 
         if (!StringUtils.hasText(request.getEmail()) && !StringUtils.hasText(request.getPhone())) {
             throw new BadRequestException("Either Email or Phone number must be provided for registration");
@@ -43,15 +44,23 @@ public class AuthService {
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
-                .email(StringUtils.hasText(request.getEmail()) ? request.getEmail() : null)
-                .phone(StringUtils.hasText(request.getPhone()) ? request.getPhone() : null)
+                .email(StringUtils.hasText(request.getEmail()) ? request.getEmail().trim().toLowerCase() : null)
+                .phone(StringUtils.hasText(request.getPhone()) ? request.getPhone().trim() : null)
                 .password(passwordEncoder.encode(request.getPassword()))
+                .tokenVersion(1L)
                 .build();
 
-        User savedUser = userRepository.save(user);
+        User savedUser;
+        try {
+            savedUser = userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Database conflict during registration: {}", ex.getMessage());
+            throw new UserAlreadyExistsException("User with provided email or phone already exists");
+        }
+
         log.info("User registered successfully with ID: {}", savedUser.getId());
 
-        String token = tokenProvider.generateTokenFromUserId(savedUser.getId());
+        String token = tokenProvider.generateToken(savedUser.getId(), savedUser.getTokenVersion());
 
         return AuthResponse.builder()
                 .token(token)
@@ -65,17 +74,22 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        log.info("Login attempt with credential: {}", request.getCredential());
+        log.debug("Login attempt received");
 
-        User user = userRepository.findByEmailOrPhone(request.getCredential())
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid email/phone or password"));
+        String credential = request.getCredential() != null ? request.getCredential().trim() : "";
+        User user = userRepository.findByEmailOrPhone(credential)
+                .orElseThrow(() -> {
+                    log.warn("Login failed: User not found");
+                    return new InvalidCredentialsException("Invalid email/phone or password");
+                });
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            log.warn("Invalid password for user credential: {}", request.getCredential());
+            log.warn("Login failed: Invalid password for user ID: {}", user.getId());
             throw new InvalidCredentialsException("Invalid email/phone or password");
         }
 
-        String token = tokenProvider.generateTokenFromUserId(user.getId());
+        Long version = user.getTokenVersion() != null ? user.getTokenVersion() : 1L;
+        String token = tokenProvider.generateToken(user.getId(), version);
         log.info("User logged in successfully with ID: {}", user.getId());
 
         return AuthResponse.builder()
@@ -118,7 +132,10 @@ public class AuthService {
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        // Invalidate previous tokens by incrementing token version
+        user.setTokenVersion((user.getTokenVersion() != null ? user.getTokenVersion() : 1L) + 1L);
         userRepository.save(user);
-        log.info("Password updated successfully for user ID: {}", userId);
+        log.info("Password updated and existing tokens invalidated successfully for user ID: {}", userId);
     }
 }
+

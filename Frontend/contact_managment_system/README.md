@@ -1,18 +1,71 @@
-# React + Vite
+# Contact Management System - Frontend Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A responsive, glassmorphic Single Page Application (SPA) built with React 19 and Vite for the Contact Management System.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Overview
 
-## React Compiler
+The Contact Management System frontend provides an intuitive, high-performance interface for managing user accounts, authentication, and contacts.
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+### Key Capabilities
+* **Authentication**: Self-registration with email or phone, secure login, in-memory/session-managed token persistence, and profile password updates.
+* **Contact Directory**: Real-time search, server-side pagination, sorting, and full CRUD operations.
+* **Multi-Attribute Contacts**: Support for multiple email addresses and phone numbers with custom labels (*Work, Personal, Mobile, Home*).
+* **Import & Export**: RFC 4180-compliant CSV and JSON export and bulk import with spreadsheet formula injection protection.
+* **Glassmorphic UI**: Accessible modal workflows, responsive data tables, and animated toast feedback.
 
-Note: This will impact Vite dev & build performances.
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+* **Framework**: React 19 + Vite 8
+* **Icons**: Lucide React
+* **State Management**: React Context API (`AuthContext`)
+* **Styling**: Modern CSS variables, glassmorphism design system
+
+---
+
+## ⚙️ Environment Variables
+
+Create a `.env` file in this directory based on `.env.example`:
+
+```env
+# Backend API Base URL
+VITE_API_URL=http://localhost:8080/api
+```
+
+---
+
+## 📦 Installation & Setup
+
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Start Development Server**:
+   ```bash
+   npm run dev
+   ```
+   The application will be available at `http://localhost:5173`.
+
+3. **Build for Production**:
+   ```bash
+   npm run build
+   ```
+   The compiled static assets will be in the `dist/` directory.
+
+4. **Lint Code**:
+   ```bash
+   npm run lint
+   ```
+
+---
+
+## 🔐 Authentication & Session Flow
+
+1. **Login & Registration**: Submits user credentials to the Spring Boot backend API.
+2. **Session Storage**: JWT tokens are maintained in session state with guarded access utilities (`safeStorage`), avoiding unsafe `localStorage` exposure.
+3. **Automatic Revalidation**: Upon initial load, the user session is verified and fresh profile data is retrieved from `/api/auth/profile`.
+4. **Token Invalidation**: Changing passwords immediately invalidates existing tokens across devices via backend token versioning.

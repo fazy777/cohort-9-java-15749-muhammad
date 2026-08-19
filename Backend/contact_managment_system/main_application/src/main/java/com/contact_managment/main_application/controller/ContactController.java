@@ -88,8 +88,11 @@ public class ContactController {
     @PostMapping("/import")
     public ResponseEntity<ApiResponse<Integer>> importContacts(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @RequestBody List<ContactDto> contactDtos) {
+            @RequestBody @Valid List<@Valid ContactDto> contactDtos) {
 
+        if (contactDtos == null || contactDtos.isEmpty()) {
+            throw new com.contact_managment.main_application.exception.BadRequestException("Import list cannot be empty");
+        }
         int importedCount = contactService.importContacts(getUserId(userPrincipal), contactDtos);
         return ResponseEntity.ok(ApiResponse.success("Imported " + importedCount + " contacts successfully", importedCount));
     }

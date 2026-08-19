@@ -29,9 +29,28 @@ public class ContactService {
     private final ContactRepository contactRepository;
     private final UserRepository userRepository;
 
+    private static final java.util.Set<String> ALLOWED_SORT_FIELDS = java.util.Set.of("id", "firstName", "lastName", "title", "createdAt", "updatedAt");
+    private static final int MAX_PAGE_SIZE = 100;
+
     @Transactional(readOnly = true)
     public PagedResponse<ContactDto> getContacts(Long userId, String search, int page, int size, String sortBy, String sortDir) {
         log.debug("Fetching contacts for user ID: {}, search: '{}', page: {}, size: {}", userId, search, page, size);
+
+        if (page < 0) {
+            throw new com.contact_managment.main_application.exception.BadRequestException("Page index must not be less than zero");
+        }
+        if (size <= 0) {
+            throw new com.contact_managment.main_application.exception.BadRequestException("Page size must be greater than zero");
+        }
+        if (size > MAX_PAGE_SIZE) {
+            throw new com.contact_managment.main_application.exception.BadRequestException("Page size must not exceed " + MAX_PAGE_SIZE);
+        }
+        if (!StringUtils.hasText(sortBy) || !ALLOWED_SORT_FIELDS.contains(sortBy)) {
+            throw new com.contact_managment.main_application.exception.BadRequestException("Invalid sort field: '" + sortBy + "'. Allowed fields are: " + String.join(", ", ALLOWED_SORT_FIELDS));
+        }
+        if (!StringUtils.hasText(sortDir) || (!sortDir.equalsIgnoreCase("asc") && !sortDir.equalsIgnoreCase("desc"))) {
+            throw new com.contact_managment.main_application.exception.BadRequestException("Invalid sort direction: '" + sortDir + "'. Allowed values are 'asc' or 'desc'");
+        }
 
         User user = getUserById(userId);
 
@@ -171,15 +190,22 @@ public class ContactService {
 
     @Transactional
     public int importContacts(Long userId, List<ContactDto> contactDtos) {
+        if (contactDtos == null || contactDtos.isEmpty()) {
+            throw new com.contact_managment.main_application.exception.BadRequestException("Contacts list cannot be empty");
+        }
         log.info("Importing {} contacts for user ID: {}", contactDtos.size(), userId);
         int count = 0;
         for (ContactDto dto : contactDtos) {
-            if (StringUtils.hasText(dto.getFirstName()) && StringUtils.hasText(dto.getLastName())) {
-                createContact(userId, dto);
-                count++;
+            if (dto == null) {
+                throw new com.contact_managment.main_application.exception.BadRequestException("Imported contact entry cannot be null");
             }
+            if (!StringUtils.hasText(dto.getFirstName()) || !StringUtils.hasText(dto.getLastName())) {
+                throw new com.contact_managment.main_application.exception.BadRequestException("First name and Last name are required for all imported contacts");
+            }
+            createContact(userId, dto);
+            count++;
         }
-        log.info("Successfully imported {} contacts", count);
+        log.info("Successfully imported {} contacts for user ID: {}", count, userId);
         return count;
     }
 

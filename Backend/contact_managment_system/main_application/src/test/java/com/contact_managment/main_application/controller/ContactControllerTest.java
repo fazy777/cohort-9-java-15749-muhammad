@@ -54,7 +54,7 @@ class ContactControllerTest {
 
     @BeforeEach
     void setUp() {
-        userPrincipal = new UserPrincipal(1L, "John", "Doe", "john@example.com", "+123456", "pass", Collections.emptyList());
+        userPrincipal = new UserPrincipal(1L, "John", "Doe", "john@example.com", "+123456", 1L, "pass", Collections.emptyList());
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
 
@@ -64,6 +64,11 @@ class ContactControllerTest {
                 .lastName("Wonderland")
                 .title("Software Engineer")
                 .build();
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test

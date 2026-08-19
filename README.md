@@ -1,4 +1,4 @@
-# 📇 Contact Management System (CMS)
+# Contact Management System (CMS)
 
 [![GitHub License](https://img.shields.io/github/license/fazy777/cohort-9-java-15749-muhammad?color=blue)](https://github.com/fazy777/cohort-9-java-15749-muhammad/blob/main/LICENSE)
 [![GitHub Issues](https://img.shields.io/github/issues/fazy777/cohort-9-java-15749-muhammad?color=red)](https://github.com/fazy777/cohort-9-java-15749-muhammad/issues)
@@ -9,58 +9,59 @@ A modern, secure, and responsive full-stack **Contact Management System** built 
 
 ---
 
-## 📖 Table of Contents
-1. [Project Overview](#-project-overview)
-2. [Technology Stack](#-technology-stack)
-3. [Key Features](#-key-features)
-4. [System Architecture & User Flow](#-system-architecture--user-flow)
-5. [Database Schema Design](#-database-schema-design)
-6. [Application Screens & Components](#-application-screens--components)
-7. [Directory Structure](#-directory-structure)
-8. [Getting Started & Installation](#-getting-started--installation)
-9. [Code Quality & SonarQube Integration](#-code-quality--sonarqube-integration)
-10. [Unit Testing](#-unit-testing)
+## Table of Contents
+1. [Project Overview](#project-overview)
+2. [Technology Stack](#technology-stack)
+3. [Key Features](#key-features)
+4. [System Architecture & User Flow](#system-architecture--user-flow)
+5. [Database Schema Design](#database-schema-design)
+6. [Application Screens & Components](#application-screens--components)
+7. [Directory Structure](#directory-structure)
+8. [Getting Started & Installation](#getting-started--installation)
+9. [Code Quality & SonarQube Integration](#code-quality--sonarqube-integration)
+10. [Unit Testing](#unit-testing)
 
 ---
 
-## 🔍 Project Overview
+## Project Overview
 
 The **Contact Management System (CMS)** is a web-based, full-stack application designed to simplify contact management. Users can securely register accounts, log in, and manage their contact books. The system supports full CRUD operations, pagination, robust searching, profiling, logging, error handling, and file import/export.
 
 ### Key Objectives
-* **Security First:** Robust authentication with secure credentials storage, session handling, and password reset functionality.
+* **Security First:** Robust authentication with secure credentials storage, session handling, token versioning for instant revocation upon password change, and BCrypt hashing.
 * **Modern UX:** A fluid, single-page React frontend featuring interactive modals, dashboards, and smooth pagination.
 * **Code Quality:** Clean Java package architecture, high unit test coverage, and SonarQube code quality gates.
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 The application is implemented strictly using the proposed technologies and tools:
 
 | Component | Technology | Badges |
 | :--- | :--- | :--- |
-| **Backend Language** | Java (OpenJDK) | ![Java](https://img.shields.io/badge/Java-ED8B00?style=flat-square&logo=openjdk&logoColor=white) |
-| **Backend Framework** | Spring Boot | ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=flat-square&logo=spring-boot&logoColor=white) |
+| **Backend Language** | Java (OpenJDK 21) | ![Java](https://img.shields.io/badge/Java-ED8B00?style=flat-square&logo=openjdk&logoColor=white) |
+| **Backend Framework** | Spring Boot 3 | ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=flat-square&logo=spring-boot&logoColor=white) |
 | **Data Access / ORM** | Spring Data JPA / Hibernate | ![Hibernate](https://img.shields.io/badge/Hibernate-59666C?style=flat-square&logo=hibernate&logoColor=white) |
-| **Frontend Framework** | React.js | ![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB) |
-| **Database Engine** | SQL Server | ![MS SQL Server](https://img.shields.io/badge/MS_SQL_Server-CC2927?style=flat-square&logo=microsoft-sql-server&logoColor=white) |
+| **Frontend Framework** | React.js 19 + Vite 8 | ![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB) |
+| **Database Engine** | SQL Server (Prod) / H2 (Dev & Tests) | ![MS SQL Server](https://img.shields.io/badge/MS_SQL_Server-CC2927?style=flat-square&logo=microsoft-sql-server&logoColor=white) |
 | **Application Logging** | SLF4J / Logback | ![SLF4J](https://img.shields.io/badge/SLF4J-gray?style=flat-square) ![Logback](https://img.shields.io/badge/Logback-gray?style=flat-square) |
-| **Unit Testing & Mocking** | JUnit & Mockito | ![JUnit](https://img.shields.io/badge/JUnit5-25A162?style=flat-square&logo=junit5&logoColor=white) ![Mockito](https://img.shields.io/badge/Mockito-gray?style=flat-square) |
+| **Unit Testing & Mocking** | JUnit 5 & Mockito | ![JUnit](https://img.shields.io/badge/JUnit5-25A162?style=flat-square&logo=junit5&logoColor=white) ![Mockito](https://img.shields.io/badge/Mockito-gray?style=flat-square) |
 | **Code Quality Gate** | SonarQube | ![SonarQube](https://img.shields.io/badge/SonarQube-4E9BCD?style=flat-square&logo=sonarqube&logoColor=white) |
 | **Version Control** | Git | ![Git](https://img.shields.io/badge/Git-F05032?style=flat-square&logo=git&logoColor=white) |
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
-### 🔐 1. User Authentication & Authorization
+### 1. User Authentication & Authorization
 * **Self-Registration:** Allow new users to sign up using either their email address or phone number.
-* **Secure Login:** Session token generation (JWT/Spring Security) to authorize subsequent API requests.
+* **Secure Login:** Session token generation (JWT / Spring Security) to authorize subsequent API requests.
+* **Token Invalidation:** User token versioning invalidates old JWTs immediately upon password reset.
 * **Password Management:** Secure password hashing (BCrypt) and in-app password reset features.
 
-### 📇 2. Contacts Management
-* **List Pagination:** Paginated contact fetches on the dashboard to prevent client-side performance degradation.
+### 2. Contacts Management
+* **List Pagination & Sorting:** Paginated contact fetches with validated sort parameters.
 * **Dynamic Search & Filtering:** Quick search on contact lists by First Name or Last Name.
 * **Comprehensive Profiles:** Detailed profile views for contacts, supporting:
   * First Name, Last Name, and Job Title.
@@ -68,20 +69,20 @@ The application is implemented strictly using the proposed technologies and tool
   * Multiple Phone Numbers (labeled as *Work, Home, Mobile, etc.*).
 * **Full CRUD Operations:** Modals to create, read detail, update data, and securely delete contacts with confirmation dialogues.
 
-### 📝 3. Logging & Exception Handling
-* **Enterprise Logging:** Asynchronous logging of transactions, user sessions, error traces, and DB activities using **SLF4J** & **Logback**.
-* **Global Exception Handling:** Global Exception Handler (`@ControllerAdvice` & `@ExceptionHandler`) to intercept errors and return clean, user-friendly JSON error messages while hiding internal stack traces.
+### 3. Logging & Exception Handling
+* **Enterprise Logging:** Asynchronous logging using **SLF4J** & **Logback** with finite history retention and total size caps.
+* **Global Exception Handling:** Global Exception Handler (`@RestControllerAdvice`) returning standardized `ErrorResponse` while masking internal server details.
 
-### 🧪 4. Testing & Code Quality
-* **Unit Testing:** Comprehensive test suites using **JUnit** and **Mockito** covering Controllers, Services, and Repositories.
+### 4. Testing & Code Quality
+* **Unit Testing:** Comprehensive test suites using **JUnit 5** and **Mockito** covering Controllers, Services, and Repositories.
 * **SonarQube Analysis:** Automated code scanning for code smells, bugs, security vulnerabilities, and coverage metrics.
 
-### 📤 5. Additional Features (Optional)
-* **Import/Export:** Export contact books to CSV/JSON files, and bulk-import contacts from external templates.
+### 5. Additional Features
+* **Import/Export:** Export contact books to RFC 4180-compliant CSV (with formula injection defense) and JSON files, and bulk-import contacts.
 
 ---
 
-## 🔄 System Architecture & User Flow
+## System Architecture & User Flow
 
 ```mermaid
 graph TD
@@ -103,7 +104,7 @@ graph TD
 
 ---
 
-## 🗄️ Database Schema Design
+## Database Schema Design
 
 The relational SQL Server database structure designed for this application includes relationships linking users to multiple contacts, and contacts to multiple emails and phones:
 
@@ -116,6 +117,7 @@ erDiagram
         string password_hash "BCrypt"
         string first_name
         string last_name
+        int token_version "Token invalidation tracker"
     }
     CONTACTS {
         int id PK "Identity"
@@ -123,11 +125,12 @@ erDiagram
         string first_name
         string last_name
         string title "Job Title"
+        string notes "Notes"
     }
     CONTACT_EMAILS {
         int id PK "Identity"
         int contact_id FK "References CONTACTS.id"
-        string email_address
+        string email
         string label "e.g., Work, Personal, Other"
     }
     CONTACT_PHONES {
@@ -144,112 +147,128 @@ erDiagram
 
 ---
 
-## 🖥️ Application Screens & Components
+## Application Screens & Components
 
-### 🔑 1. Login & Registration Screen
-* **Components:** `LoginForm`, `RegistrationForm`.
+### 1. Login & Registration Screen
+* **Components:** `AuthForm` (switching between Login and Sign Up).
 * **Operations:** User sign-up (email/phone), login validation, session initiation, and automatic redirection to the dashboard upon authentication success.
 
-### 📋 2. Contact Management Screen (Dashboard)
-* **Components:** Paginated Contact List, Search Bar, Modals for CRUD operations.
+### 2. Contact Management Screen (Dashboard)
+* **Components:** `ContactTable`, Search & Pagination controls, Action Buttons.
 * **Modals:**
-  * **Modal 1 (Update Contact):** Form prepopulated with existing details. Save changes or cancel.
-  * **Modal 2 (Create Contact):** Form for adding a contact with multiple email/phone fields.
-  * **Modal 3 (Delete Confirmation):** Safe deletion check to prevent accidental loss of data.
-* **Operations:** Page navigation, real-time filtering, list refresh, and modal toggles.
+  * **ContactFormModal (Create / Update):** Form for creating or editing contacts with dynamic email and phone rows.
+  * **ContactDetailModal:** Comprehensive view of all contact details.
+  * **DeleteConfirmModal:** Safe deletion confirmation dialogue.
+  * **ImportExportModal:** CSV and JSON export and bulk file import.
 
-### 👤 3. User Profile Screen
-* **Components:** User profile card, password update triggers, and log out tools.
+### 3. User Profile Screen
+* **Components:** `UserProfileModal`, `Navbar`.
 * **Modals:**
-  * **Modal 4 (Change Password):** Form validation for old and new passwords.
-* **Operations:** Display current user's profile details, reset password triggers, and session cleanup on logout.
+  * **Change Password Modal:** Form validation for current and new passwords with token invalidation.
 
 ---
 
-## 📂 Directory Structure
+## Directory Structure
 
 A clean, modular folder layout following standard full-stack development patterns:
 
 ```text
-cohort-9-java-15749-muhammad/
+cohort-9-dotnet-12574-muhammad/
 ├── Project Perposal.png              # Reference project design
 ├── README.md                         # Detailed project documentation
 ├── .coderabbit.yaml                  # Automated PR reviewer settings
 │
-├── backend/                          # Backend API (Java + Spring Boot)
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/example/cms/ # Java controllers, services, repositories, configurations
-│   │   │   └── resources/            # application.properties (configurations)
-│   │   └── test/                     # JUnit and Mockito test files
-│   ├── pom.xml                       # Maven dependencies configurations
-│   └── mvnw                          # Maven wrapper
+├── Backend/                          # Backend API (Java + Spring Boot)
+│   └── contact_managment_system/
+│       └── main_application/
+│           ├── src/
+│           │   ├── main/
+│           │   │   ├── java/com/contact_managment/main_application/ # Controllers, Services, Repositories, Security, Entities, DTOs
+│           │   │   └── resources/                                   # application.properties, application-dev.properties, logback-spring.xml
+│           │   └── test/                                            # JUnit 5 & Mockito test files
+│           ├── pom.xml                                              # Maven dependencies configurations
+│           └── mvnw / mvnw.cmd                                      # Maven wrapper
 │
-└── frontend/                         # Frontend App (React.js + JS)
-    ├── src/
-    │   ├── assets/                   # Theme assets & images
-    │   ├── components/               # Shared components (Modals, Forms, Buttons)
-    │   ├── context/                  # AuthContext and App State
-    │   ├── services/                 # Axios-based API services
-    │   ├── pages/                    # Main views (Login, Dashboard, Profile)
-    │   └── App.jsx                   # Routing and layout setup
-    └── package.json                  # Node.js dependencies
+└── Frontend/                         # Frontend App (React.js + Vite)
+    └── contact_managment_system/
+        ├── src/
+        │   ├── components/           # UI components (Modals, Forms, Tables, Navbar, Toast)
+        │   ├── context/              # AuthContext (Authentication & Session State)
+        │   ├── services/             # Fetch-based API client (api.js)
+        │   ├── utils/                # Utility helpers (safeStorage)
+        │   ├── App.jsx               # Main application container
+        │   ├── main.jsx              # React entrypoint & root rendering
+        │   └── index.css             # Glassmorphic UI stylesheet
+        ├── package.json              # Node.js dependencies & scripts
+        └── vite.config.js            # Vite build configuration
 ```
 
 ---
 
-## 🚀 Getting Started & Installation
+## Getting Started & Installation
 
-### 📋 Prerequisites
+### Prerequisites
 * [Java Development Kit (JDK) 17 or higher](https://www.oracle.com/java/technologies/downloads/)
 * [Maven](https://maven.apache.org/) (or use the included Maven wrapper `mvnw`)
 * [Node.js](https://nodejs.org/) (v18+) & `npm`
-* [SQL Server](https://www.microsoft.com/en-us/sql-server/) (Express or Developer Edition)
+* [SQL Server](https://www.microsoft.com/en-us/sql-server/) (Production) or H2 (included for local development)
 
 ---
 
-### 💻 Backend Setup (Spring Boot)
+### Backend Setup (Spring Boot)
 
 1. **Navigate to the Backend directory:**
    ```bash
    cd Backend/contact_managment_system/main_application
    ```
-2. **Update Connection String:**
-   Open `src/main/resources/application.properties` and update connection configuration to match your MS SQL Server credentials:
+
+2. **Configure Environment / Properties:**
+   For local development, the `dev` profile with in-memory H2 is active by default.
+   For production with MS SQL Server, configure the database connection and JWT secret:
    ```properties
-   spring.datasource.url=jdbc:sqlserver://YOUR_SERVER_NAME;databaseName=ContactDb;encrypt=true;trustServerCertificate=true;
+   spring.datasource.url=jdbc:sqlserver://YOUR_SERVER_NAME:1433;databaseName=ContactDB;encrypt=true;trustServerCertificate=false
    spring.datasource.username=YOUR_DB_USERNAME
    spring.datasource.password=YOUR_DB_PASSWORD
-   spring.jpa.hibernate.ddl-auto=update
+   jwt.secret=YOUR_SECURE_256BIT_SECRET_KEY
    ```
+   *(Note: Set `trustServerCertificate=true` only for isolated local testing if CA certificates are not installed).*
+
 3. **Run the Application:**
-   Using the Maven wrapper:
    ```bash
+   # On Linux/macOS
    ./mvnw spring-boot:run
+
+   # On Windows
+   .\mvnw.cmd spring-boot:run
    ```
-   The backend API will start running (typically on `http://localhost:8080`).
+   The backend API starts on `http://localhost:8080`.
 
 ---
 
-### ⚛️ Frontend Setup (React)
+### Frontend Setup (React)
 
 1. **Navigate to the Frontend directory:**
    ```bash
    cd Frontend/contact_managment_system
    ```
+
 2. **Install dependencies:**
    ```bash
    npm install
    ```
-3. **Run in development mode:**
+
+3. **Configure API URL (Optional):**
+   Copy `.env.example` to `.env` and set `VITE_API_URL` if backend is on a non-default host/port.
+
+4. **Run in development mode:**
    ```bash
    npm run dev
    ```
-   The client application will spin up at `http://localhost:5173`.
+   The client application will run at `http://localhost:5173`.
 
 ---
 
-## 🔍 Code Quality & SonarQube Integration
+## Code Quality & SonarQube Integration
 
 To run code quality scans locally using SonarQube and Maven:
 
@@ -265,7 +284,7 @@ To run code quality scans locally using SonarQube and Maven:
 
 ---
 
-## 🧪 Unit Testing
+## Unit Testing
 
 Unit tests are written using JUnit 5 and Mockito.
 
@@ -277,7 +296,7 @@ cd Backend/contact_managment_system/main_application
 
 ---
 
-## 📄 License & Contact
+## License & Contact
 
 * **Author:** Muhammad Faizan
 * **Company / Organization:** 10Pearls

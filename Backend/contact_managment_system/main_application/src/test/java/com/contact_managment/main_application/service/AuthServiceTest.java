@@ -4,6 +4,7 @@ import com.contact_managment.main_application.dto.*;
 import com.contact_managment.main_application.entity.User;
 import com.contact_managment.main_application.exception.BadRequestException;
 import com.contact_managment.main_application.exception.InvalidCredentialsException;
+import com.contact_managment.main_application.exception.ResourceNotFoundException;
 import com.contact_managment.main_application.exception.UserAlreadyExistsException;
 import com.contact_managment.main_application.repository.UserRepository;
 import com.contact_managment.main_application.security.JwtTokenProvider;
@@ -16,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -48,6 +50,8 @@ class AuthServiceTest {
                 .email("john.doe@example.com")
                 .phone("+1234567890")
                 .password("encodedPassword")
+                .tokenVersion(1L)
+                .createdAt(LocalDateTime.now())
                 .build();
     }
 
@@ -63,15 +67,28 @@ class AuthServiceTest {
 
         when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
         when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
-        when(userRepository.save(any(User.class))).thenReturn(sampleUser);
-        when(tokenProvider.generateTokenFromUserId(1L)).thenReturn("jwt-token-123");
+        when(userRepository.saveAndFlush(any(User.class))).thenReturn(sampleUser);
+        when(tokenProvider.generateToken(1L, 1L)).thenReturn("jwt-token-123");
 
         AuthResponse response = authService.register(request);
 
         assertNotNull(response);
         assertEquals("jwt-token-123", response.getToken());
         assertEquals("John", response.getFirstName());
-        verify(userRepository, times(1)).save(any(User.class));
+        verify(userRepository, times(1)).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when registering with neither email nor phone")
+    void register_NeitherEmailNorPhone_ThrowsBadRequest() {
+        RegisterRequest request = RegisterRequest.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .password("password123")
+                .build();
+
+        assertThrows(BadRequestException.class, () -> authService.register(request));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
     }
 
     @Test
@@ -87,7 +104,23 @@ class AuthServiceTest {
         when(userRepository.existsByEmail(request.getEmail())).thenReturn(true);
 
         assertThrows(UserAlreadyExistsException.class, () -> authService.register(request));
-        verify(userRepository, never()).save(any(User.class));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when phone number already exists")
+    void register_PhoneAlreadyExists() {
+        RegisterRequest request = RegisterRequest.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .phone("+1234567890")
+                .password("password123")
+                .build();
+
+        when(userRepository.existsByPhone(request.getPhone())).thenReturn(true);
+
+        assertThrows(UserAlreadyExistsException.class, () -> authService.register(request));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
     }
 
     @Test
@@ -100,7 +133,7 @@ class AuthServiceTest {
 
         when(userRepository.findByEmailOrPhone(request.getCredential())).thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
-        when(tokenProvider.generateTokenFromUserId(1L)).thenReturn("jwt-token-123");
+        when(tokenProvider.generateToken(1L, 1L)).thenReturn("jwt-token-123");
 
         AuthResponse response = authService.login(request);
 
@@ -124,8 +157,29 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Should change password successfully")
-    void changePassword_Success() {
+    @DisplayName("Should retrieve current user profile successfully")
+    void getCurrentUserProfile_Success() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+
+        UserProfileDto profile = authService.getCurrentUserProfile(1L);
+
+        assertNotNull(profile);
+        assertEquals(1L, profile.getId());
+        assertEquals("john.doe@example.com", profile.getEmail());
+        assertEquals("John", profile.getFirstName());
+    }
+
+    @Test
+    @DisplayName("Should throw exception when getting profile of unknown user")
+    void getCurrentUserProfile_UnknownUser_ThrowsNotFound() {
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> authService.getCurrentUserProfile(999L));
+    }
+
+    @Test
+    @DisplayName("Should change password successfully and increment tokenVersion")
+    void changePassword_Success_IncrementsTokenVersion() {
         ChangePasswordRequest request = ChangePasswordRequest.builder()
                 .currentPassword("oldPass")
                 .newPassword("newPass123")
@@ -139,6 +193,7 @@ class AuthServiceTest {
 
         verify(userRepository, times(1)).save(sampleUser);
         assertEquals("newEncodedPassword", sampleUser.getPassword());
+        assertEquals(2L, sampleUser.getTokenVersion());
     }
 
     @Test
@@ -155,3 +210,4 @@ class AuthServiceTest {
         assertThrows(BadRequestException.class, () -> authService.changePassword(1L, request));
     }
 }
+

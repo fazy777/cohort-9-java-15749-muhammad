@@ -13,6 +13,12 @@ dist/
 **/dist/
 dist-ssr/
 *.local
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
 
 # Java / Maven
 target/

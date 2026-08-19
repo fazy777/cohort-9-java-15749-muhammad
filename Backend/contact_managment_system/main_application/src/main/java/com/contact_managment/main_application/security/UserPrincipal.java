@@ -22,6 +22,8 @@ public class UserPrincipal implements UserDetails {
     private String email;
     private String phone;
 
+    private Long tokenVersion;
+
     @JsonIgnore
     private String password;
 
@@ -35,6 +37,7 @@ public class UserPrincipal implements UserDetails {
                 user.getLastName(),
                 user.getEmail(),
                 user.getPhone(),
+                user.getTokenVersion() != null ? user.getTokenVersion() : 1L,
                 user.getPassword(),
                 authorities
         );
