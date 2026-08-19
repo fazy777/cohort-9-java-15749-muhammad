@@ -2,10 +2,20 @@ reviews:
   high_level_summary: true
   review_status: true
   poem: false
+
   auto_review:
     base_branches:
       - main
       - develop
+
   path_instructions:
     - path: "**/*"
-      instructions: "Flag missing exception handling and null checks as HIGH. Flag raw types and unchecked casts as MEDIUM. Check for proper OOP principles and dependency injection."
+      instructions: >
+        Review JavaScript, React, and backend code for bugs, security issues,
+        missing error handling, missing null/undefined checks, API validation,
+        improper async/await usage, unhandled promise rejections, database
+        query issues, authentication/authorization problems, exposed secrets,
+        inefficient React rendering, incorrect hook usage, and unnecessary
+        duplication. Flag security and data-loss risks as HIGH. Flag bugs and
+        reliability issues as MEDIUM. Prefer simple, maintainable functional
+        React patterns over unnecessary OOP abstractions.
