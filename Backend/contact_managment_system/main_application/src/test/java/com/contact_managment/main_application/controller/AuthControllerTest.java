@@ -1,6 +1,8 @@
 package com.contact_managment.main_application.controller;
 
 import com.contact_managment.main_application.dto.*;
+import com.contact_managment.main_application.exception.InvalidCredentialsException;
+import com.contact_managment.main_application.exception.UserAlreadyExistsException;
 import com.contact_managment.main_application.security.JwtAuthenticationFilter;
 import com.contact_managment.main_application.security.JwtTokenProvider;
 import com.contact_managment.main_application.security.UserPrincipal;
@@ -12,15 +14,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -36,13 +38,13 @@ class AuthControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private AuthService authService;
 
-    @MockBean
+    @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
-    @MockBean
+    @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
@@ -53,13 +55,14 @@ class AuthControllerTest {
     @BeforeEach
     void setUp() {
         userPrincipal = new UserPrincipal(1L, "John", "Doe", "john@example.com", "+123456", 1L, "pass", Collections.emptyList());
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
+        org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
     @org.junit.jupiter.api.AfterEach
     void tearDown() {
-        SecurityContextHolder.clearContext();
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -93,6 +96,45 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/auth/register with blank password should return 400 Bad Request")
+    void register_BlankPassword_Returns400() throws Exception {
+        RegisterRequest request = RegisterRequest.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("john@example.com")
+                .password("")
+                .build();
+
+        mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/register when user exists should return 409 Conflict")
+    void register_UserExists_Returns409() throws Exception {
+        RegisterRequest request = RegisterRequest.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("john@example.com")
+                .password("password123")
+                .build();
+
+        when(authService.register(any(RegisterRequest.class)))
+                .thenThrow(new UserAlreadyExistsException("User with this email already exists"));
+
+        mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
     @DisplayName("POST /api/auth/login should return 200 OK")
     void login_Returns200() throws Exception {
         LoginRequest request = LoginRequest.builder()
@@ -118,6 +160,25 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/auth/login with invalid credentials should return 401 Unauthorized")
+    void login_InvalidCredentials_Returns401() throws Exception {
+        LoginRequest request = LoginRequest.builder()
+                .credential("john@example.com")
+                .password("wrongpassword")
+                .build();
+
+        when(authService.login(any(LoginRequest.class)))
+                .thenThrow(new InvalidCredentialsException("Invalid email/phone or password"));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
     @DisplayName("GET /api/auth/profile should return current user profile")
     void getProfile_Returns200() throws Exception {
         UserProfileDto profileDto = UserProfileDto.builder()
@@ -137,6 +198,15 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/auth/profile without authentication should return 401 Unauthorized")
+    void getProfile_NullPrincipal_Returns401() throws Exception {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        mockMvc.perform(get("/api/auth/profile"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
     @DisplayName("POST /api/auth/change-password should return 200 OK")
     void changePassword_Returns200() throws Exception {
         ChangePasswordRequest request = ChangePasswordRequest.builder()
@@ -152,5 +222,7 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Password changed successfully"));
+
+        verify(authService).changePassword(eq(1L), any(ChangePasswordRequest.class));
     }
 }

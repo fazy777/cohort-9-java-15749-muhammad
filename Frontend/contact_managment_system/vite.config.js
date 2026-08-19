@@ -3,6 +3,7 @@
  * Configures Vite plugins including React support with null safety and error handling.
  */
 
+import process from 'node:process'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -18,7 +19,7 @@ function createViteConfig() {
       plugins: [react()],
       server: {
         port: 5173,
-        host: true,
+        host: typeof process !== 'undefined' && process.env?.VITE_HOST ? process.env.VITE_HOST : 'localhost',
         strictPort: false,
       },
       build: {

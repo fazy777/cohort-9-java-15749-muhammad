@@ -29,23 +29,26 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
         log.debug("Registration attempt received");
 
-        if (!StringUtils.hasText(request.getEmail()) && !StringUtils.hasText(request.getPhone())) {
+        String email = StringUtils.hasText(request.getEmail()) ? request.getEmail().trim().toLowerCase(java.util.Locale.ROOT) : null;
+        String phone = StringUtils.hasText(request.getPhone()) ? request.getPhone().trim() : null;
+
+        if (!StringUtils.hasText(email) && !StringUtils.hasText(phone)) {
             throw new BadRequestException("Either Email or Phone number must be provided for registration");
         }
 
-        if (StringUtils.hasText(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
-            throw new UserAlreadyExistsException("User with email '" + request.getEmail() + "' already exists");
+        if (StringUtils.hasText(email) && userRepository.existsByEmail(email)) {
+            throw new UserAlreadyExistsException("User with this email already exists");
         }
 
-        if (StringUtils.hasText(request.getPhone()) && userRepository.existsByPhone(request.getPhone())) {
-            throw new UserAlreadyExistsException("User with phone number '" + request.getPhone() + "' already exists");
+        if (StringUtils.hasText(phone) && userRepository.existsByPhone(phone)) {
+            throw new UserAlreadyExistsException("User with this phone number already exists");
         }
 
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
-                .email(StringUtils.hasText(request.getEmail()) ? request.getEmail().trim().toLowerCase() : null)
-                .phone(StringUtils.hasText(request.getPhone()) ? request.getPhone().trim() : null)
+                .email(email)
+                .phone(phone)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .tokenVersion(1L)
                 .build();
@@ -73,10 +76,12 @@ public class AuthService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
         log.debug("Login attempt received");
 
-        String credential = request.getCredential() != null ? request.getCredential().trim() : "";
+        String rawCredential = request.getCredential() != null ? request.getCredential().trim() : "";
+        String credential = rawCredential.toLowerCase(java.util.Locale.ROOT);
         User user = userRepository.findByEmailOrPhone(credential)
                 .orElseThrow(() -> {
                     log.warn("Login failed: User not found");

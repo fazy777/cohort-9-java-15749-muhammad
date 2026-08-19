@@ -24,6 +24,8 @@ public class JwtTokenProvider {
     @Value("${jwt.expiration-ms:86400000}")
     private long jwtExpirationInMs;
 
+    private SecretKey signingKey;
+
     @PostConstruct
     public void init() {
         if (!StringUtils.hasText(jwtSecret) || jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
@@ -32,11 +34,11 @@ public class JwtTokenProvider {
                     "Please set the JWT_SECRET environment variable or configure jwt.secret in application.properties."
             );
         }
+        this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return this.signingKey;
     }
 
     public String generateToken(Authentication authentication) {
@@ -59,48 +61,50 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String generateTokenFromUserId(Long userId) {
-        return generateToken(userId, 1L);
-    }
-
-    public Long getUserIdFromJWT(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
-        return Long.parseLong(claims.getSubject());
-    }
-
-    public Long getTokenVersionFromJWT(String token) {
+    public Claims getClaimsFromJWT(String token) {
+        if (!StringUtils.hasText(token)) {
+            return null;
+        }
         try {
-            Claims claims = Jwts.parser()
+            return Jwts.parser()
                     .verifyWith(getSigningKey())
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
+        } catch (JwtException | IllegalArgumentException ex) {
+            log.debug("Invalid or unparseable JWT token: {}", ex.getMessage());
+            return null;
+        }
+    }
 
+    public Long getUserIdFromJWT(String token) {
+        Claims claims = getClaimsFromJWT(token);
+        if (claims == null || claims.getSubject() == null) {
+            return null;
+        }
+        try {
+            return Long.parseLong(claims.getSubject());
+        } catch (NumberFormatException ex) {
+            log.debug("Could not parse userId from JWT subject '{}': {}", claims.getSubject(), ex.getMessage());
+            return null;
+        }
+    }
+
+    public Long getTokenVersionFromJWT(String token) {
+        Claims claims = getClaimsFromJWT(token);
+        if (claims == null) {
+            return null;
+        }
+        try {
             Number version = claims.get("tokenVersion", Number.class);
             return version != null ? version.longValue() : 1L;
-        } catch (Exception e) {
+        } catch (RequiredTypeException | IllegalArgumentException e) {
             log.debug("Could not extract tokenVersion from JWT: {}", e.getMessage());
             return null;
         }
     }
 
     public boolean validateToken(String authToken) {
-        if (!StringUtils.hasText(authToken)) {
-            return false;
-        }
-        try {
-            Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(authToken);
-            return true;
-        } catch (JwtException ex) {
-            log.debug("Invalid or expired JWT token: {}", ex.getMessage());
-        } catch (IllegalArgumentException ex) {
-            log.debug("JWT claims string is empty: {}", ex.getMessage());
-        }
-        return false;
+        return getClaimsFromJWT(authToken) != null;
     }
 }

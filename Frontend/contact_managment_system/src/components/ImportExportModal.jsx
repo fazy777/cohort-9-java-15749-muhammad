@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { api } from '../services/api';
 import { Download, Upload, FileText, X, CheckCircle } from 'lucide-react';
 
@@ -160,6 +160,7 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [previewData, setPreviewData] = useState(null);
+  const activeReaderRef = useRef(null);
 
   if (!isOpen) return null;
 
@@ -188,24 +189,30 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
     try {
       const contacts = await api.exportContacts();
       if (!Array.isArray(contacts) || contacts.length === 0) {
-        showToast?.('No contacts to export', 'error');
+        showToast?.('No contacts available to export', 'error');
         return;
       }
 
-      // Format CSV with RFC 4180 compliance and formula injection protection
+      // Format CSV with robust quotes escaping and neutralization
       const headers = ['First Name', 'Last Name', 'Title', 'Emails', 'Phones', 'Notes'];
-      const headerRow = headers.map(h => `"${h}"`).join(',');
+      const csvRows = [headers.map(h => serializeCsvField(h)).join(',')];
 
-      const rows = contacts.map(c => [
-        serializeCsvField(c?.firstName),
-        serializeCsvField(c?.lastName),
-        serializeCsvField(c?.title),
-        serializeCsvField((c?.emails || []).map(e => `${e.email} (${e.label || 'WORK'})`).join('; ')),
-        serializeCsvField((c?.phones || []).map(p => `${p.phoneNumber} (${p.label || 'WORK'})`).join('; ')),
-        serializeCsvField(c?.notes)
-      ].join(','));
+      for (const c of contacts) {
+        const emailStr = (c.emails || []).map(e => `${e.email || ''} (${e.label || 'WORK'})`).join('; ');
+        const phoneStr = (c.phones || []).map(p => `${p.phoneNumber || ''} (${p.label || 'WORK'})`).join('; ');
 
-      const csvContent = [headerRow, ...rows].join('\r\n');
+        const row = [
+          serializeCsvField(c.firstName || ''),
+          serializeCsvField(c.lastName || ''),
+          serializeCsvField(c.title || ''),
+          serializeCsvField(emailStr),
+          serializeCsvField(phoneStr),
+          serializeCsvField(c.notes || '')
+        ];
+        csvRows.push(row.join(','));
+      }
+
+      const csvContent = csvRows.join('\r\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -226,7 +233,17 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
     if (!file) return;
 
     const reader = new FileReader();
+    const currentReader = reader;
+    activeReaderRef.current = currentReader;
+
+    reader.onerror = () => {
+      if (activeReaderRef.current !== currentReader) return;
+      showToast?.('Failed to read file from disk', 'error');
+      setPreviewData(null);
+    };
+
     reader.onload = (evt) => {
+      if (activeReaderRef.current !== currentReader) return;
       try {
         const text = evt?.target?.result;
         if (typeof text !== 'string') return;

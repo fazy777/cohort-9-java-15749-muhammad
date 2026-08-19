@@ -120,7 +120,11 @@ const MainDashboard = () => {
       if (contactId != null) {
         await api.deleteContact(contactId);
         showToast('Contact deleted successfully!', 'success');
-        fetchContacts();
+        if (contacts.length === 1 && page > 0) {
+          setPage((prev) => prev - 1);
+        } else {
+          void fetchContacts();
+        }
       }
     } catch (err) {
       showToast(err?.message || 'Failed to delete contact', 'error');

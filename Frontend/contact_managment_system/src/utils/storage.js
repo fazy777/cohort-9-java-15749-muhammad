@@ -27,7 +27,7 @@ export const safeStorage = {
   getItem(key) {
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
-        return window.sessionStorage.getItem(key);
+        return window.sessionStorage.getItem(key) ?? memoryStore.get(key) ?? null;
       }
     } catch (e) {
       console.warn('Browser storage read failed, using memory store:', e);
@@ -44,6 +44,7 @@ export const safeStorage = {
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.setItem(key, value);
+        memoryStore.delete(key);
         return;
       }
     } catch (e) {

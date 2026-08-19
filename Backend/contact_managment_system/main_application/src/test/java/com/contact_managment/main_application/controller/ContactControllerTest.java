@@ -12,10 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
@@ -37,13 +35,13 @@ class ContactControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private ContactService contactService;
 
-    @MockBean
+    @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
-    @MockBean
+    @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
@@ -55,8 +53,9 @@ class ContactControllerTest {
     @BeforeEach
     void setUp() {
         userPrincipal = new UserPrincipal(1L, "John", "Doe", "john@example.com", "+123456", 1L, "pass", Collections.emptyList());
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
+        org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth =
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(auth);
 
         contactDto = ContactDto.builder()
                 .id(10L)
@@ -68,7 +67,7 @@ class ContactControllerTest {
 
     @org.junit.jupiter.api.AfterEach
     void tearDown() {
-        SecurityContextHolder.clearContext();
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
     @Test

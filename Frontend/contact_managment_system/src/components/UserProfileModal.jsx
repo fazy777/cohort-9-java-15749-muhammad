@@ -33,9 +33,11 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
     setSubmitting(true);
     try {
       await api.changePassword({ currentPassword, newPassword });
-      showToast?.('Password changed successfully!', 'success');
+      showToast?.('Password changed successfully! Please sign in again with your new password.', 'success');
       handleResetPasswordForm();
       setShowPasswordModal(false);
+      onClose?.();
+      logout?.();
     } catch (err) {
       showToast?.(err?.message || 'Failed to change password', 'error');
     } finally {

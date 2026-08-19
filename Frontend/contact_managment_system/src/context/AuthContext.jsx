@@ -57,6 +57,18 @@ export const AuthProvider = ({ children }) => {
     void initAuth();
   }, [logout]);
 
+  useEffect(() => {
+    const handleUnauthorizedEvent = () => {
+      logout();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth:unauthorized', handleUnauthorizedEvent);
+      return () => {
+        window.removeEventListener('auth:unauthorized', handleUnauthorizedEvent);
+      };
+    }
+  }, [logout]);
+
   const login = async (credentials) => {
     if (!credentials) throw new Error('Credentials are required');
     const res = await api.login(credentials);

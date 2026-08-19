@@ -1,5 +1,7 @@
 package com.contact_managment.main_application.security;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -30,28 +33,50 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = getJwtFromRequest(request);
 
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                Long userId = tokenProvider.getUserIdFromJWT(jwt);
-                Long tokenVersionInJwt = tokenProvider.getTokenVersionFromJWT(jwt);
-
-                UserDetails userDetails = customUserDetailsService.loadUserById(userId);
-                if (userDetails instanceof UserPrincipal principal) {
-                    if (tokenVersionInJwt != null && principal.getTokenVersion() != null
-                            && !tokenVersionInJwt.equals(principal.getTokenVersion())) {
-                        log.debug("Rejecting expired/revoked JWT token for user ID: {} due to token version mismatch", userId);
+            if (StringUtils.hasText(jwt)) {
+                Claims claims = tokenProvider.getClaimsFromJWT(jwt);
+                if (claims != null && claims.getSubject() != null) {
+                    Long userId;
+                    try {
+                        userId = Long.parseLong(claims.getSubject());
+                    } catch (NumberFormatException nfe) {
+                        log.debug("Invalid subject in JWT: {}", claims.getSubject());
                         filterChain.doFilter(request, response);
                         return;
                     }
+
+                    Number versionNum = claims.get("tokenVersion", Number.class);
+                    Long tokenVersionInJwt = versionNum != null ? versionNum.longValue() : null;
+
+                    UserDetails userDetails;
+                    try {
+                        userDetails = customUserDetailsService.loadUserById(userId);
+                    } catch (com.contact_managment.main_application.exception.ResourceNotFoundException | UsernameNotFoundException ex) {
+                        log.debug("User not found for token subject ID {}: {}", userId, ex.getMessage());
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
+                    if (userDetails instanceof UserPrincipal principal) {
+                        if (tokenVersionInJwt == null || principal.getTokenVersion() == null
+                                || !tokenVersionInJwt.equals(principal.getTokenVersion())) {
+                            log.debug("Rejecting expired/revoked JWT token for user ID: {} due to token version mismatch or missing version", userId);
+                            filterChain.doFilter(request, response);
+                            return;
+                        }
+                    }
+
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
-
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-        } catch (Exception ex) {
-            log.debug("Could not set user authentication in security context: {}", ex.getMessage());
+        } catch (JwtException | IllegalArgumentException ex) {
+            log.debug("Expected token validation exception: {}", ex.getMessage());
+        } catch (RuntimeException ex) {
+            log.warn("Unexpected error setting user authentication in security context", ex);
         }
 
         filterChain.doFilter(request, response);

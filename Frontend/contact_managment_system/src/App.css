@@ -10,7 +10,7 @@
 .app-container header {
   text-align: center;
   margin-bottom: 32px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 16px;
 }
 
@@ -28,12 +28,12 @@
 
 .search-bar label {
   font-weight: 500;
-  color: var(--text-h);
+  color: var(--text-main);
 }
 
 .search-bar input {
   padding: 10px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -41,8 +41,8 @@
 
 .search-bar input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
 .contact-list {
@@ -54,15 +54,15 @@
 }
 
 .contact-card {
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 20px;
-  background: var(--bg);
+  background: var(--bg-card);
   transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .contact-card:hover {
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 

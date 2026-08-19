@@ -173,7 +173,7 @@ erDiagram
 A clean, modular folder layout following standard full-stack development patterns:
 
 ```text
-cohort-9-dotnet-12574-muhammad/
+cohort-9-java-15749-muhammad/
 ├── Project Perposal.png              # Reference project design
 ├── README.md                         # Detailed project documentation
 ├── .coderabbit.yaml                  # Automated PR reviewer settings
@@ -273,13 +273,13 @@ cohort-9-dotnet-12574-muhammad/
 To run code quality scans locally using SonarQube and Maven:
 
 1. Start your local SonarQube server (typically at `http://localhost:9000`).
-2. Run the Maven goal with your token:
+2. Export your token and run the Maven goal:
    ```bash
    cd Backend/contact_managment_system/main_application
+   export SONAR_TOKEN="YOUR_SONAR_TOKEN"
    ./mvnw clean verify sonar:sonar \
      -Dsonar.projectKey=ContactManagementSystem \
-     -Dsonar.host.url=http://localhost:9000 \
-     -Dsonar.login=YOUR_SONAR_TOKEN
+     -Dsonar.host.url=http://localhost:9000
    ```
 
 ---

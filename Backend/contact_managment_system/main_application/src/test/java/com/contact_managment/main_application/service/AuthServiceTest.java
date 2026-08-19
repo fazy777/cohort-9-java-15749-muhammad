@@ -65,7 +65,7 @@ class AuthServiceTest {
                 .password("password123")
                 .build();
 
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
+        when(userRepository.existsByEmail("john.doe@example.com")).thenReturn(false);
         when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
         when(userRepository.saveAndFlush(any(User.class))).thenReturn(sampleUser);
         when(tokenProvider.generateToken(1L, 1L)).thenReturn("jwt-token-123");
@@ -76,6 +76,49 @@ class AuthServiceTest {
         assertEquals("jwt-token-123", response.getToken());
         assertEquals("John", response.getFirstName());
         verify(userRepository, times(1)).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should normalize email and trim phone during registration")
+    void register_NormalizesEmailAndPhone() {
+        RegisterRequest request = RegisterRequest.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("  John.Doe@Example.COM  ")
+                .phone("  +1234567890  ")
+                .password("password123")
+                .build();
+
+        when(userRepository.existsByEmail("john.doe@example.com")).thenReturn(false);
+        when(userRepository.existsByPhone("+1234567890")).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
+        when(userRepository.saveAndFlush(any(User.class))).thenReturn(sampleUser);
+        when(tokenProvider.generateToken(1L, 1L)).thenReturn("jwt-token-123");
+
+        AuthResponse response = authService.register(request);
+
+        assertNotNull(response);
+        org.mockito.ArgumentCaptor<User> userCaptor = org.mockito.ArgumentCaptor.forClass(User.class);
+        verify(userRepository).saveAndFlush(userCaptor.capture());
+        assertEquals("john.doe@example.com", userCaptor.getValue().getEmail());
+        assertEquals("+1234567890", userCaptor.getValue().getPhone());
+    }
+
+    @Test
+    @DisplayName("Should throw UserAlreadyExistsException when database throws DataIntegrityViolationException")
+    void register_DataIntegrityViolation_ThrowsUserAlreadyExists() {
+        RegisterRequest request = RegisterRequest.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("john.doe@example.com")
+                .password("password123")
+                .build();
+
+        when(userRepository.existsByEmail("john.doe@example.com")).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(new org.springframework.dao.DataIntegrityViolationException("Duplicate entry"));
+
+        assertThrows(UserAlreadyExistsException.class, () -> authService.register(request));
     }
 
     @Test
@@ -101,7 +144,7 @@ class AuthServiceTest {
                 .password("password123")
                 .build();
 
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(true);
+        when(userRepository.existsByEmail("john.doe@example.com")).thenReturn(true);
 
         assertThrows(UserAlreadyExistsException.class, () -> authService.register(request));
         verify(userRepository, never()).saveAndFlush(any(User.class));
@@ -117,7 +160,7 @@ class AuthServiceTest {
                 .password("password123")
                 .build();
 
-        when(userRepository.existsByPhone(request.getPhone())).thenReturn(true);
+        when(userRepository.existsByPhone("+1234567890")).thenReturn(true);
 
         assertThrows(UserAlreadyExistsException.class, () -> authService.register(request));
         verify(userRepository, never()).saveAndFlush(any(User.class));
@@ -143,6 +186,24 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Should login successfully with mixed-case email")
+    void login_MixedCaseEmail_Success() {
+        LoginRequest request = LoginRequest.builder()
+                .credential("  John.Doe@EXAMPLE.COM  ")
+                .password("password123")
+                .build();
+
+        when(userRepository.findByEmailOrPhone("john.doe@example.com")).thenReturn(Optional.of(sampleUser));
+        when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
+        when(tokenProvider.generateToken(1L, 1L)).thenReturn("jwt-token-123");
+
+        AuthResponse response = authService.login(request);
+
+        assertNotNull(response);
+        assertEquals("jwt-token-123", response.getToken());
+    }
+
+    @Test
     @DisplayName("Should throw exception on invalid password during login")
     void login_InvalidPassword() {
         LoginRequest request = LoginRequest.builder()
@@ -152,6 +213,19 @@ class AuthServiceTest {
 
         when(userRepository.findByEmailOrPhone(request.getCredential())).thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches("wrongpassword", "encodedPassword")).thenReturn(false);
+
+        assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
+    }
+
+    @Test
+    @DisplayName("Should throw exception on unknown user during login")
+    void login_UserNotFound_ThrowsInvalidCredentials() {
+        LoginRequest request = LoginRequest.builder()
+                .credential("unknown@example.com")
+                .password("password123")
+                .build();
+
+        when(userRepository.findByEmailOrPhone("unknown@example.com")).thenReturn(Optional.empty());
 
         assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
     }

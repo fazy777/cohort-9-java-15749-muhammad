@@ -117,8 +117,9 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
-              <label>First Name *</label>
+              <label htmlFor="contact-first-name">First Name *</label>
               <input
+                id="contact-first-name"
                 type="text"
                 className="input-control"
                 placeholder="Jane"
@@ -128,8 +129,9 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
               />
             </div>
             <div className="form-group">
-              <label>Last Name *</label>
+              <label htmlFor="contact-last-name">Last Name *</label>
               <input
+                id="contact-last-name"
                 type="text"
                 className="input-control"
                 placeholder="Smith"
@@ -141,8 +143,9 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
           </div>
 
           <div className="form-group">
-            <label>Title / Role</label>
+            <label htmlFor="contact-title">Title / Role</label>
             <input
+              id="contact-title"
               type="text"
               className="input-control"
               placeholder="e.g. Software Engineer, Director, Product Manager"
@@ -154,9 +157,9 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
           {/* Email Addresses Section */}
           <div style={{ marginTop: '1.25rem', marginBottom: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <label style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Mail size={16} /> Email Addresses
-              </label>
+              </span>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
@@ -169,7 +172,11 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
 
             {(emails || []).map((emailObj, idx) => (
               <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <label htmlFor={`contact-email-${idx}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
+                  Email Address {idx + 1}
+                </label>
                 <input
+                  id={`contact-email-${idx}`}
                   type="email"
                   className="input-control"
                   placeholder="name@company.com"
@@ -178,6 +185,8 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
                   style={{ flex: 1 }}
                 />
                 <select
+                  id={`contact-email-label-${idx}`}
+                  aria-label={`Email label for email ${idx + 1}`}
                   className="input-control"
                   value={emailObj?.label || 'WORK'}
                   onChange={(e) => handleEmailChange(idx, 'label', e.target.value)}
@@ -190,6 +199,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
                 {emails.length > 1 && (
                   <button
                     type="button"
+                    aria-label={`Remove email ${idx + 1}`}
                     onClick={() => handleRemoveEmail(idx)}
                     style={{ background: 'rgba(239, 68, 68, 0.2)', border: 'none', color: '#ef4444', borderRadius: 'var(--radius-sm)', padding: '0 0.6rem', cursor: 'pointer' }}
                   >
@@ -203,9 +213,9 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
           {/* Phone Numbers Section */}
           <div style={{ marginTop: '1.25rem', marginBottom: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <label style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Phone size={16} /> Phone Numbers
-              </label>
+              </span>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
@@ -218,7 +228,11 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
 
             {(phones || []).map((phoneObj, idx) => (
               <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <label htmlFor={`contact-phone-${idx}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
+                  Phone Number {idx + 1}
+                </label>
                 <input
+                  id={`contact-phone-${idx}`}
                   type="tel"
                   className="input-control"
                   placeholder="+1 (555) 000-0000"
@@ -227,6 +241,8 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
                   style={{ flex: 1 }}
                 />
                 <select
+                  id={`contact-phone-label-${idx}`}
+                  aria-label={`Phone label for phone ${idx + 1}`}
                   className="input-control"
                   value={phoneObj?.label || 'WORK'}
                   onChange={(e) => handlePhoneChange(idx, 'label', e.target.value)}
@@ -241,6 +257,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
                 {phones.length > 1 && (
                   <button
                     type="button"
+                    aria-label={`Remove phone ${idx + 1}`}
                     onClick={() => handleRemovePhone(idx)}
                     style={{ background: 'rgba(239, 68, 68, 0.2)', border: 'none', color: '#ef4444', borderRadius: 'var(--radius-sm)', padding: '0 0.6rem', cursor: 'pointer' }}
                   >
@@ -252,8 +269,9 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
           </div>
 
           <div className="form-group">
-            <label>Notes / Context</label>
+            <label htmlFor="contact-notes">Notes / Context</label>
             <textarea
+              id="contact-notes"
               className="input-control"
               placeholder="Additional information about this contact..."
               rows={3}

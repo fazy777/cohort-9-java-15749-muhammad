@@ -105,6 +105,9 @@ public class ContactService {
 
         if (contactDto.getEmails() != null) {
             for (ContactEmailDto emailDto : contactDto.getEmails()) {
+                if (emailDto == null) {
+                    throw new com.contact_managment.main_application.exception.BadRequestException("Email entry cannot be null");
+                }
                 ContactEmail email = ContactEmail.builder()
                         .email(emailDto.getEmail())
                         .label(emailDto.getLabel() != null ? emailDto.getLabel() : "WORK")
@@ -115,6 +118,9 @@ public class ContactService {
 
         if (contactDto.getPhones() != null) {
             for (ContactPhoneDto phoneDto : contactDto.getPhones()) {
+                if (phoneDto == null) {
+                    throw new com.contact_managment.main_application.exception.BadRequestException("Phone entry cannot be null");
+                }
                 ContactPhone phone = ContactPhone.builder()
                         .phoneNumber(phoneDto.getPhoneNumber())
                         .label(phoneDto.getLabel() != null ? phoneDto.getLabel() : "WORK")
@@ -144,6 +150,9 @@ public class ContactService {
         contact.getEmails().clear();
         if (contactDto.getEmails() != null) {
             for (ContactEmailDto emailDto : contactDto.getEmails()) {
+                if (emailDto == null) {
+                    throw new com.contact_managment.main_application.exception.BadRequestException("Email entry cannot be null");
+                }
                 ContactEmail email = ContactEmail.builder()
                         .email(emailDto.getEmail())
                         .label(emailDto.getLabel() != null ? emailDto.getLabel() : "WORK")
@@ -155,6 +164,9 @@ public class ContactService {
         contact.getPhones().clear();
         if (contactDto.getPhones() != null) {
             for (ContactPhoneDto phoneDto : contactDto.getPhones()) {
+                if (phoneDto == null) {
+                    throw new com.contact_managment.main_application.exception.BadRequestException("Phone entry cannot be null");
+                }
                 ContactPhone phone = ContactPhone.builder()
                         .phoneNumber(phoneDto.getPhoneNumber())
                         .label(phoneDto.getLabel() != null ? phoneDto.getLabel() : "WORK")

@@ -1,8 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap");
+@import "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap";
 
 :root {
-  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-heading: 'Outfit', sans-serif;
+  --font-primary: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Color Palette - Dark Glassmorphism */
   --bg-dark: #0f172a;
@@ -41,6 +41,14 @@
   --backdrop-blur: blur(16px);
   --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Compatibility Aliases */
+  --border: var(--border-color);
+  --text-h: var(--text-main);
+  --accent: var(--accent-primary);
+  --accent-bg: rgba(99, 102, 241, 0.25);
+  --bg: var(--bg-card);
+  --shadow: var(--shadow-md);
 }
 
 * {

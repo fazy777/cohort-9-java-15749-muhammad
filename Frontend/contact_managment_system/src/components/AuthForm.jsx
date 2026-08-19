@@ -92,9 +92,10 @@ export const AuthForm = ({ showToast }) => {
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
-                  <label>First Name *</label>
+                  <label htmlFor="auth-first-name">First Name *</label>
                   <div style={{ position: 'relative' }}>
                     <input
+                      id="auth-first-name"
                       type="text"
                       className="input-control"
                       placeholder="John"
@@ -105,8 +106,9 @@ export const AuthForm = ({ showToast }) => {
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>Last Name *</label>
+                  <label htmlFor="auth-last-name">Last Name *</label>
                   <input
+                    id="auth-last-name"
                     type="text"
                     className="input-control"
                     placeholder="Doe"
@@ -174,8 +176,9 @@ export const AuthForm = ({ showToast }) => {
 
               {regType === 'email' ? (
                 <div className="form-group">
-                  <label>Email Address *</label>
+                  <label htmlFor="auth-register-email">Email Address *</label>
                   <input
+                    id="auth-register-email"
                     type="email"
                     className="input-control"
                     placeholder="john.doe@example.com"
@@ -186,8 +189,9 @@ export const AuthForm = ({ showToast }) => {
                 </div>
               ) : (
                 <div className="form-group">
-                  <label>Phone Number *</label>
+                  <label htmlFor="auth-register-phone">Phone Number *</label>
                   <input
+                    id="auth-register-phone"
                     type="tel"
                     className="input-control"
                     placeholder="+1 (555) 000-0000"
@@ -202,8 +206,9 @@ export const AuthForm = ({ showToast }) => {
 
           {isLoginMode && (
             <div className="form-group">
-              <label>Email or Phone Number *</label>
+              <label htmlFor="auth-login-credential">Email or Phone Number *</label>
               <input
+                id="auth-login-credential"
                 type="text"
                 className="input-control"
                 placeholder="john.doe@example.com or +123456789"
@@ -215,9 +220,10 @@ export const AuthForm = ({ showToast }) => {
           )}
 
           <div className="form-group">
-            <label>Password *</label>
+            <label htmlFor="auth-password">Password *</label>
             <div style={{ position: 'relative' }}>
               <input
+                id="auth-password"
                 type={showPassword ? 'text' : 'password'}
                 className="input-control"
                 placeholder="••••••••"
@@ -228,6 +234,8 @@ export const AuthForm = ({ showToast }) => {
               />
               <button
                 type="button"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
                 onClick={() => setShowPassword(!showPassword)}
                 style={{
                   position: 'absolute',

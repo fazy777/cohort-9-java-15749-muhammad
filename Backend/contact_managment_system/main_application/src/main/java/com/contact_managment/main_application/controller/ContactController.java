@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller for managing contacts, supporting CRUD operations, search, pagination, and import/export.
+ */
 @RestController
 @RequestMapping("/api/contacts")
 @RequiredArgsConstructor
@@ -20,6 +23,13 @@ public class ContactController {
 
     private final ContactService contactService;
 
+    /**
+     * Extracts and validates the authenticated user ID.
+     *
+     * @param userPrincipal the authenticated user principal
+     * @return the unique user identifier
+     * @throws InvalidCredentialsException if the principal is null
+     */
     private Long getUserId(UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
             throw new InvalidCredentialsException("User authentication required");
@@ -27,6 +37,17 @@ public class ContactController {
         return userPrincipal.getId();
     }
 
+    /**
+     * Retrieves a paginated and filtered list of contacts for the authenticated user.
+     *
+     * @param userPrincipal the authenticated user principal
+     * @param search optional search query to filter contacts by name, email, phone, or title
+     * @param page zero-based page index
+     * @param size page size limit
+     * @param sortBy property to sort by
+     * @param sortDir sort direction ('asc' or 'desc')
+     * @return response entity with paginated contact data
+     */
     @GetMapping
     public ResponseEntity<ApiResponse<PagedResponse<ContactDto>>> getContacts(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
@@ -40,6 +61,13 @@ public class ContactController {
         return ResponseEntity.ok(ApiResponse.success("Contacts retrieved successfully", response));
     }
 
+    /**
+     * Retrieves a single contact by ID for the authenticated user.
+     *
+     * @param userPrincipal the authenticated user principal
+     * @param contactId the unique contact ID
+     * @return response entity with contact details
+     */
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ContactDto>> getContactById(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
@@ -49,6 +77,13 @@ public class ContactController {
         return ResponseEntity.ok(ApiResponse.success("Contact details retrieved successfully", contact));
     }
 
+    /**
+     * Creates a new contact for the authenticated user.
+     *
+     * @param userPrincipal the authenticated user principal
+     * @param contactDto the contact details payload
+     * @return response entity with the newly created contact and HTTP 201 Created status
+     */
     @PostMapping
     public ResponseEntity<ApiResponse<ContactDto>> createContact(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
@@ -58,6 +93,14 @@ public class ContactController {
         return new ResponseEntity<>(ApiResponse.success("Contact created successfully", createdContact), HttpStatus.CREATED);
     }
 
+    /**
+     * Updates an existing contact for the authenticated user.
+     *
+     * @param userPrincipal the authenticated user principal
+     * @param contactId the ID of the contact to update
+     * @param contactDto the updated contact payload
+     * @return response entity with the updated contact details
+     */
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ContactDto>> updateContact(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
@@ -68,6 +111,13 @@ public class ContactController {
         return ResponseEntity.ok(ApiResponse.success("Contact updated successfully", updatedContact));
     }
 
+    /**
+     * Deletes a contact belonging to the authenticated user.
+     *
+     * @param userPrincipal the authenticated user principal
+     * @param contactId the ID of the contact to delete
+     * @return response entity confirming deletion
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteContact(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
@@ -77,6 +127,12 @@ public class ContactController {
         return ResponseEntity.ok(ApiResponse.success("Contact deleted successfully"));
     }
 
+    /**
+     * Exports all contacts belonging to the authenticated user.
+     *
+     * @param userPrincipal the authenticated user principal
+     * @return response entity with the complete list of contacts
+     */
     @GetMapping("/export")
     public ResponseEntity<ApiResponse<List<ContactDto>>> exportContacts(
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
@@ -85,6 +141,13 @@ public class ContactController {
         return ResponseEntity.ok(ApiResponse.success("Contacts exported successfully", contacts));
     }
 
+    /**
+     * Imports a batch list of contacts for the authenticated user.
+     *
+     * @param userPrincipal the authenticated user principal
+     * @param contactDtos the list of contacts to import
+     * @return response entity with the count of imported contacts
+     */
     @PostMapping("/import")
     public ResponseEntity<ApiResponse<Integer>> importContacts(
             @AuthenticationPrincipal UserPrincipal userPrincipal,

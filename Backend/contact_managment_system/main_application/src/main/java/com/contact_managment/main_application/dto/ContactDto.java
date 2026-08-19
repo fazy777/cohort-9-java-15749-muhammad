@@ -2,6 +2,7 @@ package com.contact_managment.main_application.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -33,11 +34,11 @@ public class ContactDto {
 
     @Valid
     @Builder.Default
-    private List<ContactEmailDto> emails = new ArrayList<>();
+    private List<@NotNull(message = "Email entry cannot be null") @Valid ContactEmailDto> emails = new ArrayList<>();
 
     @Valid
     @Builder.Default
-    private List<ContactPhoneDto> phones = new ArrayList<>();
+    private List<@NotNull(message = "Phone entry cannot be null") @Valid ContactPhoneDto> phones = new ArrayList<>();
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

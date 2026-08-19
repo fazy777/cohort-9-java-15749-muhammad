@@ -5,21 +5,24 @@ export const Toast = ({ toasts = [], removeToast }) => {
   if (safeToasts.length === 0) return null;
 
   return (
-    <div className="toast-container">
+    <div className="toast-container" aria-live="polite" aria-atomic="true">
       {safeToasts.map((toast, index) => {
         const toastKey = toast?.id != null ? `toast-${toast.id}` : `toast-idx-${index}`;
+        const isError = toast?.type === 'error';
         return (
           <div
             key={toastKey}
-            className={`toast ${toast?.type === 'success' ? 'toast-success' : 'toast-error'}`}
+            role={isError ? 'alert' : 'status'}
+            className={`toast ${isError ? 'toast-error' : 'toast-success'}`}
           >
-            {toast?.type === 'success' ? (
-              <CheckCircle size={20} color="var(--success-color)" />
-            ) : (
+            {isError ? (
               <AlertCircle size={20} color="var(--danger-color)" />
+            ) : (
+              <CheckCircle size={20} color="var(--success-color)" />
             )}
             <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>{toast?.message || ''}</span>
             <button
+              aria-label="Dismiss notification"
               onClick={() => removeToast?.(toast?.id)}
               style={{
                 background: 'none',

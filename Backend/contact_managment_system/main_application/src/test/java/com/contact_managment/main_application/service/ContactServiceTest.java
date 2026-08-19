@@ -76,7 +76,17 @@ class ContactServiceTest {
 
         assertNotNull(result);
         assertEquals("Alice", result.getFirstName());
-        verify(contactRepository, times(1)).save(any(Contact.class));
+
+        org.mockito.ArgumentCaptor<Contact> contactCaptor = org.mockito.ArgumentCaptor.forClass(Contact.class);
+        verify(contactRepository, times(1)).save(contactCaptor.capture());
+        Contact capturedContact = contactCaptor.getValue();
+        assertEquals(sampleUser, capturedContact.getUser());
+        assertEquals("Alice", capturedContact.getFirstName());
+        assertEquals("Wonderland", capturedContact.getLastName());
+        assertEquals(1, capturedContact.getEmails().size());
+        assertEquals("alice@work.com", capturedContact.getEmails().get(0).getEmail());
+        assertEquals(1, capturedContact.getPhones().size());
+        assertEquals("+111222333", capturedContact.getPhones().get(0).getPhoneNumber());
     }
 
     @Test
