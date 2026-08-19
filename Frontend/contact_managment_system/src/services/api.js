@@ -47,49 +47,57 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
     ...(options.headers || {})
   };
 
-  let response;
   try {
-    response = await fetch(`${BASE_URL}${endpoint}`, {
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers,
       signal: controller.signal
     });
+
+    let result;
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        result = await response.json();
+      } catch (parseErr) {
+        if (controller.signal.aborted || parseErr?.name === 'AbortError') {
+          throw parseErr;
+        }
+        result = null;
+      }
+    } else {
+      try {
+        const text = await response.text();
+        result = text ? { message: text } : null;
+      } catch (parseErr) {
+        if (controller.signal.aborted || parseErr?.name === 'AbortError') {
+          throw parseErr;
+        }
+        result = null;
+      }
+    }
+
+    if (response.status === 401) {
+      handleUnauthorized();
+    }
+
+    if (!response.ok) {
+      const errorMessage = result?.message || result?.error || `Request failed with status ${response.status}`;
+      throw new Error(errorMessage);
+    }
+
+    return result;
   } catch (err) {
-    if (err?.name === 'AbortError') {
+    if (err?.name === 'AbortError' || controller.signal.aborted) {
       throw new Error(`Request timed out after ${timeoutMs / 1000}s`, { cause: err });
+    }
+    if (err instanceof Error && err.message && !err.message.startsWith('Network error:')) {
+      throw err;
     }
     throw new Error(err?.message || 'Network error: Failed to connect to server', { cause: err });
   } finally {
     clearTimeout(timeoutId);
   }
-
-  let result;
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    try {
-      result = await response.json();
-    } catch {
-      result = null;
-    }
-  } else {
-    try {
-      const text = await response.text();
-      result = text ? { message: text } : null;
-    } catch {
-      result = null;
-    }
-  }
-
-  if (response.status === 401) {
-    handleUnauthorized();
-  }
-
-  if (!response.ok) {
-    const errorMessage = result?.message || result?.error || `Request failed with status ${response.status}`;
-    throw new Error(errorMessage);
-  }
-
-  return result;
 };
 
 /**

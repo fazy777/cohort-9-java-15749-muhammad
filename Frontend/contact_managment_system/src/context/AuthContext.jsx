@@ -53,7 +53,6 @@ export const AuthProvider = ({ children }) => {
             }
           } catch (err) {
             console.warn('Session token validation failed:', err);
-            logout();
           }
         }
       } catch (err) {
@@ -83,7 +82,7 @@ export const AuthProvider = ({ children }) => {
    * @param {Object} credentials - user login credentials
    * @returns {Promise<Object>} authenticated user object
    */
-  const login = async (credentials) => {
+  const login = useCallback(async (credentials) => {
     if (!credentials) throw new Error('Credentials are required');
     const res = await api.login(credentials);
     const data = res?.data;
@@ -103,14 +102,14 @@ export const AuthProvider = ({ children }) => {
     safeStorage.setItem('cms_user', JSON.stringify(userObj));
     cleanupLegacyStorage();
     return userObj;
-  };
+  }, []);
 
   /**
    * Registers a new user account.
    * @param {Object} registerData - registration form data
    * @returns {Promise<Object>} newly registered user object
    */
-  const register = async (registerData) => {
+  const register = useCallback(async (registerData) => {
     if (!registerData) throw new Error('Registration data is required');
     const res = await api.register(registerData);
     const data = res?.data;
@@ -130,7 +129,7 @@ export const AuthProvider = ({ children }) => {
     safeStorage.setItem('cms_user', JSON.stringify(userObj));
     cleanupLegacyStorage();
     return userObj;
-  };
+  }, []);
 
   /**
    * Refreshes user profile information from the API.
@@ -157,7 +156,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     refreshProfile
-  }), [user, token, loading, logout, refreshProfile]);
+  }), [user, token, loading, login, register, logout, refreshProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>

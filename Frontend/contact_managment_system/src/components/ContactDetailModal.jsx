@@ -1,4 +1,5 @@
 import { User, Mail, Phone, Calendar, Clock, X, Briefcase, FileText } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 /**
  * Modal dialog displaying comprehensive details, timestamps, emails, phones, and actions for a contact.
@@ -13,6 +14,8 @@ import { User, Mail, Phone, Calendar, Clock, X, Briefcase, FileText } from 'luci
  * @returns {JSX.Element|null}
  */
 export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete }) => {
+  const modalRef = useModalA11y(isOpen, onClose);
+
   if (!isOpen || !contact) return null;
 
   /**
@@ -23,7 +26,11 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     try {
-      return new Date(dateString).toLocaleString(undefined, {
+      const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) {
+        return 'N/A';
+      }
+      return date.toLocaleString(undefined, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -55,12 +62,25 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e?.stopPropagation()} style={{ maxWidth: '560px' }}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="contact-detail-modal-title"
+        className="modal-container"
+        onClick={(e) => e?.stopPropagation()}
+        style={{ maxWidth: '560px' }}
+      >
         <div className="modal-header">
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h3 id="contact-detail-modal-title" style={{ fontSize: '1.25rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <User size={22} color="var(--accent-primary)" /> Contact Profile Details
           </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button
+            type="button"
+            aria-label="Close contact details"
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+          >
             <X size={20} />
           </button>
         </div>

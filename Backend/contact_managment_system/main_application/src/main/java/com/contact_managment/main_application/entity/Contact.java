@@ -40,12 +40,12 @@ public class Contact {
     private String notes;
 
     @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JsonManagedReference
+    @JsonManagedReference("contact-emails")
     @Builder.Default
     private List<ContactEmail> emails = new ArrayList<>();
 
     @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JsonManagedReference
+    @JsonManagedReference("contact-phones")
     @Builder.Default
     private List<ContactPhone> phones = new ArrayList<>();
 
@@ -71,6 +71,9 @@ public class Contact {
      * @param email the ContactEmail to add
      */
     public void addEmail(ContactEmail email) {
+        if (email == null) {
+            throw new IllegalArgumentException("ContactEmail cannot be null");
+        }
         emails.add(email);
         email.setContact(this);
     }
@@ -81,6 +84,9 @@ public class Contact {
      * @param email the ContactEmail to remove
      */
     public void removeEmail(ContactEmail email) {
+        if (email == null) {
+            throw new IllegalArgumentException("ContactEmail cannot be null");
+        }
         emails.remove(email);
         email.setContact(null);
     }
@@ -91,6 +97,9 @@ public class Contact {
      * @param phone the ContactPhone to add
      */
     public void addPhone(ContactPhone phone) {
+        if (phone == null) {
+            throw new IllegalArgumentException("ContactPhone cannot be null");
+        }
         phones.add(phone);
         phone.setContact(this);
     }
@@ -101,6 +110,9 @@ public class Contact {
      * @param phone the ContactPhone to remove
      */
     public void removePhone(ContactPhone phone) {
+        if (phone == null) {
+            throw new IllegalArgumentException("ContactPhone cannot be null");
+        }
         phones.remove(phone);
         phone.setContact(null);
     }

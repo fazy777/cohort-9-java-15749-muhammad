@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { User, Mail, Phone, LogOut, KeyRound, X, RotateCcw } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 /**
  * User profile modal dialog displaying account metadata and providing a password change form.
@@ -20,6 +21,7 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const modalRef = useModalA11y(isOpen, onClose);
 
   if (!isOpen || !user) return null;
 
@@ -64,12 +66,25 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e?.stopPropagation()} style={{ maxWidth: '520px' }}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-profile-modal-title"
+        className="modal-container"
+        onClick={(e) => e?.stopPropagation()}
+        style={{ maxWidth: '520px' }}
+      >
         <div className="modal-header">
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h3 id="user-profile-modal-title" style={{ fontSize: '1.25rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <User size={22} color="var(--accent-primary)" /> User Profile
           </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button
+            type="button"
+            aria-label="Close profile"
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+          >
             <X size={20} />
           </button>
         </div>

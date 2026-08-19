@@ -118,6 +118,7 @@ trap {
     try { Remove-Item $TMP_DOWNLOAD_DIR -Recurse -Force | Out-Null }
     catch { Write-Warning "Cannot remove $TMP_DOWNLOAD_DIR" }
   }
+  break
 }
 
 New-Item -Itemtype Directory -Path "$MAVEN_HOME_PARENT" -Force | Out-Null

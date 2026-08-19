@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, Trash2 } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 /**
  * Confirmation dialog for permanently deleting a contact.
@@ -14,6 +15,7 @@ import { AlertTriangle, Trash2 } from 'lucide-react';
  */
 export const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, contact }) => {
   const [deleting, setDeleting] = useState(false);
+  const modalRef = useModalA11y(isOpen, onClose);
 
   if (!isOpen || !contact) return null;
 
@@ -38,7 +40,15 @@ export const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, contact }) => {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e?.stopPropagation()} style={{ maxWidth: '440px', textAlign: 'center' }}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-confirm-modal-title"
+        className="modal-container"
+        onClick={(e) => e?.stopPropagation()}
+        style={{ maxWidth: '440px', textAlign: 'center' }}
+      >
         <div style={{
           width: '56px',
           height: '56px',
@@ -53,7 +63,7 @@ export const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, contact }) => {
           <AlertTriangle size={28} />
         </div>
 
-        <h3 style={{ fontSize: '1.35rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+        <h3 id="delete-confirm-modal-title" style={{ fontSize: '1.35rem', fontWeight: '700', marginBottom: '0.5rem' }}>
           Delete Contact?
         </h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>

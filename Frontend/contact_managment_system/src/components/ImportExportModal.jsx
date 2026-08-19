@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { api } from '../services/api';
 import { Download, Upload, FileText, X, CheckCircle } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 /**
  * Escapes a field for CSV export and neutralizes spreadsheet formula injection.
@@ -172,6 +173,7 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
   const [exporting, setExporting] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const activeReaderRef = useRef(null);
+  const modalRef = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -326,12 +328,25 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e?.stopPropagation()} style={{ maxWidth: '580px' }}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="import-export-modal-title"
+        className="modal-container"
+        onClick={(e) => e?.stopPropagation()}
+        style={{ maxWidth: '580px' }}
+      >
         <div className="modal-header">
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h3 id="import-export-modal-title" style={{ fontSize: '1.25rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileText size={22} color="var(--accent-primary)" /> Export / Import Contacts
           </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button
+            type="button"
+            aria-label="Close import and export modal"
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+          >
             <X size={20} />
           </button>
         </div>

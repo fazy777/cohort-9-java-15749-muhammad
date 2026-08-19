@@ -9,6 +9,38 @@ reviews:
       - develop
 
   path_instructions:
+    - path: "Backend/**/*"
+      instructions: >
+        Review Java backend code for bugs, security vulnerabilities, and architectural integrity.
+        Check specifically for:
+        - Missing exception handling (Flag as HIGH)
+        - Missing null checks (Flag as HIGH)
+        - Raw types usage (Flag as MEDIUM)
+        - Unchecked casts (Flag as MEDIUM)
+        - Appropriate OOP principles and clean architecture
+        - Dependency management and library usage
+        - Authentication and authorization correctness
+        - Secure logging (no PII, credentials, or raw search terms)
+        - Input validation and API boundary checks
+        - Database query safety and transaction management
+        Flag security and data-loss risks as HIGH. Flag bugs and reliability issues as MEDIUM.
+
+    - path: "Frontend/**/*"
+      instructions: >
+        Review React and JavaScript frontend code for quality, responsiveness, and frontend best practices.
+        Check specifically for:
+        - Comprehensive error handling and user feedback
+        - null and undefined safe handling
+        - Proper React hook usage (dependencies, lifecycle rules)
+        - Proper async/await error handling and unhandled promise rejections
+        - API failure resilience and timeout lifecycle management
+        - Accessibility (WCAG standards, ARIA roles, focus management, keyboard navigation)
+        - Frontend security (XSS prevention, safe storage, formula injection defense)
+        - Rendering performance, efficient state updates, and debouncing
+        - Maintainable functional React patterns
+        DO NOT apply Java-specific concepts such as raw types, unchecked casts, or traditional OOP class requirements to React code.
+        Flag security and data-loss risks as HIGH. Flag bugs and reliability issues as MEDIUM.
+
     - path: "**/*"
       instructions: >
         Review JavaScript, React, and backend code for bugs, security issues,

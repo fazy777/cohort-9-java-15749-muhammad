@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Mail, Phone, User } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 /**
  * Modal form component for creating and updating contacts with dynamic email and phone rows.
@@ -21,6 +22,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   const [emails, setEmails] = useState([{ email: '', label: 'WORK' }]);
   const [phones, setPhones] = useState([{ phoneNumber: '', label: 'WORK' }]);
   const [submitting, setSubmitting] = useState(false);
+  const modalRef = useModalA11y(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -142,13 +144,26 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e?.stopPropagation()} style={{ maxWidth: '640px' }}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="contact-form-modal-title"
+        className="modal-container"
+        onClick={(e) => e?.stopPropagation()}
+        style={{ maxWidth: '640px' }}
+      >
         <div className="modal-header">
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <h3 id="contact-form-modal-title" style={{ fontSize: '1.25rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <User size={22} color="var(--accent-primary)" />
             {contact ? 'Update Contact' : 'Create New Contact'}
           </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button
+            type="button"
+            aria-label="Close contact form"
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+          >
             <X size={20} />
           </button>
         </div>

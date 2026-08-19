@@ -48,7 +48,7 @@ public class ContactService {
      */
     @Transactional(readOnly = true)
     public PagedResponse<ContactDto> getContacts(Long userId, String search, int page, int size, String sortBy, String sortDir) {
-        log.debug("Fetching contacts for user ID: {}, search: '{}', page: {}, size: {}", userId, search, page, size);
+        log.debug("Fetching contacts for userId={}, page={}, size={}, searchProvided={}", userId, page, size, StringUtils.hasText(search));
 
         if (page < 0) {
             throw new com.contact_managment.main_application.exception.BadRequestException("Page index must not be less than zero");
@@ -119,7 +119,7 @@ public class ContactService {
      */
     @Transactional
     public ContactDto createContact(Long userId, ContactDto contactDto) {
-        log.info("Creating new contact for user ID: {} with name: {} {}", userId, contactDto.getFirstName(), contactDto.getLastName());
+        log.info("Creating new contact for user ID: {}", userId);
         User user = getUserById(userId);
 
         Contact contact = Contact.builder()

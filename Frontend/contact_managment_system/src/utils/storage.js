@@ -69,12 +69,21 @@ export const safeStorage = {
   },
 
   /**
-   * Clear all items from sessionStorage and in-memory store.
+   * Clear all application-specific items from sessionStorage and in-memory store.
    */
   clear() {
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
-        window.sessionStorage.clear();
+        const keysToRemove = [];
+        for (let i = 0; i < window.sessionStorage.length; i++) {
+          const key = window.sessionStorage.key(i);
+          if (key && key.startsWith('cms_')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((key) => {
+          window.sessionStorage.removeItem(key);
+        });
       }
     } catch (e) {
       console.warn('Browser storage clear failed:', e);

@@ -28,6 +28,6 @@ public class ContactEmail {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "contact_id", nullable = false)
-    @JsonBackReference
+    @JsonBackReference("contact-emails")
     private Contact contact;
 }

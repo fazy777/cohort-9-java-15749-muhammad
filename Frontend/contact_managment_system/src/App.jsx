@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { AuthForm } from './components/AuthForm';
@@ -23,10 +23,13 @@ const MainDashboard = () => {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+
+  const latestRequestIdRef = useRef(0);
 
   // Modals State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -43,6 +46,16 @@ const MainDashboard = () => {
 
   // Toast Notifications State
   const [toasts, setToasts] = useState([]);
+
+  // Debounce search query input by 400ms and reset page to 0
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPage(0);
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   /**
    * Displays an auto-dismissing toast notification.
@@ -66,30 +79,35 @@ const MainDashboard = () => {
   }, []);
 
   /**
-   * Fetches paginated contacts from backend API.
+   * Fetches paginated contacts from backend API with stale response protection.
    */
   const fetchContacts = useCallback(async () => {
     if (!user) return;
+    const requestId = ++latestRequestIdRef.current;
     setLoading(true);
     try {
       const data = await api.getContacts({
-        search: searchTerm,
+        search: debouncedSearchTerm,
         page,
         size: pageSize,
         sortBy: 'firstName',
         sortDir: 'asc'
       });
-      if (data) {
+      if (requestId === latestRequestIdRef.current && data) {
         setContacts(Array.isArray(data.content) ? data.content : []);
         setTotalPages(typeof data.totalPages === 'number' ? data.totalPages : 0);
         setTotalElements(typeof data.totalElements === 'number' ? data.totalElements : 0);
       }
     } catch (err) {
-      showToast(err?.message || 'Failed to fetch contacts', 'error');
+      if (requestId === latestRequestIdRef.current) {
+        showToast(err?.message || 'Failed to fetch contacts', 'error');
+      }
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestIdRef.current) {
+        setLoading(false);
+      }
     }
-  }, [user, searchTerm, page, pageSize, showToast]);
+  }, [user, debouncedSearchTerm, page, pageSize, showToast]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional data fetch on mount/param change
@@ -102,7 +120,6 @@ const MainDashboard = () => {
    */
   const handleSearchChange = (term) => {
     setSearchTerm(term || '');
-    setPage(0);
   };
 
   /**
