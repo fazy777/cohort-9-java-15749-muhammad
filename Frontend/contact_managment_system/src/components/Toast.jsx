@@ -1,5 +1,14 @@
 import { CheckCircle, AlertCircle, X } from 'lucide-react';
 
+/**
+ * Toast notifications renderer component supporting accessible live regions and success/error styling.
+ *
+ * @param {{
+ *   toasts?: Array<{ id: number|string, message: string, type: 'success'|'error' }>,
+ *   removeToast?: (id: number|string) => void
+ * }} props
+ * @returns {JSX.Element|null}
+ */
 export const Toast = ({ toasts = [], removeToast }) => {
   const safeToasts = Array.isArray(toasts) ? toasts.filter(Boolean) : [];
   if (safeToasts.length === 0) return null;

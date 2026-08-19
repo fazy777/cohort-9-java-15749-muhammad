@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+/**
+ * Service managing user authentication, account creation, token generation, profile retrieval, and password rotation.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -25,6 +28,14 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
 
+    /**
+     * Registers a new user with normalized email/phone and encoded password.
+     *
+     * @param request the registration details
+     * @return the authentication response containing a JWT token and user info
+     * @throws BadRequestException if neither email nor phone is provided
+     * @throws UserAlreadyExistsException if email or phone is already registered
+     */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         log.debug("Registration attempt received");
@@ -76,6 +87,13 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * Authenticates user credentials and issues a JWT token.
+     *
+     * @param request login credentials (email or phone, and password)
+     * @return authentication response containing token and user profile
+     * @throws InvalidCredentialsException if credentials are invalid
+     */
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
         log.debug("Login attempt received");
@@ -108,6 +126,13 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * Retrieves the profile information for a specific user ID.
+     *
+     * @param userId the unique user identifier
+     * @return user profile data transfer object
+     * @throws ResourceNotFoundException if user is not found
+     */
     @Transactional(readOnly = true)
     public UserProfileDto getCurrentUserProfile(Long userId) {
         log.debug("Fetching profile for user ID: {}", userId);
@@ -124,6 +149,14 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * Changes a user's password, encrypts the new password, and increments token version to invalidate existing sessions.
+     *
+     * @param userId the user ID
+     * @param request current and new password payload
+     * @throws ResourceNotFoundException if user is not found
+     * @throws BadRequestException if the current password does not match
+     */
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
         log.info("Change password requested for user ID: {}", userId);

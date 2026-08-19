@@ -9,12 +9,22 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Spring Security UserDetailsService implementation that loads user principals by credential (email/phone) or unique ID.
+ */
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
+    /**
+     * Loads a user by email or phone number.
+     *
+     * @param credential email address or phone number
+     * @return UserDetails representation for Spring Security
+     * @throws UsernameNotFoundException if no user is found
+     */
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String credential) throws UsernameNotFoundException {
@@ -23,6 +33,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         return UserPrincipal.create(user);
     }
 
+    /**
+     * Loads a user by unique numeric database ID.
+     *
+     * @param id user primary key
+     * @return UserDetails representation for Spring Security
+     * @throws UsernameNotFoundException if no user is found
+     */
     @Transactional
     public UserDetails loadUserById(Long id) {
         User user = userRepository.findById(id)

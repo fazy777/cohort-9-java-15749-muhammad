@@ -5,11 +5,20 @@ import { safeStorage, cleanupLegacyStorage } from '../utils/storage';
 
 const AuthContext = createContext(null);
 
+/**
+ * Authentication Context Provider that maintains user authentication state, token persistence, and login/logout handlers.
+ *
+ * @param {{ children: import('react').ReactNode }} props
+ * @returns {JSX.Element}
+ */
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => safeStorage.getItem('cms_token'));
   const [loading, setLoading] = useState(true);
 
+  /**
+   * Logs out the user and clears state and stored credentials.
+   */
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
@@ -69,6 +78,11 @@ export const AuthProvider = ({ children }) => {
     }
   }, [logout]);
 
+  /**
+   * Logs in a user with credentials.
+   * @param {Object} credentials - user login credentials
+   * @returns {Promise<Object>} authenticated user object
+   */
   const login = async (credentials) => {
     if (!credentials) throw new Error('Credentials are required');
     const res = await api.login(credentials);
@@ -91,6 +105,11 @@ export const AuthProvider = ({ children }) => {
     return userObj;
   };
 
+  /**
+   * Registers a new user account.
+   * @param {Object} registerData - registration form data
+   * @returns {Promise<Object>} newly registered user object
+   */
   const register = async (registerData) => {
     if (!registerData) throw new Error('Registration data is required');
     const res = await api.register(registerData);
@@ -113,6 +132,10 @@ export const AuthProvider = ({ children }) => {
     return userObj;
   };
 
+  /**
+   * Refreshes user profile information from the API.
+   * @returns {Promise<void>}
+   */
   const refreshProfile = useCallback(async () => {
     if (!token) return;
     try {
@@ -143,6 +166,10 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+/**
+ * Custom hook to consume the AuthContext.
+ * @returns {Object} auth context value with user, token, login, logout, etc.
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

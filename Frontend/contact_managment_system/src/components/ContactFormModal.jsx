@@ -2,6 +2,17 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Mail, Phone, User } from 'lucide-react';
 
+/**
+ * Modal form component for creating and updating contacts with dynamic email and phone rows.
+ *
+ * @param {{
+ *   isOpen: boolean,
+ *   onClose: () => void,
+ *   onSave: (payload: Object) => Promise<void>,
+ *   contact?: Object | null
+ * }} props
+ * @returns {JSX.Element|null}
+ */
 export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -33,15 +44,27 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
 
   if (!isOpen) return null;
 
-  // Email handlers
+  /**
+   * Appends a new empty email row.
+   */
   const handleAddEmail = () => {
     setEmails((prev) => [...prev, { email: '', label: 'PERSONAL' }]);
   };
 
+  /**
+   * Removes an email row at specified index.
+   * @param {number} index
+   */
   const handleRemoveEmail = (index) => {
     setEmails((prev) => prev.filter((_, i) => i !== index));
   };
 
+  /**
+   * Updates a specific field on an email row.
+   * @param {number} index
+   * @param {string} field
+   * @param {string} value
+   */
   const handleEmailChange = (index, field, value) => {
     setEmails((prev) => {
       const updated = [...prev];
@@ -52,15 +75,27 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
     });
   };
 
-  // Phone handlers
+  /**
+   * Appends a new empty phone row.
+   */
   const handleAddPhone = () => {
     setPhones((prev) => [...prev, { phoneNumber: '', label: 'MOBILE' }]);
   };
 
+  /**
+   * Removes a phone row at specified index.
+   * @param {number} index
+   */
   const handleRemovePhone = (index) => {
     setPhones((prev) => prev.filter((_, i) => i !== index));
   };
 
+  /**
+   * Updates a specific field on a phone row.
+   * @param {number} index
+   * @param {string} field
+   * @param {string} value
+   */
   const handlePhoneChange = (index, field, value) => {
     setPhones((prev) => {
       const updated = [...prev];
@@ -71,6 +106,10 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
     });
   };
 
+  /**
+   * Validates and submits contact form data.
+   * @param {import('react').FormEvent} [e]
+   */
   const handleSubmit = async (e) => {
     e?.preventDefault();
     setSubmitting(true);

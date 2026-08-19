@@ -12,11 +12,29 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Spring Data JPA repository for Contact entities with custom search queries and user-scoped operations.
+ */
 @Repository
 public interface ContactRepository extends JpaRepository<Contact, Long> {
 
+    /**
+     * Finds paginated contacts owned by a user.
+     *
+     * @param user the owning user
+     * @param pageable pagination parameters
+     * @return page of contacts
+     */
     Page<Contact> findByUser(User user, Pageable pageable);
 
+    /**
+     * Performs case-insensitive text search across first name, last name, title, emails, and phone numbers for a user.
+     *
+     * @param user the owning user
+     * @param query search query substring
+     * @param pageable pagination parameters
+     * @return page of matched contacts
+     */
     @Query("SELECT DISTINCT c FROM Contact c " +
            "LEFT JOIN c.emails e " +
            "LEFT JOIN c.phones p " +
@@ -28,7 +46,20 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
            "p.phoneNumber LIKE CONCAT('%', :query, '%'))")
     Page<Contact> searchByUserAndQuery(@Param("user") User user, @Param("query") String query, Pageable pageable);
 
+    /**
+     * Finds a contact by its ID and owning user.
+     *
+     * @param id contact ID
+     * @param user owning user
+     * @return Optional containing the contact if found
+     */
     Optional<Contact> findByIdAndUser(Long id, User user);
 
+    /**
+     * Finds all contacts belonging to a user (used for export).
+     *
+     * @param user owning user
+     * @return list of contacts
+     */
     List<Contact> findByUser(User user);
 }

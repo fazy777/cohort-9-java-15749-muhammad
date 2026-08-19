@@ -3,6 +3,11 @@ package com.contact_managment.main_application.dto;
 import lombok.*;
 import java.util.List;
 
+/**
+ * Paginated data response wrapper containing items and pagination metadata.
+ *
+ * @param <T> element type
+ */
 @Getter
 @Setter
 @NoArgsConstructor

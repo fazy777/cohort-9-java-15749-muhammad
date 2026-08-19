@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Request payload for changing user password.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

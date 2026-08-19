@@ -9,6 +9,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data transfer object for contact information including names, title, notes, and collections of emails/phones.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

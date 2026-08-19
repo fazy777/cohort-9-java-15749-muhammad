@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Phone, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
+/**
+ * Authentication form component handling user login and account registration with email/phone toggle.
+ *
+ * @param {{ showToast?: (msg: string, type: string) => void }} props
+ * @returns {JSX.Element}
+ */
 export const AuthForm = ({ showToast }) => {
   const { login, register } = useAuth();
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -17,6 +23,10 @@ export const AuthForm = ({ showToast }) => {
   const [password, setPassword] = useState('');
   const [loginCredential, setLoginCredential] = useState('');
 
+  /**
+   * Handles submission of login or registration form.
+   * @param {import('react').FormEvent} [e]
+   */
   const handleSubmit = async (e) => {
     e?.preventDefault();
     setLoading(true);

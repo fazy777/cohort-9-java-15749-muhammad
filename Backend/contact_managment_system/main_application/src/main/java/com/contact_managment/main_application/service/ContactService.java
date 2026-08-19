@@ -21,6 +21,9 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Service providing contact CRUD operations, filtered search, pagination, bulk import/export, and user association.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -32,6 +35,17 @@ public class ContactService {
     private static final java.util.Set<String> ALLOWED_SORT_FIELDS = java.util.Set.of("id", "firstName", "lastName", "title", "createdAt", "updatedAt");
     private static final int MAX_PAGE_SIZE = 100;
 
+    /**
+     * Retrieves paginated contacts for a user with optional text filtering and sorting.
+     *
+     * @param userId user ID owning the contacts
+     * @param search text search query across names, title, emails, and phones
+     * @param page zero-based page number
+     * @param size number of records per page
+     * @param sortBy field name to sort by
+     * @param sortDir sorting direction ("asc" or "desc")
+     * @return paginated response containing contact DTOs
+     */
     @Transactional(readOnly = true)
     public PagedResponse<ContactDto> getContacts(Long userId, String search, int page, int size, String sortBy, String sortDir) {
         log.debug("Fetching contacts for user ID: {}, search: '{}', page: {}, size: {}", userId, search, page, size);
@@ -78,6 +92,14 @@ public class ContactService {
                 .build();
     }
 
+    /**
+     * Retrieves a single contact by its ID for a specific user.
+     *
+     * @param userId user ID owning the contact
+     * @param contactId contact identifier
+     * @return contact DTO
+     * @throws ResourceNotFoundException if the contact is not found
+     */
     @Transactional(readOnly = true)
     public ContactDto getContactById(Long userId, Long contactId) {
         log.debug("Fetching contact ID: {} for user ID: {}", contactId, userId);
@@ -88,6 +110,13 @@ public class ContactService {
         return mapToDto(contact);
     }
 
+    /**
+     * Creates and saves a new contact for the specified user.
+     *
+     * @param userId user ID creating the contact
+     * @param contactDto contact data
+     * @return saved contact DTO
+     */
     @Transactional
     public ContactDto createContact(Long userId, ContactDto contactDto) {
         log.info("Creating new contact for user ID: {} with name: {} {}", userId, contactDto.getFirstName(), contactDto.getLastName());
@@ -134,6 +163,15 @@ public class ContactService {
         return mapToDto(savedContact);
     }
 
+    /**
+     * Updates an existing contact's details, email addresses, and phone numbers.
+     *
+     * @param userId user ID owning the contact
+     * @param contactId ID of the contact to update
+     * @param contactDto updated contact values
+     * @return updated contact DTO
+     * @throws ResourceNotFoundException if the contact is not found
+     */
     @Transactional
     public ContactDto updateContact(Long userId, Long contactId, ContactDto contactDto) {
         log.info("Updating contact ID: {} for user ID: {}", contactId, userId);
@@ -180,6 +218,13 @@ public class ContactService {
         return mapToDto(updatedContact);
     }
 
+    /**
+     * Deletes a contact belonging to a specific user.
+     *
+     * @param userId user ID owning the contact
+     * @param contactId ID of the contact to delete
+     * @throws ResourceNotFoundException if the contact is not found
+     */
     @Transactional
     public void deleteContact(Long userId, Long contactId) {
         log.info("Deleting contact ID: {} for user ID: {}", contactId, userId);
@@ -192,6 +237,12 @@ public class ContactService {
         log.info("Contact ID: {} deleted successfully", contactId);
     }
 
+    /**
+     * Exports all contacts for a specific user as DTOs.
+     *
+     * @param userId user ID owning the contacts
+     * @return list of contact DTOs
+     */
     @Transactional(readOnly = true)
     public List<ContactDto> exportContacts(Long userId) {
         log.info("Exporting all contacts for user ID: {}", userId);
@@ -200,6 +251,13 @@ public class ContactService {
         return contacts.stream().map(this::mapToDto).toList();
     }
 
+    /**
+     * Imports a batch of contact DTOs for a user.
+     *
+     * @param userId user ID importing the contacts
+     * @param contactDtos list of contact DTOs to import
+     * @return total count of imported contacts
+     */
     @Transactional
     public int importContacts(Long userId, List<ContactDto> contactDtos) {
         if (contactDtos == null || contactDtos.isEmpty()) {
@@ -221,11 +279,24 @@ public class ContactService {
         return count;
     }
 
+    /**
+     * Helper method to lookup a user entity by ID.
+     *
+     * @param userId user ID
+     * @return User entity
+     * @throws ResourceNotFoundException if user is not found
+     */
     private User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
     }
 
+    /**
+     * Maps a Contact entity to its corresponding ContactDto.
+     *
+     * @param contact the Contact entity
+     * @return ContactDto representation
+     */
     private ContactDto mapToDto(Contact contact) {
         List<ContactEmailDto> emailDtos = contact.getEmails().stream()
                 .map(e -> ContactEmailDto.builder()

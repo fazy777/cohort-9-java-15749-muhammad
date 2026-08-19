@@ -32,6 +32,10 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Spring Security configuration that establishes stateless JWT authentication, password encoders, CORS policy,
+ * CSRF settings, custom 401/403 handlers, and route-level authorization rules.
+ */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -46,16 +50,34 @@ public class SecurityConfig {
     @Value("${spring.h2.console.enabled:false}")
     private boolean h2ConsoleEnabled;
 
+    /**
+     * Password encoder bean using the standard BCrypt hashing algorithm.
+     *
+     * @return PasswordEncoder instance
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Authentication manager bean configured from the Spring Security authentication configuration.
+     *
+     * @param authenticationConfiguration Spring Security authentication configuration
+     * @return AuthenticationManager instance
+     * @throws Exception if manager cannot be created
+     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
+    /**
+     * Custom authentication entry point returning structured JSON ErrorResponse on HTTP 401 Unauthorized.
+     *
+     * @param mapper Jackson ObjectMapper for serialization
+     * @return AuthenticationEntryPoint instance
+     */
     @Bean
     public AuthenticationEntryPoint authenticationEntryPoint(ObjectMapper mapper) {
         return (request, response, authException) -> {
@@ -73,6 +95,12 @@ public class SecurityConfig {
         };
     }
 
+    /**
+     * Custom access denied handler returning structured JSON ErrorResponse on HTTP 403 Forbidden.
+     *
+     * @param mapper Jackson ObjectMapper for serialization
+     * @return AccessDeniedHandler instance
+     */
     @Bean
     public AccessDeniedHandler accessDeniedHandler(ObjectMapper mapper) {
         return (request, response, accessDeniedException) -> {
@@ -90,6 +118,13 @@ public class SecurityConfig {
         };
     }
 
+    /**
+     * Defines the primary Spring Security filter chain with JWT authentication, stateless sessions, CORS, and endpoint rules.
+     *
+     * @param http HttpSecurity configuration builder
+     * @return configured SecurityFilterChain
+     * @throws Exception in case of configuration errors
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -121,6 +156,11 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Configures CORS bean with allowed origins, headers, HTTP methods, and exposed headers.
+     *
+     * @return CorsConfigurationSource instance
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

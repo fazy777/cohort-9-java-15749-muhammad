@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+/**
+ * User entity representing an authenticated account holder in the system with credentials and token versioning.
+ */
 @Entity
 @Table(name = "users")
 @Getter

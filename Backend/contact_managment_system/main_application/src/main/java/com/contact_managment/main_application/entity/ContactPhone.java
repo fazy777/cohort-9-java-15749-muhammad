@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
+/**
+ * Entity representing a phone number associated with a Contact.
+ */
 @Entity
 @Table(name = "contact_phones")
 @Getter

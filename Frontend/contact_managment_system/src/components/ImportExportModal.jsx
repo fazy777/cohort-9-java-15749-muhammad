@@ -156,6 +156,17 @@ const parsePhonesFromCsv = (str) => {
   }).filter(p => p.phoneNumber.length > 0);
 };
 
+/**
+ * Modal dialog component for importing contacts from CSV/JSON and exporting contacts.
+ *
+ * @param {{
+ *   isOpen: boolean,
+ *   onClose: () => void,
+ *   showToast?: (msg: string, type: string) => void,
+ *   onImportSuccess?: () => void
+ * }} props
+ * @returns {JSX.Element|null}
+ */
 export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess }) => {
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -164,6 +175,9 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
 
   if (!isOpen) return null;
 
+  /**
+   * Fetches all contacts and triggers download as JSON file.
+   */
   const handleExportJSON = async () => {
     setExporting(true);
     try {

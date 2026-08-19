@@ -4,6 +4,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+/**
+ * Standardized JSON error response payload returned on API errors and validation failures.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

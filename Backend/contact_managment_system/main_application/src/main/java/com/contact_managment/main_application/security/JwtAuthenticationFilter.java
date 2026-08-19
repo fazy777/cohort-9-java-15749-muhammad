@@ -19,6 +19,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Servlet filter that intercepts incoming HTTP requests, extracts JWT bearer tokens, validates claims,
+ * checks token version against user state, and populates the Spring SecurityContextHolder.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -27,6 +31,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
 
+    /**
+     * Filters incoming HTTP requests to extract and validate JWT tokens and authenticate the principal.
+     *
+     * @param request the current HTTP request
+     * @param response the current HTTP response
+     * @param filterChain the servlet filter chain
+     * @throws ServletException in case of servlet processing errors
+     * @throws IOException in case of I/O errors
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -67,7 +80,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
 
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
+                        userDetails, null, userDetails.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -82,6 +95,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Extracts the Bearer token string from the HTTP Authorization header.
+     *
+     * @param request current HTTP request
+     * @return raw JWT token string without "Bearer " prefix, or null if missing
+     */
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {

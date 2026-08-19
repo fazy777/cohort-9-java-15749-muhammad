@@ -7,6 +7,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Entity representing an address book contact owned by a User, with associated emails and phone numbers.
+ */
 @Entity
 @Table(name = "contacts")
 @Getter
@@ -62,21 +65,41 @@ public class Contact {
         this.updatedAt = LocalDateTime.now();
     }
 
+    /**
+     * Adds an email entity to this contact and binds bidirectional relationship.
+     *
+     * @param email the ContactEmail to add
+     */
     public void addEmail(ContactEmail email) {
         emails.add(email);
         email.setContact(this);
     }
 
+    /**
+     * Removes an email entity from this contact and unbinds relationship.
+     *
+     * @param email the ContactEmail to remove
+     */
     public void removeEmail(ContactEmail email) {
         emails.remove(email);
         email.setContact(null);
     }
 
+    /**
+     * Adds a phone entity to this contact and binds bidirectional relationship.
+     *
+     * @param phone the ContactPhone to add
+     */
     public void addPhone(ContactPhone phone) {
         phones.add(phone);
         phone.setContact(this);
     }
 
+    /**
+     * Removes a phone entity from this contact and unbinds relationship.
+     *
+     * @param phone the ContactPhone to remove
+     */
     public void removePhone(ContactPhone phone) {
         phones.remove(phone);
         phone.setContact(null);

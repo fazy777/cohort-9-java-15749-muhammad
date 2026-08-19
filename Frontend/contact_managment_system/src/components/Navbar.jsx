@@ -1,6 +1,12 @@
 import { useAuth } from '../context/AuthContext';
 import { LogOut, BookOpen } from 'lucide-react';
 
+/**
+ * Navigation bar component rendering brand logo, user profile avatar trigger, and logout action.
+ *
+ * @param {{ onOpenProfile?: () => void }} props
+ * @returns {JSX.Element}
+ */
 export const Navbar = ({ onOpenProfile }) => {
   const { user, logout } = useAuth();
 

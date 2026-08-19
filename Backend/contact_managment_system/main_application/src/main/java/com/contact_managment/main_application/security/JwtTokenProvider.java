@@ -14,6 +14,9 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+/**
+ * Utility component responsible for generating, signing, parsing, and validating JWT authentication tokens.
+ */
 @Component
 @Slf4j
 public class JwtTokenProvider {
@@ -26,6 +29,11 @@ public class JwtTokenProvider {
 
     private SecretKey signingKey;
 
+    /**
+     * Initializes and caches the HMAC SHA signing key from the configured JWT secret.
+     *
+     * @throws IllegalStateException if secret is not set or less than 32 bytes
+     */
     @PostConstruct
     public void init() {
         if (!StringUtils.hasText(jwtSecret) || jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
@@ -37,10 +45,21 @@ public class JwtTokenProvider {
         this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * Retrieves the cached signing key.
+     *
+     * @return the SecretKey instance
+     */
     private SecretKey getSigningKey() {
         return this.signingKey;
     }
 
+    /**
+     * Generates a signed JWT token from an Authentication object.
+     *
+     * @param authentication the authenticated principal
+     * @return serialized compact JWT string
+     */
     public String generateToken(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal userPrincipal)) {
             throw new BadCredentialsException("Authentication principal must be a valid UserPrincipal");
@@ -48,6 +67,13 @@ public class JwtTokenProvider {
         return generateToken(userPrincipal.getId(), userPrincipal.getTokenVersion());
     }
 
+    /**
+     * Generates a signed JWT token with the specified user ID and token version claim.
+     *
+     * @param userId user identifier stored in the subject claim
+     * @param tokenVersion version number used to invalidate revoked tokens
+     * @return compact JWT token string
+     */
     public String generateToken(Long userId, Long tokenVersion) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
@@ -61,6 +87,12 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    /**
+     * Parses and returns the claims payload from a signed JWT string.
+     *
+     * @param token compact JWT string
+     * @return Claims payload if valid; null otherwise
+     */
     public Claims getClaimsFromJWT(String token) {
         if (!StringUtils.hasText(token)) {
             return null;
@@ -77,6 +109,12 @@ public class JwtTokenProvider {
         }
     }
 
+    /**
+     * Extracts the user ID from the subject claim of a JWT token.
+     *
+     * @param token compact JWT string
+     * @return user ID as Long, or null if unparseable
+     */
     public Long getUserIdFromJWT(String token) {
         Claims claims = getClaimsFromJWT(token);
         if (claims == null || claims.getSubject() == null) {
@@ -90,6 +128,12 @@ public class JwtTokenProvider {
         }
     }
 
+    /**
+     * Extracts the tokenVersion claim from a JWT token.
+     *
+     * @param token compact JWT string
+     * @return token version number as Long, or null if missing/invalid
+     */
     public Long getTokenVersionFromJWT(String token) {
         Claims claims = getClaimsFromJWT(token);
         if (claims == null) {
@@ -104,6 +148,12 @@ public class JwtTokenProvider {
         }
     }
 
+    /**
+     * Validates whether a given token is well-formed, signed with current secret, and unexpired.
+     *
+     * @param authToken compact JWT string
+     * @return true if valid; false otherwise
+     */
     public boolean validateToken(String authToken) {
         return getClaimsFromJWT(authToken) != null;
     }

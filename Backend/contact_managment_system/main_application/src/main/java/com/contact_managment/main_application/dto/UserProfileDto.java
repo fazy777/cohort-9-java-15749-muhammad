@@ -3,6 +3,9 @@ package com.contact_managment.main_application.dto;
 import lombok.*;
 import java.time.LocalDateTime;
 
+/**
+ * Data transfer object representing the authenticated user's profile information.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

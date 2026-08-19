@@ -2,6 +2,9 @@ package com.contact_managment.main_application.dto;
 
 import lombok.*;
 
+/**
+ * Authentication response payload returning the JWT token and logged-in user summary.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

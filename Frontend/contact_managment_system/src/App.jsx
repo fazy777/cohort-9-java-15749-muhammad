@@ -11,6 +11,11 @@ import { ImportExportModal } from './components/ImportExportModal';
 import { Toast } from './components/Toast';
 import { api } from './services/api';
 
+/**
+ * Primary dashboard view displaying contact lists, search filters, and coordinating CRUD modal flows.
+ *
+ * @returns {JSX.Element}
+ */
 const MainDashboard = () => {
   const { user, loading: authLoading } = useAuth();
 
@@ -39,6 +44,11 @@ const MainDashboard = () => {
   // Toast Notifications State
   const [toasts, setToasts] = useState([]);
 
+  /**
+   * Displays an auto-dismissing toast notification.
+   * @param {string} message - text to display
+   * @param {'success'|'error'} [type='success'] - toast status type
+   */
   const showToast = useCallback((message, type = 'success') => {
     const id = Date.now() + Math.floor(Math.random() * 1000);
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -47,10 +57,17 @@ const MainDashboard = () => {
     }, 4000);
   }, []);
 
+  /**
+   * Removes a toast notification by ID.
+   * @param {number|string} id - toast id to remove
+   */
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  /**
+   * Fetches paginated contacts from backend API.
+   */
   const fetchContacts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -79,17 +96,29 @@ const MainDashboard = () => {
     void fetchContacts();
   }, [fetchContacts]);
 
+  /**
+   * Handles contact search string query changes.
+   * @param {string} term
+   */
   const handleSearchChange = (term) => {
     setSearchTerm(term || '');
     setPage(0);
   };
 
+  /**
+   * Handles pagination page number updates.
+   * @param {number} newPage
+   */
   const handlePageChange = (newPage) => {
     if (newPage >= 0) {
       setPage(newPage);
     }
   };
 
+  /**
+   * Handles pagination page size updates.
+   * @param {number} newSize
+   */
   const handlePageSizeChange = (newSize) => {
     if (newSize > 0) {
       setPageSize(newSize);
@@ -97,7 +126,10 @@ const MainDashboard = () => {
     }
   };
 
-  // Create & Update Contact Handler
+  /**
+   * Submits create or update payload to API.
+   * @param {Object} contactPayload
+   */
   const handleSaveContact = async (contactPayload) => {
     try {
       if (editingContact?.id != null) {
@@ -114,7 +146,10 @@ const MainDashboard = () => {
     }
   };
 
-  // Delete Contact Handler
+  /**
+   * Submits contact deletion request to API and updates page view.
+   * @param {number|string} contactId
+   */
   const handleDeleteContact = async (contactId) => {
     try {
       if (contactId != null) {
@@ -180,7 +215,7 @@ const MainDashboard = () => {
         )}
       </main>
 
-      {/* Modal 1 & Modal 2: Create / Update Contact Modal */}
+      {/* Modal 1: Create & Edit Modal */}
       <ContactFormModal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
@@ -188,7 +223,7 @@ const MainDashboard = () => {
         contact={editingContact}
       />
 
-      {/* Modal 3: Delete Contact Confirmation Modal */}
+      {/* Modal 2: Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
@@ -196,7 +231,7 @@ const MainDashboard = () => {
         contact={deletingContact}
       />
 
-      {/* View Detail Profile Modal */}
+      {/* Modal 3: Contact Profile Detail View Modal */}
       <ContactDetailModal
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
@@ -231,6 +266,11 @@ const MainDashboard = () => {
   );
 };
 
+/**
+ * Root Application component wrapped with AuthProvider.
+ *
+ * @returns {JSX.Element}
+ */
 export default function App() {
   return (
     <AuthProvider>

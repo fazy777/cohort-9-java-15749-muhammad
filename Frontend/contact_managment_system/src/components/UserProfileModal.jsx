@@ -3,6 +3,16 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { User, Mail, Phone, LogOut, KeyRound, X, RotateCcw } from 'lucide-react';
 
+/**
+ * User profile modal dialog displaying account metadata and providing a password change form.
+ *
+ * @param {{
+ *   isOpen: boolean,
+ *   onClose: () => void,
+ *   showToast?: (msg: string, type: string) => void
+ * }} props
+ * @returns {JSX.Element|null}
+ */
 export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
   const { user, logout } = useAuth();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -13,12 +23,19 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
 
   if (!isOpen || !user) return null;
 
+  /**
+   * Resets password change input fields.
+   */
   const handleResetPasswordForm = () => {
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
   };
 
+  /**
+   * Submits password change request, logs user out, and informs user upon success.
+   * @param {import('react').FormEvent} [e]
+   */
   const handleChangePassword = async (e) => {
     e?.preventDefault();
     if (newPassword !== confirmPassword) {

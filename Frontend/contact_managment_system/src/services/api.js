@@ -4,6 +4,10 @@ const BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:8080/api';
 const DEFAULT_TIMEOUT_MS = 15000;
 const TRANSFER_TIMEOUT_MS = 60000;
 
+/**
+ * Builds the Authorization header containing the Bearer JWT token if present.
+ * @returns {Record<string, string>}
+ */
 const getAuthHeader = () => {
   try {
     const token = safeStorage.getItem('cms_token');
@@ -14,6 +18,10 @@ const getAuthHeader = () => {
   }
 };
 
+/**
+ * Handles HTTP 401 Unauthorized by clearing cached session credentials and dispatching an auth event.
+ * @returns {void}
+ */
 const handleUnauthorized = () => {
   safeStorage.removeItem('cms_token');
   safeStorage.removeItem('cms_user');
@@ -22,6 +30,13 @@ const handleUnauthorized = () => {
   }
 };
 
+/**
+ * Performs an HTTP fetch request with timeout abort signal, centralized headers, and error handling.
+ * @param {string} endpoint - API path relative to BASE_URL
+ * @param {RequestInit} [options={}] - fetch options (method, body, headers)
+ * @param {number} [timeoutMs=15000] - request timeout in milliseconds
+ * @returns {Promise<any>}
+ */
 const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -77,7 +92,15 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
   return result;
 };
 
+/**
+ * API client exposing backend authentication and contact management endpoints.
+ */
 export const api = {
+  /**
+   * Registers a new user account.
+   * @param {Object} data - user registration data
+   * @returns {Promise<any>}
+   */
   async register(data) {
     if (!data) throw new Error('Registration data is required');
     return request('/auth/register', {
@@ -86,6 +109,11 @@ export const api = {
     });
   },
 
+  /**
+   * Authenticates user credentials.
+   * @param {Object} data - login credentials
+   * @returns {Promise<any>}
+   */
   async login(data) {
     if (!data) throw new Error('Login credentials are required');
     return request('/auth/login', {
@@ -94,11 +122,20 @@ export const api = {
     });
   },
 
+  /**
+   * Fetches the current user profile.
+   * @returns {Promise<any>}
+   */
   async getProfile() {
     const result = await request('/auth/profile');
     return result?.data;
   },
 
+  /**
+   * Changes the authenticated user's password.
+   * @param {Object} data - password change payload
+   * @returns {Promise<any>}
+   */
   async changePassword(data) {
     if (!data) throw new Error('Change password data is required');
     return request('/auth/change-password', {
@@ -107,6 +144,11 @@ export const api = {
     });
   },
 
+  /**
+   * Fetches a paginated, filtered list of contacts.
+   * @param {Object} [params] - query parameters
+   * @returns {Promise<any>}
+   */
   async getContacts({ search = '', page = 0, size = 10, sortBy = 'firstName', sortDir = 'asc' } = {}) {
     const trimmedSearch = typeof search === 'string' ? search.trim() : '';
     const queryParams = new URLSearchParams({
@@ -121,12 +163,22 @@ export const api = {
     return result?.data;
   },
 
+  /**
+   * Fetches details of a single contact by ID.
+   * @param {number|string} id - contact ID
+   * @returns {Promise<any>}
+   */
   async getContactById(id) {
     if (id == null) throw new Error('Contact ID is required');
     const result = await request(`/contacts/${id}`);
     return result?.data;
   },
 
+  /**
+   * Creates a new contact.
+   * @param {Object} data - contact details
+   * @returns {Promise<any>}
+   */
   async createContact(data) {
     if (!data) throw new Error('Contact payload is required');
     const result = await request('/contacts', {
@@ -136,6 +188,12 @@ export const api = {
     return result?.data;
   },
 
+  /**
+   * Updates an existing contact.
+   * @param {number|string} id - contact ID
+   * @param {Object} data - updated contact payload
+   * @returns {Promise<any>}
+   */
   async updateContact(id, data) {
     if (id == null) throw new Error('Contact ID is required');
     if (!data) throw new Error('Contact payload is required');
@@ -146,6 +204,11 @@ export const api = {
     return result?.data;
   },
 
+  /**
+   * Deletes a contact by ID.
+   * @param {number|string} id - contact ID
+   * @returns {Promise<any>}
+   */
   async deleteContact(id) {
     if (id == null) throw new Error('Contact ID is required');
     return request(`/contacts/${id}`, {
@@ -153,11 +216,20 @@ export const api = {
     });
   },
 
+  /**
+   * Exports all contacts for the authenticated user.
+   * @returns {Promise<any>}
+   */
   async exportContacts() {
     const result = await request('/contacts/export', {}, TRANSFER_TIMEOUT_MS);
     return result?.data;
   },
 
+  /**
+   * Imports a batch list of contacts.
+   * @param {Array<Object>} contactsList - contacts to import
+   * @returns {Promise<any>}
+   */
   async importContacts(contactsList) {
     if (!Array.isArray(contactsList)) throw new Error('Contacts list must be an array');
     return request('/contacts/import', {

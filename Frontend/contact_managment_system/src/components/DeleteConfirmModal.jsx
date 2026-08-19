@@ -1,11 +1,25 @@
 import { useState } from 'react';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 
+/**
+ * Confirmation dialog for permanently deleting a contact.
+ *
+ * @param {{
+ *   isOpen: boolean,
+ *   onClose: () => void,
+ *   onConfirm: (id: number|string) => Promise<void>|void,
+ *   contact: Object | null
+ * }} props
+ * @returns {JSX.Element|null}
+ */
 export const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, contact }) => {
   const [deleting, setDeleting] = useState(false);
 
   if (!isOpen || !contact) return null;
 
+  /**
+   * Executes deletion and invokes callback upon completion.
+   */
   const handleConfirm = async () => {
     setDeleting(true);
     try {

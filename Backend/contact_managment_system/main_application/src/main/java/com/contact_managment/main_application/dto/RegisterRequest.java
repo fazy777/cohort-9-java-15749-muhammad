@@ -6,6 +6,9 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Request payload for creating a new user account with personal info, credentials, and validation rules.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

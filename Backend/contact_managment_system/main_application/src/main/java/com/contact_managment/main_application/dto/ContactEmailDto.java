@@ -5,6 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+/**
+ * Data transfer object for contact email address and category label.
+ */
 @Getter
 @Setter
 @NoArgsConstructor

@@ -1,5 +1,27 @@
 import { Search, Plus, Edit, Trash2, Eye, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 
+/**
+ * Data table component rendering contact listings, search filter, action buttons, and pagination controls.
+ *
+ * @param {{
+ *   contacts?: Array<Object>,
+ *   totalElements?: number,
+ *   totalPages?: number,
+ *   currentPage?: number,
+ *   pageSize?: number,
+ *   searchTerm?: string,
+ *   onSearchChange?: (val: string) => void,
+ *   onPageChange?: (page: number) => void,
+ *   onPageSizeChange?: (size: number) => void,
+ *   onOpenCreate?: () => void,
+ *   onOpenUpdate?: (c: Object) => void,
+ *   onOpenDelete?: (c: Object) => void,
+ *   onOpenDetail?: (c: Object) => void,
+ *   onOpenImportExport?: () => void,
+ *   loading?: boolean
+ * }} props
+ * @returns {JSX.Element}
+ */
 export const ContactTable = ({
   contacts = [],
   totalElements = 0,
@@ -19,6 +41,11 @@ export const ContactTable = ({
 }) => {
   const safeContacts = Array.isArray(contacts) ? contacts.filter(Boolean) : [];
 
+  /**
+   * Returns styling class for email/phone badge labels.
+   * @param {string} label
+   * @returns {string}
+   */
   const getLabelClass = (label) => {
     switch (label?.toUpperCase()) {
       case 'WORK': return 'badge-work';

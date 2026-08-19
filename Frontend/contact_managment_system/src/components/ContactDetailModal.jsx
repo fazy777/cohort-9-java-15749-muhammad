@@ -1,8 +1,25 @@
 import { User, Mail, Phone, Calendar, Clock, X, Briefcase, FileText } from 'lucide-react';
 
+/**
+ * Modal dialog displaying comprehensive details, timestamps, emails, phones, and actions for a contact.
+ *
+ * @param {{
+ *   isOpen: boolean,
+ *   onClose: () => void,
+ *   contact: Object | null,
+ *   onEdit: (c: Object) => void,
+ *   onDelete: (id: number|string) => void
+ * }} props
+ * @returns {JSX.Element|null}
+ */
 export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete }) => {
   if (!isOpen || !contact) return null;
 
+  /**
+   * Formats an ISO date string for display.
+   * @param {string} dateString
+   * @returns {string}
+   */
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     try {
@@ -18,6 +35,11 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
     }
   };
 
+  /**
+   * Returns the CSS badge class corresponding to an email or phone label.
+   * @param {string} label
+   * @returns {string}
+   */
   const getLabelClass = (label) => {
     switch (label?.toUpperCase()) {
       case 'WORK': return 'badge-work';
