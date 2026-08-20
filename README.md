@@ -2,7 +2,7 @@
 
 [![GitHub License](https://img.shields.io/github/license/fazy777/cohort-9-java-15749-muhammad?color=blue)](https://github.com/fazy777/cohort-9-java-15749-muhammad/blob/main/LICENSE)
 [![GitHub Issues](https://img.shields.io/github/issues/fazy777/cohort-9-java-15749-muhammad?color=red)](https://github.com/fazy777/cohort-9-java-15749-muhammad/issues)
-[![SonarQube Quality Gate](https://img.shields.io/badge/SonarQube-Passed-brightgreen?style=flat&logo=sonarqube)](#code-quality--sonarqube-integration)
+[![SonarQube Quality Gate](https://img.shields.io/badge/SonarQube-Quality%20Gate-4E9BCD?style=flat&logo=sonarqube)](#code-quality--sonarqube-integration)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/fazy777/cohort-9-java-15749-muhammad/pulls)
 
 A modern, secure, and responsive full-stack **Contact Management System** built using Java Spring Boot and React technology stack.
@@ -58,11 +58,11 @@ The application is implemented strictly using the proposed technologies and tool
 * **Self-Registration:** Allow new users to sign up using either their email address or phone number.
 * **Secure Login:** Session token generation (JWT / Spring Security) to authorize subsequent API requests.
 * **Token Invalidation:** User token versioning invalidates old JWTs immediately upon password reset.
-* **Password Management:** Secure password hashing (BCrypt) and in-app password reset features.
+* **Password Management:** Secure password hashing (BCrypt) and in-app password change features.
 
 ### 2. Contacts Management
 * **List Pagination & Sorting:** Paginated contact fetches with validated sort parameters.
-* **Dynamic Search & Filtering:** Quick search on contact lists by First Name or Last Name.
+* **Dynamic Search & Filtering:** Quick search on contact lists across first name, last name, title, email, and phone.
 * **Comprehensive Profiles:** Detailed profile views for contacts, supporting:
   * First Name, Last Name, and Job Title.
   * Multiple Email Addresses (labeled as *Work, Personal, etc.*).
@@ -70,7 +70,7 @@ The application is implemented strictly using the proposed technologies and tool
 * **Full CRUD Operations:** Modals to create, read detail, update data, and securely delete contacts with confirmation dialogues.
 
 ### 3. Logging & Exception Handling
-* **Enterprise Logging:** Asynchronous logging using **SLF4J** & **Logback** with finite history retention and total size caps.
+* **Enterprise Logging:** Structured logging using **SLF4J** & **Logback** with finite history retention and total size caps.
 * **Global Exception Handling:** Global Exception Handler (`@RestControllerAdvice`) returning standardized `ErrorResponse` while masking internal server details.
 
 ### 4. Testing & Code Quality
@@ -208,7 +208,7 @@ cohort-9-java-15749-muhammad/
 ## Getting Started & Installation
 
 ### Prerequisites
-* [Java Development Kit (JDK) 17 or higher](https://www.oracle.com/java/technologies/downloads/)
+* [Java Development Kit (JDK) 21 or higher](https://www.oracle.com/java/technologies/downloads/)
 * [Maven](https://maven.apache.org/) (or use the included Maven wrapper `mvnw`)
 * [Node.js](https://nodejs.org/) (^20.19.0 || >=22.12.0) & `npm`
 * [SQL Server](https://www.microsoft.com/en-us/sql-server/) (Production) or H2 (included for local development)
@@ -236,10 +236,10 @@ cohort-9-java-15749-muhammad/
 3. **Run the Application:**
    ```bash
    # On Linux/macOS
-   ./mvnw spring-boot:run
+   ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
    # On Windows
-   .\mvnw.cmd spring-boot:run
+   .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
    ```
    The backend API starts on `http://localhost:8080`.
 

@@ -185,7 +185,9 @@ public class ContactService {
         contact.setTitle(contactDto.getTitle());
         contact.setNotes(contactDto.getNotes());
 
-        contact.getEmails().clear();
+        if (contact.getEmails() != null) {
+            new ArrayList<>(contact.getEmails()).forEach(contact::removeEmail);
+        }
         if (contactDto.getEmails() != null) {
             for (ContactEmailDto emailDto : contactDto.getEmails()) {
                 if (emailDto == null) {
@@ -199,7 +201,9 @@ public class ContactService {
             }
         }
 
-        contact.getPhones().clear();
+        if (contact.getPhones() != null) {
+            new ArrayList<>(contact.getPhones()).forEach(contact::removePhone);
+        }
         if (contactDto.getPhones() != null) {
             for (ContactPhoneDto phoneDto : contactDto.getPhones()) {
                 if (phoneDto == null) {

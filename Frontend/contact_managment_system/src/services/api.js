@@ -91,10 +91,17 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
     if (err?.name === 'AbortError' || controller.signal.aborted) {
       throw new Error(`Request timed out after ${timeoutMs / 1000}s`, { cause: err });
     }
-    if (err instanceof Error && err.message && !err.message.startsWith('Network error:')) {
+    const isNetworkError =
+      err instanceof TypeError ||
+      err?.message === 'Failed to fetch' ||
+      err?.message === 'Load failed' ||
+      err?.message === 'fetch failed' ||
+      err?.name === 'FetchError';
+
+    if (!isNetworkError && err instanceof Error && err.message && !err.message.startsWith('Network error:')) {
       throw err;
     }
-    throw new Error(err?.message || 'Network error: Failed to connect to server', { cause: err });
+    throw new Error(err?.message && !isNetworkError ? err.message : 'Network error: Failed to connect to server', { cause: err });
   } finally {
     clearTimeout(timeoutId);
   }

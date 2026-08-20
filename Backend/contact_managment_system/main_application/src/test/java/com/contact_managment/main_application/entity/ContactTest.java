@@ -42,6 +42,20 @@ class ContactTest {
     }
 
     @Test
+    @DisplayName("Should preserve email contact association when email is not present in contact")
+    void removeEmail_NotPresent_PreservesContact() {
+        Contact contact1 = Contact.builder().emails(new ArrayList<>()).build();
+        Contact contact2 = Contact.builder().emails(new ArrayList<>()).build();
+        ContactEmail email = ContactEmail.builder().email("test@example.com").label("WORK").build();
+        contact1.addEmail(email);
+
+        contact2.removeEmail(email);
+
+        assertEquals(1, contact1.getEmails().size());
+        assertEquals(contact1, email.getContact());
+    }
+
+    @Test
     @DisplayName("Should throw IllegalArgumentException when removing null email")
     void removeEmail_Null_ThrowsException() {
         Contact contact = Contact.builder().emails(new ArrayList<>()).build();
@@ -78,6 +92,20 @@ class ContactTest {
 
         assertEquals(0, contact.getPhones().size());
         assertNull(phone.getContact());
+    }
+
+    @Test
+    @DisplayName("Should preserve phone contact association when phone is not present in contact")
+    void removePhone_NotPresent_PreservesContact() {
+        Contact contact1 = Contact.builder().phones(new ArrayList<>()).build();
+        Contact contact2 = Contact.builder().phones(new ArrayList<>()).build();
+        ContactPhone phone = ContactPhone.builder().phoneNumber("+1234567890").label("WORK").build();
+        contact1.addPhone(phone);
+
+        contact2.removePhone(phone);
+
+        assertEquals(1, contact1.getPhones().size());
+        assertEquals(contact1, phone.getContact());
     }
 
     @Test

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { User, Mail, Phone, LogOut, KeyRound, X, RotateCcw } from 'lucide-react';
@@ -21,7 +21,21 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const currentPasswordRef = useRef(null);
+  const changePasswordBtnRef = useRef(null);
+  const prevShowPasswordRef = useRef(showPasswordModal);
   const modalRef = useModalA11y(isOpen, onClose);
+
+  useEffect(() => {
+    if (prevShowPasswordRef.current !== showPasswordModal) {
+      if (showPasswordModal) {
+        currentPasswordRef.current?.focus();
+      } else {
+        changePasswordBtnRef.current?.focus();
+      }
+      prevShowPasswordRef.current = showPasswordModal;
+    }
+  }, [showPasswordModal]);
 
   if (!isOpen || !user) return null;
 
@@ -151,6 +165,7 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
 
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
+                  ref={changePasswordBtnRef}
                   type="button"
                   className="btn btn-primary btn-sm"
                   onClick={() => setShowPasswordModal(true)}
@@ -170,6 +185,7 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
             <div className="form-group">
               <label htmlFor="current-password">Current Password *</label>
               <input
+                ref={currentPasswordRef}
                 id="current-password"
                 type="password"
                 className="input-control"

@@ -118,4 +118,15 @@ class ContactControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Contact deleted successfully"));
     }
+
+    @Test
+    @DisplayName("GET /api/contacts?page=invalid should return 400 Bad Request")
+    void getContacts_InvalidPageParam_Returns400() throws Exception {
+        mockMvc.perform(get("/api/contacts?page=invalid")
+                        .with(user(userPrincipal)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.path").value("/api/contacts"));
+    }
 }

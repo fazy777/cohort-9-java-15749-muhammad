@@ -9,12 +9,13 @@ import { useModalA11y } from '../hooks/useModalA11y';
  *   isOpen: boolean,
  *   onClose: () => void,
  *   onConfirm: (id: number|string) => Promise<void>|void,
- *   contact: Object | null
+ *   contact: { id: number|string, firstName?: string, lastName?: string } | null
  * }} props
  * @returns {JSX.Element|null}
  */
 export const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, contact }) => {
   const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
   const modalRef = useModalA11y(isOpen, onClose);
 
   if (!isOpen || !contact) return null;
@@ -24,6 +25,7 @@ export const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, contact }) => {
    */
   const handleConfirm = async () => {
     setDeleting(true);
+    setError('');
     try {
       if (typeof onConfirm === 'function' && contact.id != null) {
         await onConfirm(contact.id);
@@ -33,6 +35,7 @@ export const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, contact }) => {
       }
     } catch (err) {
       console.error('Delete contact failed:', err);
+      setError(err?.message || 'Failed to delete contact. Please try again.');
     } finally {
       setDeleting(false);
     }
@@ -69,6 +72,24 @@ export const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, contact }) => {
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
           Are you sure you want to delete <strong style={{ color: 'var(--text-main)' }}>{contact.firstName} {contact.lastName}</strong>? This action cannot be undone.
         </p>
+
+        {error && (
+          <div
+            role="alert"
+            style={{
+              background: 'var(--danger-bg)',
+              color: 'var(--danger-color)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.75rem',
+              fontSize: '0.875rem',
+              marginBottom: '1.25rem',
+              textAlign: 'center'
+            }}
+          >
+            {error}
+          </div>
+        )}
 
         <div className="modal-footer" style={{ justifyContent: 'center', margin: 0, border: 'none', paddingTop: 0 }}>
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={deleting}>

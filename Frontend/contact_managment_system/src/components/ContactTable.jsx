@@ -222,10 +222,10 @@ export const ContactTable = ({
         )}
 
         {/* Paginated Navigation Controls */}
-        {totalPages > 1 && (
+        {totalElements > 0 && (
           <div className="pagination-container" style={{ margin: '1rem' }}>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-              Showing Page <strong style={{ color: 'var(--text-main)' }}>{currentPage + 1}</strong> of <strong style={{ color: 'var(--text-main)' }}>{totalPages}</strong> ({totalElements} total contacts)
+              Showing Page <strong style={{ color: 'var(--text-main)' }}>{currentPage + 1}</strong> of <strong style={{ color: 'var(--text-main)' }}>{totalPages || 1}</strong> ({totalElements} total contacts)
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -241,21 +241,25 @@ export const ContactTable = ({
                 <option value={50}>50 / page</option>
               </select>
 
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => onPageChange?.(currentPage - 1)}
-                disabled={currentPage === 0}
-              >
-                <ChevronLeft size={16} /> Prev
-              </button>
+              {totalPages > 1 && (
+                <>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => onPageChange?.(currentPage - 1)}
+                    disabled={currentPage === 0}
+                  >
+                    <ChevronLeft size={16} /> Prev
+                  </button>
 
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => onPageChange?.(currentPage + 1)}
-                disabled={currentPage >= totalPages - 1}
-              >
-                Next <ChevronRight size={16} />
-              </button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => onPageChange?.(currentPage + 1)}
+                    disabled={currentPage >= totalPages - 1}
+                  >
+                    Next <ChevronRight size={16} />
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

@@ -178,6 +178,22 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
   if (!isOpen) return null;
 
   /**
+   * Helper to trigger client-side download of a Blob.
+   * @param {Blob} blob
+   * @param {string} filename
+   */
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  };
+
+  /**
    * Fetches all contacts and triggers download as JSON file.
    */
   const handleExportJSON = async () => {
@@ -186,12 +202,7 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
       const contacts = await api.exportContacts();
       const jsonStr = JSON.stringify(contacts || [], null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `contacts_export_${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `contacts_export_${new Date().toISOString().split('T')[0]}.json`);
       showToast?.('Contacts exported to JSON file successfully!', 'success');
     } catch (err) {
       showToast?.(err?.message || 'Export failed', 'error');
@@ -230,12 +241,7 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
 
       const csvContent = csvRows.join('\r\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `contacts_export_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `contacts_export_${new Date().toISOString().split('T')[0]}.csv`);
       showToast?.('Contacts exported to CSV file successfully!', 'success');
     } catch (err) {
       showToast?.(err?.message || 'Export failed', 'error');
@@ -247,6 +253,10 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
   const handleFileChange = (e) => {
     const file = e?.target?.files?.[0];
     if (!file) return;
+
+    if (e.target) {
+      e.target.value = '';
+    }
 
     const reader = new FileReader();
     const currentReader = reader;

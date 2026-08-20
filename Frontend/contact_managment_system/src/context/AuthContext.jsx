@@ -79,8 +79,8 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Logs in a user with credentials.
-   * @param {Object} credentials - user login credentials
-   * @returns {Promise<Object>} authenticated user object
+   * @param {{ credential: string, password: string }} credentials - user login credentials
+   * @returns {Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>} authenticated user object
    */
   const login = useCallback(async (credentials) => {
     if (!credentials) throw new Error('Credentials are required');
@@ -106,8 +106,8 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Registers a new user account.
-   * @param {Object} registerData - registration form data
-   * @returns {Promise<Object>} newly registered user object
+   * @param {{ firstName: string, lastName: string, email?: string|null, phone?: string|null, password: string }} registerData - registration form data
+   * @returns {Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>} newly registered user object
    */
   const register = useCallback(async (registerData) => {
     if (!registerData) throw new Error('Registration data is required');
@@ -167,7 +167,15 @@ export const AuthProvider = ({ children }) => {
 
 /**
  * Custom hook to consume the AuthContext.
- * @returns {Object} auth context value with user, token, login, logout, etc.
+ * @returns {{
+ *   user: { id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null } | null,
+ *   token: string | null,
+ *   loading: boolean,
+ *   login: (credentials: { credential: string, password: string }) => Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>,
+ *   register: (registerData: { firstName: string, lastName: string, email?: string|null, phone?: string|null, password: string }) => Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>,
+ *   logout: () => void,
+ *   refreshProfile: () => Promise<void>
+ * }} auth context value
  */
 export const useAuth = () => {
   const context = useContext(AuthContext);

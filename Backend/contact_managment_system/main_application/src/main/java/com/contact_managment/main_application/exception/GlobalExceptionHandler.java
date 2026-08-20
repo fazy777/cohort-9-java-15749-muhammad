@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -169,6 +170,29 @@ public class GlobalExceptionHandler {
                 .message("Input validation error")
                 .path(request.getRequestURI())
                 .errors(fieldErrors)
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles MethodArgumentTypeMismatchException for parameter conversion errors and returns HTTP 400 Bad Request.
+     *
+     * @param ex the type mismatch exception
+     * @param request the HTTP request
+     * @return response entity with ErrorResponse payload
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request) {
+        log.warn("Parameter type mismatch at {}: parameter '{}'", request.getRequestURI(), ex.getName());
+        String message = String.format("Invalid parameter '%s'", ex.getName());
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(message)
+                .path(request.getRequestURI())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }

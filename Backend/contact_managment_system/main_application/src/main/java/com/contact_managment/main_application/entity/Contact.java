@@ -87,8 +87,9 @@ public class Contact {
         if (email == null) {
             throw new IllegalArgumentException("ContactEmail cannot be null");
         }
-        emails.remove(email);
-        email.setContact(null);
+        if (emails.remove(email)) {
+            email.setContact(null);
+        }
     }
 
     /**
@@ -113,7 +114,8 @@ public class Contact {
         if (phone == null) {
             throw new IllegalArgumentException("ContactPhone cannot be null");
         }
-        phones.remove(phone);
-        phone.setContact(null);
+        if (phones.remove(phone)) {
+            phone.setContact(null);
+        }
     }
 }

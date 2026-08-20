@@ -28,9 +28,15 @@
         <appender-ref ref="RollingFile" />
     </root>
 
-    <logger name="com.contact_managment.main_application" level="debug" additivity="false">
+    <logger name="com.contact_managment.main_application" level="info" additivity="false">
         <appender-ref ref="Console" />
         <appender-ref ref="RollingFile" />
     </logger>
 
+    <springProfile name="dev">
+        <logger name="com.contact_managment.main_application" level="debug" additivity="false">
+            <appender-ref ref="Console" />
+            <appender-ref ref="RollingFile" />
+        </logger>
+    </springProfile>
 </configuration>

@@ -11,7 +11,6 @@ import { CheckCircle, AlertCircle, X } from 'lucide-react';
  */
 export const Toast = ({ toasts = [], removeToast }) => {
   const safeToasts = Array.isArray(toasts) ? toasts.filter(Boolean) : [];
-  if (safeToasts.length === 0) return null;
 
   return (
     <div className="toast-container" aria-live="polite" aria-atomic="true">

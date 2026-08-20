@@ -4,6 +4,12 @@ import { X, Plus, Trash2, Mail, Phone, User } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
 
 /**
+ * Generates a unique stable row ID for dynamic form rows.
+ * @returns {string}
+ */
+const generateRowId = () => Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
+
+/**
  * Modal form component for creating and updating contacts with dynamic email and phone rows.
  *
  * @param {{
@@ -19,8 +25,8 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   const [lastName, setLastName] = useState('');
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
-  const [emails, setEmails] = useState([{ email: '', label: 'WORK' }]);
-  const [phones, setPhones] = useState([{ phoneNumber: '', label: 'WORK' }]);
+  const [emails, setEmails] = useState(() => [{ rowId: generateRowId(), email: '', label: 'WORK' }]);
+  const [phones, setPhones] = useState(() => [{ rowId: generateRowId(), phoneNumber: '', label: 'WORK' }]);
   const [submitting, setSubmitting] = useState(false);
   const modalRef = useModalA11y(isOpen, onClose);
 
@@ -32,15 +38,23 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
       setLastName(contact.lastName || '');
       setTitle(contact.title || '');
       setNotes(contact.notes || '');
-      setEmails(Array.isArray(contact.emails) && contact.emails.length > 0 ? contact.emails : [{ email: '', label: 'WORK' }]);
-      setPhones(Array.isArray(contact.phones) && contact.phones.length > 0 ? contact.phones : [{ phoneNumber: '', label: 'WORK' }]);
+      setEmails(
+        Array.isArray(contact.emails) && contact.emails.length > 0
+          ? contact.emails.map((e) => ({ rowId: generateRowId(), email: e.email || '', label: e.label || 'WORK' }))
+          : [{ rowId: generateRowId(), email: '', label: 'WORK' }]
+      );
+      setPhones(
+        Array.isArray(contact.phones) && contact.phones.length > 0
+          ? contact.phones.map((p) => ({ rowId: generateRowId(), phoneNumber: p.phoneNumber || '', label: p.label || 'WORK' }))
+          : [{ rowId: generateRowId(), phoneNumber: '', label: 'WORK' }]
+      );
     } else {
       setFirstName('');
       setLastName('');
       setTitle('');
       setNotes('');
-      setEmails([{ email: '', label: 'WORK' }]);
-      setPhones([{ phoneNumber: '', label: 'WORK' }]);
+      setEmails([{ rowId: generateRowId(), email: '', label: 'WORK' }]);
+      setPhones([{ rowId: generateRowId(), phoneNumber: '', label: 'WORK' }]);
     }
   }, [contact, isOpen]);
 
@@ -50,7 +64,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
    * Appends a new empty email row.
    */
   const handleAddEmail = () => {
-    setEmails((prev) => [...prev, { email: '', label: 'PERSONAL' }]);
+    setEmails((prev) => [...prev, { rowId: generateRowId(), email: '', label: 'PERSONAL' }]);
   };
 
   /**
@@ -81,7 +95,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
    * Appends a new empty phone row.
    */
   const handleAddPhone = () => {
-    setPhones((prev) => [...prev, { phoneNumber: '', label: 'MOBILE' }]);
+    setPhones((prev) => [...prev, { rowId: generateRowId(), phoneNumber: '', label: 'MOBILE' }]);
   };
 
   /**
@@ -116,8 +130,12 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
     e?.preventDefault();
     setSubmitting(true);
 
-    const filteredEmails = (emails || []).filter((item) => item?.email && item.email.trim() !== '');
-    const filteredPhones = (phones || []).filter((item) => item?.phoneNumber && item.phoneNumber.trim() !== '');
+    const filteredEmails = (emails || [])
+      .filter((item) => item?.email && item.email.trim() !== '')
+      .map(({ rowId: _rowId, ...rest }) => rest);
+    const filteredPhones = (phones || [])
+      .filter((item) => item?.phoneNumber && item.phoneNumber.trim() !== '')
+      .map(({ rowId: _rowId, ...rest }) => rest);
 
     const payload = {
       firstName: firstName?.trim() || '',
@@ -225,7 +243,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
             </div>
 
             {(emails || []).map((emailObj, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <div key={emailObj.rowId} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <label htmlFor={`contact-email-${idx}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
                   Email Address {idx + 1}
                 </label>
@@ -281,7 +299,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
             </div>
 
             {(phones || []).map((phoneObj, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <div key={phoneObj.rowId} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <label htmlFor={`contact-phone-${idx}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
                   Phone Number {idx + 1}
                 </label>

@@ -25,14 +25,17 @@ export const safeStorage = {
    * @returns {string | null}
    */
   getItem(key) {
+    if (memoryStore.has(key)) {
+      return memoryStore.get(key) ?? null;
+    }
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
-        return window.sessionStorage.getItem(key) ?? memoryStore.get(key) ?? null;
+        return window.sessionStorage.getItem(key);
       }
     } catch (e) {
       console.warn('Browser storage read failed, using memory store:', e);
     }
-    return memoryStore.get(key) ?? null;
+    return null;
   },
 
   /**

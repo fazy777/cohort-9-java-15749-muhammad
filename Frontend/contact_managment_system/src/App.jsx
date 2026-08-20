@@ -46,6 +46,7 @@ const MainDashboard = () => {
 
   // Toast Notifications State
   const [toasts, setToasts] = useState([]);
+  const toastTimersRef = useRef(new Map());
 
   // Debounce search query input by 400ms and reset page to 0
   useEffect(() => {
@@ -57,6 +58,15 @@ const MainDashboard = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
+  // Clean up pending toast timers on unmount
+  useEffect(() => {
+    const timers = toastTimersRef.current;
+    return () => {
+      timers.forEach((timerId) => clearTimeout(timerId));
+      timers.clear();
+    };
+  }, []);
+
   /**
    * Displays an auto-dismissing toast notification.
    * @param {string} message - text to display
@@ -65,9 +75,11 @@ const MainDashboard = () => {
   const showToast = useCallback((message, type = 'success') => {
     const id = Date.now() + Math.floor(Math.random() * 1000);
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
+    const timerId = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
+      toastTimersRef.current.delete(id);
     }, 4000);
+    toastTimersRef.current.set(id, timerId);
   }, []);
 
   /**
@@ -75,6 +87,11 @@ const MainDashboard = () => {
    * @param {number|string} id - toast id to remove
    */
   const removeToast = useCallback((id) => {
+    const timerId = toastTimersRef.current.get(id);
+    if (timerId) {
+      clearTimeout(timerId);
+      toastTimersRef.current.delete(id);
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 

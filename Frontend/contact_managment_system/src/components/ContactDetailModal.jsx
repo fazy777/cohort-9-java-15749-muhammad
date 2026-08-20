@@ -9,7 +9,7 @@ import { useModalA11y } from '../hooks/useModalA11y';
  *   onClose: () => void,
  *   contact: Object | null,
  *   onEdit: (c: Object) => void,
- *   onDelete: (id: number|string) => void
+ *   onDelete: (contact: Object) => void
  * }} props
  * @returns {JSX.Element|null}
  */
