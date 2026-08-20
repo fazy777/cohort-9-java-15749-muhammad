@@ -79,7 +79,9 @@ public class Contact {
         if (email.getContact() != null && email.getContact() != this) {
             email.getContact().removeEmail(email);
         }
-        emails.add(email);
+        if (!emails.contains(email)) {
+            emails.add(email);
+        }
         email.setContact(this);
     }
 
@@ -109,7 +111,9 @@ public class Contact {
         if (phone.getContact() != null && phone.getContact() != this) {
             phone.getContact().removePhone(phone);
         }
-        phones.add(phone);
+        if (!phones.contains(phone)) {
+            phones.add(phone);
+        }
         phone.setContact(this);
     }
 

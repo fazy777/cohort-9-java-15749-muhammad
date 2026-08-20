@@ -10,13 +10,7 @@ import { useModalA11y } from '../hooks/useModalA11y';
 const generateRowId = () => Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
 
 /**
- * @typedef {Object} ContactFormPayload
- * @property {string} firstName
- * @property {string} lastName
- * @property {string} [title]
- * @property {string} [notes]
- * @property {Array<{ email: string, label: string }>} [emails]
- * @property {Array<{ phoneNumber: string, label: string }>} [phones]
+ * @typedef {Omit<import('../services/api').ContactDto, 'id' | 'createdAt' | 'updatedAt'>} ContactFormPayload
  */
 
 /**
@@ -26,15 +20,7 @@ const generateRowId = () => Math.random().toString(36).substring(2, 9) + '_' + D
  *   isOpen: boolean,
  *   onClose: () => void,
  *   onSave: (payload: ContactFormPayload) => Promise<void>,
- *   contact?: {
- *     id?: number|string,
- *     firstName?: string,
- *     lastName?: string,
- *     title?: string,
- *     notes?: string,
- *     emails?: Array<{ id?: number|string, email: string, label: string }>,
- *     phones?: Array<{ id?: number|string, phoneNumber: string, label: string }>
- *   } | null
+ *   contact?: import('../services/api').ContactDto | null
  * }} props
  * @returns {JSX.Element|null}
  */

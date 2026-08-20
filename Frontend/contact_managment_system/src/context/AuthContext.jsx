@@ -85,16 +85,11 @@ export const AuthProvider = ({ children }) => {
   }, [logout]);
 
   /**
-   * Logs in a user with credentials.
-   * @param {{ credential: string, password: string }} credentials - user login credentials
-   * @returns {Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>} authenticated user object
+   * Helper that updates authentication state and persists session storage.
+   * @param {Object} data - response auth data containing token and user fields
+   * @returns {{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }}
    */
-  const login = useCallback(async (credentials) => {
-    if (!credentials) throw new Error('Credentials are required');
-    const res = await api.login(credentials);
-    const data = res?.data;
-    if (!data) throw new Error('Invalid login response from server');
-
+  const handleAuthSuccess = useCallback((data) => {
     const userObj = {
       id: data.id,
       firstName: data.firstName,
@@ -110,6 +105,20 @@ export const AuthProvider = ({ children }) => {
     cleanupLegacyStorage();
     return userObj;
   }, []);
+
+  /**
+   * Logs in a user with credentials.
+   * @param {{ credential: string, password: string }} credentials - user login credentials
+   * @returns {Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>} authenticated user object
+   */
+  const login = useCallback(async (credentials) => {
+    if (!credentials) throw new Error('Credentials are required');
+    const res = await api.login(credentials);
+    const data = res?.data;
+    if (!data) throw new Error('Invalid login response from server');
+
+    return handleAuthSuccess(data);
+  }, [handleAuthSuccess]);
 
   /**
    * Registers a new user account.
@@ -122,21 +131,8 @@ export const AuthProvider = ({ children }) => {
     const data = res?.data;
     if (!data) throw new Error('Invalid register response from server');
 
-    const userObj = {
-      id: data.id,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phone: data.phone
-    };
-
-    setToken(data.token);
-    setUser(userObj);
-    safeStorage.setItem('cms_token', data.token);
-    safeStorage.setItem('cms_user', JSON.stringify(userObj));
-    cleanupLegacyStorage();
-    return userObj;
-  }, []);
+    return handleAuthSuccess(data);
+  }, [handleAuthSuccess]);
 
   /**
    * Refreshes user profile information from the API.
@@ -146,7 +142,7 @@ export const AuthProvider = ({ children }) => {
     if (!token) return;
     try {
       const profile = await api.getProfile();
-      if (profile) {
+      if (profile && safeStorage.getItem('cms_token') === token) {
         setUser(profile);
         safeStorage.setItem('cms_user', JSON.stringify(profile));
       }

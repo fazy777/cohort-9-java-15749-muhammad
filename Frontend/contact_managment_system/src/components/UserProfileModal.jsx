@@ -258,7 +258,7 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
                   className="btn btn-primary btn-sm"
                   disabled={submitting}
                 >
-                  {submitting ? 'Updating...' : 'Reset Password'}
+                  {submitting ? 'Updating...' : 'Change Password'}
                 </button>
               </div>
             </div>

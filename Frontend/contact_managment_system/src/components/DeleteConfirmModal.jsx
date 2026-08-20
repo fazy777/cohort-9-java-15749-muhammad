@@ -10,7 +10,7 @@ import { useModalA11y } from '../hooks/useModalA11y';
  *   isOpen: boolean,
  *   onClose: () => void,
  *   onConfirm: (id: number|string) => Promise<void>|void,
- *   contact: { id: number|string, firstName?: string, lastName?: string } | null
+ *   contact: Pick<import('../services/api').ContactDto, 'id' | 'firstName' | 'lastName'> | null
  * }} props
  * @returns {JSX.Element|null}
  */

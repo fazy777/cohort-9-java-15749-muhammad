@@ -187,7 +187,7 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
     if (!isNetworkError && err instanceof Error && err.message && !err.message.startsWith('Network error:')) {
       throw err;
     }
-    throw new Error(err?.message && !isNetworkError ? err.message : 'Network error: Failed to connect to server', { cause: err });
+    throw new Error('Network error: Failed to connect to server', { cause: err });
   } finally {
     clearTimeout(timeoutId);
   }
