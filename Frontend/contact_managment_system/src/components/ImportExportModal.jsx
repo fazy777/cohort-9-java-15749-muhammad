@@ -93,6 +93,10 @@ const parseCsv = (text) => {
     }
   }
 
+  if (insideQuotes) {
+    throw new Error('Unterminated quoted field in CSV');
+  }
+
   if (currentField.length > 0 || currentRow.length > 0) {
     currentRow.push(currentField);
     if (currentRow.some(col => col.trim() !== '')) {
@@ -173,7 +177,17 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
   const [exporting, setExporting] = useState(false);
   const [previewData, setPreviewData] = useState(null);
   const activeReaderRef = useRef(null);
-  const modalRef = useModalA11y(isOpen, onClose);
+
+  /**
+   * Clears preview state and aborts active file reading before triggering onClose.
+   */
+  const handleModalClose = () => {
+    setPreviewData(null);
+    activeReaderRef.current = null;
+    onClose?.();
+  };
+
+  const modalRef = useModalA11y(isOpen, handleModalClose);
 
   if (!isOpen) return null;
 
@@ -326,9 +340,8 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
     try {
       const res = await api.importContacts(previewData);
       showToast?.(`Successfully imported ${res?.data ?? previewData.length} contacts!`, 'success');
-      setPreviewData(null);
       onImportSuccess?.();
-      onClose?.();
+      handleModalClose();
     } catch (err) {
       showToast?.(err?.message || 'Import failed', 'error');
     } finally {
@@ -337,7 +350,7 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleModalClose}>
       <div
         ref={modalRef}
         role="dialog"
@@ -354,7 +367,7 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
           <button
             type="button"
             aria-label="Close import and export modal"
-            onClick={onClose}
+            onClick={handleModalClose}
             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
           >
             <X size={20} />
@@ -453,7 +466,7 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
         </div>
 
         <div className="modal-footer">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
+          <button type="button" className="btn btn-secondary" onClick={handleModalClose}>
             Close
           </button>
         </div>

@@ -162,7 +162,7 @@ const MainDashboard = () => {
 
   /**
    * Submits create or update payload to API.
-   * @param {Object} contactPayload
+   * @param {import('./services/api').ContactDto} contactPayload
    */
   const handleSaveContact = async (contactPayload) => {
     try {

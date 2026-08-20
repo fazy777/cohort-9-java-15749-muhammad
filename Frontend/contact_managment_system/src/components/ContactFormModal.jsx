@@ -10,13 +10,31 @@ import { useModalA11y } from '../hooks/useModalA11y';
 const generateRowId = () => Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
 
 /**
+ * @typedef {Object} ContactFormPayload
+ * @property {string} firstName
+ * @property {string} lastName
+ * @property {string} [title]
+ * @property {string} [notes]
+ * @property {Array<{ email: string, label: string }>} [emails]
+ * @property {Array<{ phoneNumber: string, label: string }>} [phones]
+ */
+
+/**
  * Modal form component for creating and updating contacts with dynamic email and phone rows.
  *
  * @param {{
  *   isOpen: boolean,
  *   onClose: () => void,
- *   onSave: (payload: Object) => Promise<void>,
- *   contact?: Object | null
+ *   onSave: (payload: ContactFormPayload) => Promise<void>,
+ *   contact?: {
+ *     id?: number|string,
+ *     firstName?: string,
+ *     lastName?: string,
+ *     title?: string,
+ *     notes?: string,
+ *     emails?: Array<{ id?: number|string, email: string, label: string }>,
+ *     phones?: Array<{ id?: number|string, phoneNumber: string, label: string }>
+ *   } | null
  * }} props
  * @returns {JSX.Element|null}
  */
@@ -28,10 +46,12 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   const [emails, setEmails] = useState(() => [{ rowId: generateRowId(), email: '', label: 'WORK' }]);
   const [phones, setPhones] = useState(() => [{ rowId: generateRowId(), phoneNumber: '', label: 'WORK' }]);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const modalRef = useModalA11y(isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) return;
+    setError('');
 
     if (contact) {
       setFirstName(contact.firstName || '');
@@ -129,6 +149,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   const handleSubmit = async (e) => {
     e?.preventDefault();
     setSubmitting(true);
+    setError('');
 
     const filteredEmails = (emails || [])
       .filter((item) => item?.email && item.email.trim() !== '')
@@ -155,6 +176,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
       }
     } catch (err) {
       console.error('Failed to submit contact form:', err);
+      setError(err?.message || 'Failed to save contact. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -187,6 +209,23 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
         </div>
 
         <form onSubmit={handleSubmit}>
+          {error && (
+            <div
+              role="alert"
+              style={{
+                background: 'var(--danger-bg)',
+                color: 'var(--danger-color)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0.75rem',
+                fontSize: '0.875rem',
+                marginBottom: '1.25rem'
+              }}
+            >
+              {error}
+            </div>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label htmlFor="contact-first-name">First Name *</label>

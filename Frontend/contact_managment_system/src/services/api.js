@@ -5,18 +5,98 @@ const DEFAULT_TIMEOUT_MS = 15000;
 const TRANSFER_TIMEOUT_MS = 60000;
 
 /**
- * Builds the Authorization header containing the Bearer JWT token if present.
- * @returns {Record<string, string>}
+ * @typedef {Object} ApiResponse
+ * @property {boolean} success
+ * @property {string} [message]
+ * @property {any} [data]
  */
-const getAuthHeader = () => {
-  try {
-    const token = safeStorage.getItem('cms_token');
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-  } catch (e) {
-    console.warn('Failed to get auth token for request header:', e);
-    return {};
-  }
-};
+
+/**
+ * @typedef {Object} UserProfile
+ * @property {number|string} id
+ * @property {string} firstName
+ * @property {string} lastName
+ * @property {string|null} email
+ * @property {string|null} phone
+ */
+
+/**
+ * @typedef {Object} AuthResponseData
+ * @property {number|string} id
+ * @property {string} firstName
+ * @property {string} lastName
+ * @property {string|null} email
+ * @property {string|null} phone
+ * @property {string} token
+ * @property {string} [tokenType]
+ */
+
+/**
+ * @typedef {Object} RegisterPayload
+ * @property {string} firstName
+ * @property {string} lastName
+ * @property {string|null} [email]
+ * @property {string|null} [phone]
+ * @property {string} password
+ */
+
+/**
+ * @typedef {Object} LoginPayload
+ * @property {string} credential
+ * @property {string} password
+ */
+
+/**
+ * @typedef {Object} ChangePasswordPayload
+ * @property {string} currentPassword
+ * @property {string} newPassword
+ */
+
+/**
+ * @typedef {Object} ContactEmailDto
+ * @property {number|string} [id]
+ * @property {string} email
+ * @property {'WORK'|'PERSONAL'|'OTHER'} [label]
+ */
+
+/**
+ * @typedef {Object} ContactPhoneDto
+ * @property {number|string} [id]
+ * @property {string} phoneNumber
+ * @property {'WORK'|'HOME'|'PERSONAL'|'MOBILE'|'OTHER'} [label]
+ */
+
+/**
+ * @typedef {Object} ContactDto
+ * @property {number|string} [id]
+ * @property {string} firstName
+ * @property {string} lastName
+ * @property {string} [title]
+ * @property {string} [notes]
+ * @property {ContactEmailDto[]} [emails]
+ * @property {ContactPhoneDto[]} [phones]
+ * @property {string} [createdAt]
+ * @property {string} [updatedAt]
+ */
+
+/**
+ * @typedef {Object} PagedContacts
+ * @property {ContactDto[]} content
+ * @property {number} page
+ * @property {number} size
+ * @property {number} totalElements
+ * @property {number} totalPages
+ * @property {boolean} last
+ */
+
+/**
+ * @typedef {Object} ContactQueryParams
+ * @property {string} [search]
+ * @property {number} [page]
+ * @property {number} [size]
+ * @property {string} [sortBy]
+ * @property {'asc'|'desc'} [sortDir]
+ */
 
 /**
  * Handles HTTP 401 Unauthorized by clearing cached session credentials and dispatching an auth event.
@@ -41,9 +121,12 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+  const requestToken = safeStorage.getItem('cms_token');
+  const isAuthEndpoint = endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/register');
+
   const headers = {
     'Content-Type': 'application/json',
-    ...getAuthHeader(),
+    ...(requestToken ? { 'Authorization': `Bearer ${requestToken}` } : {}),
     ...(options.headers || {})
   };
 
@@ -77,8 +160,11 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
       }
     }
 
-    if (response.status === 401) {
-      handleUnauthorized();
+    if (response.status === 401 && !isAuthEndpoint) {
+      const currentToken = safeStorage.getItem('cms_token');
+      if (requestToken && currentToken === requestToken) {
+        handleUnauthorized();
+      }
     }
 
     if (!response.ok) {
@@ -113,8 +199,8 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
 export const api = {
   /**
    * Registers a new user account.
-   * @param {Object} data - user registration data
-   * @returns {Promise<any>}
+   * @param {RegisterPayload} data - user registration data
+   * @returns {Promise<{ success: boolean, message?: string, data: AuthResponseData }>}
    */
   async register(data) {
     if (!data) throw new Error('Registration data is required');
@@ -126,8 +212,8 @@ export const api = {
 
   /**
    * Authenticates user credentials.
-   * @param {Object} data - login credentials
-   * @returns {Promise<any>}
+   * @param {LoginPayload} data - login credentials
+   * @returns {Promise<{ success: boolean, message?: string, data: AuthResponseData }>}
    */
   async login(data) {
     if (!data) throw new Error('Login credentials are required');
@@ -139,17 +225,17 @@ export const api = {
 
   /**
    * Fetches the current user profile.
-   * @returns {Promise<any>}
+   * @returns {Promise<UserProfile | null>}
    */
   async getProfile() {
     const result = await request('/auth/profile');
-    return result?.data;
+    return result?.data ?? null;
   },
 
   /**
    * Changes the authenticated user's password.
-   * @param {Object} data - password change payload
-   * @returns {Promise<any>}
+   * @param {ChangePasswordPayload} data - password change payload
+   * @returns {Promise<ApiResponse>}
    */
   async changePassword(data) {
     if (!data) throw new Error('Change password data is required');
@@ -161,8 +247,8 @@ export const api = {
 
   /**
    * Fetches a paginated, filtered list of contacts.
-   * @param {Object} [params] - query parameters
-   * @returns {Promise<any>}
+   * @param {ContactQueryParams} [params] - query parameters
+   * @returns {Promise<PagedContacts | null>}
    */
   async getContacts({ search = '', page = 0, size = 10, sortBy = 'firstName', sortDir = 'asc' } = {}) {
     const trimmedSearch = typeof search === 'string' ? search.trim() : '';
@@ -175,24 +261,24 @@ export const api = {
     });
 
     const result = await request(`/contacts?${queryParams.toString()}`);
-    return result?.data;
+    return result?.data ?? null;
   },
 
   /**
    * Fetches details of a single contact by ID.
    * @param {number|string} id - contact ID
-   * @returns {Promise<any>}
+   * @returns {Promise<ContactDto | null>}
    */
   async getContactById(id) {
     if (id == null) throw new Error('Contact ID is required');
     const result = await request(`/contacts/${id}`);
-    return result?.data;
+    return result?.data ?? null;
   },
 
   /**
    * Creates a new contact.
-   * @param {Object} data - contact details
-   * @returns {Promise<any>}
+   * @param {ContactDto} data - contact details
+   * @returns {Promise<ContactDto | null>}
    */
   async createContact(data) {
     if (!data) throw new Error('Contact payload is required');
@@ -200,14 +286,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data)
     });
-    return result?.data;
+    return result?.data ?? null;
   },
 
   /**
    * Updates an existing contact.
    * @param {number|string} id - contact ID
-   * @param {Object} data - updated contact payload
-   * @returns {Promise<any>}
+   * @param {ContactDto} data - updated contact payload
+   * @returns {Promise<ContactDto | null>}
    */
   async updateContact(id, data) {
     if (id == null) throw new Error('Contact ID is required');
@@ -216,13 +302,13 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data)
     });
-    return result?.data;
+    return result?.data ?? null;
   },
 
   /**
    * Deletes a contact by ID.
    * @param {number|string} id - contact ID
-   * @returns {Promise<any>}
+   * @returns {Promise<ApiResponse>}
    */
   async deleteContact(id) {
     if (id == null) throw new Error('Contact ID is required');
@@ -233,17 +319,17 @@ export const api = {
 
   /**
    * Exports all contacts for the authenticated user.
-   * @returns {Promise<any>}
+   * @returns {Promise<ContactDto[] | null>}
    */
   async exportContacts() {
     const result = await request('/contacts/export', {}, TRANSFER_TIMEOUT_MS);
-    return result?.data;
+    return result?.data ?? null;
   },
 
   /**
    * Imports a batch list of contacts.
-   * @param {Array<Object>} contactsList - contacts to import
-   * @returns {Promise<any>}
+   * @param {ContactDto[]} contactsList - contacts to import
+   * @returns {Promise<ApiResponse>}
    */
   async importContacts(contactsList) {
     if (!Array.isArray(contactsList)) throw new Error('Contacts list must be an array');

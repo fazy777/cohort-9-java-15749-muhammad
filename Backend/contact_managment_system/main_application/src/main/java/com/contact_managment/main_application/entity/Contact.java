@@ -74,6 +74,9 @@ public class Contact {
         if (email == null) {
             throw new IllegalArgumentException("ContactEmail cannot be null");
         }
+        if (email.getContact() != null && email.getContact() != this) {
+            email.getContact().removeEmail(email);
+        }
         emails.add(email);
         email.setContact(this);
     }
@@ -100,6 +103,9 @@ public class Contact {
     public void addPhone(ContactPhone phone) {
         if (phone == null) {
             throw new IllegalArgumentException("ContactPhone cannot be null");
+        }
+        if (phone.getContact() != null && phone.getContact() != this) {
+            phone.getContact().removePhone(phone);
         }
         phones.add(phone);
         phone.setContact(this);

@@ -76,6 +76,7 @@ export const ContactTable = ({
             <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
+              aria-label="Search contacts"
               className="input-control"
               placeholder="Search contacts by name, title, email or phone..."
               value={searchTerm}

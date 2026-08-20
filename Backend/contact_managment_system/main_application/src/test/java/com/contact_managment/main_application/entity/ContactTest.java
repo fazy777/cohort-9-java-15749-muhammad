@@ -109,6 +109,40 @@ class ContactTest {
     }
 
     @Test
+    @DisplayName("Should remove email from old contact when added to a new contact (reparenting)")
+    void addEmail_Reparent_Success() {
+        Contact oldContact = Contact.builder().emails(new ArrayList<>()).build();
+        Contact newContact = Contact.builder().emails(new ArrayList<>()).build();
+        ContactEmail email = ContactEmail.builder().email("test@example.com").label("WORK").build();
+
+        oldContact.addEmail(email);
+        assertEquals(1, oldContact.getEmails().size());
+        assertEquals(oldContact, email.getContact());
+
+        newContact.addEmail(email);
+        assertEquals(0, oldContact.getEmails().size());
+        assertEquals(1, newContact.getEmails().size());
+        assertEquals(newContact, email.getContact());
+    }
+
+    @Test
+    @DisplayName("Should remove phone from old contact when added to a new contact (reparenting)")
+    void addPhone_Reparent_Success() {
+        Contact oldContact = Contact.builder().phones(new ArrayList<>()).build();
+        Contact newContact = Contact.builder().phones(new ArrayList<>()).build();
+        ContactPhone phone = ContactPhone.builder().phoneNumber("+1234567890").label("WORK").build();
+
+        oldContact.addPhone(phone);
+        assertEquals(1, oldContact.getPhones().size());
+        assertEquals(oldContact, phone.getContact());
+
+        newContact.addPhone(phone);
+        assertEquals(0, oldContact.getPhones().size());
+        assertEquals(1, newContact.getPhones().size());
+        assertEquals(newContact, phone.getContact());
+    }
+
+    @Test
     @DisplayName("Should throw IllegalArgumentException when removing null phone")
     void removePhone_Null_ThrowsException() {
         Contact contact = Contact.builder().phones(new ArrayList<>()).build();

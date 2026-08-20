@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -36,6 +37,15 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
       prevShowPasswordRef.current = showPasswordModal;
     }
   }, [showPasswordModal]);
+
+  useEffect(() => {
+    if (!isOpen || !user) {
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordModal(false);
+    }
+  }, [isOpen, user]);
 
   if (!isOpen || !user) return null;
 
