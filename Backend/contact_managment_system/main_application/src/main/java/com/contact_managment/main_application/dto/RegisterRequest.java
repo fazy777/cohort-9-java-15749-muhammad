@@ -28,7 +28,7 @@ public class RegisterRequest {
     @Size(max = 150, message = "Email cannot exceed 150 characters")
     private String email;
 
-    @Pattern(regexp = "^$|^[+0-9\\s()\\-\\.]+$", message = "Invalid phone number format")
+    @Pattern(regexp = "^$|^(?=.*[0-9])[+0-9\\s()\\-\\.]+$", message = "Invalid phone number format")
     @Size(max = 30, message = "Phone number cannot exceed 30 characters")
     private String phone;
 

@@ -43,11 +43,13 @@ reviews:
 
     - path: "**/*"
       instructions: >
-        Review JavaScript, React, and backend code for bugs, security issues,
-        missing error handling, missing null/undefined checks, API validation,
+        Review JavaScript, React, and backend Java code for bugs, security issues,
+        missing error handling, missing null/undefined checks, API boundary validation,
         improper async/await usage, unhandled promise rejections, database
         query issues, authentication/authorization problems, exposed secrets,
         inefficient React rendering, incorrect hook usage, and unnecessary
-        duplication. Flag security and data-loss risks as HIGH. Flag bugs and
-        reliability issues as MEDIUM. Prefer simple, maintainable functional
-        React patterns over unnecessary OOP abstractions.
+        duplication. For Java code, specifically check for missing exception handling
+        (Flag as HIGH), raw types usage (Flag as MEDIUM), unchecked casts (Flag as MEDIUM),
+        and proper OOP principles and encapsulation. For React and frontend code,
+        prefer simple, maintainable functional React patterns over OOP abstractions.
+        Flag security and data-loss risks as HIGH. Flag bugs and reliability issues as MEDIUM.

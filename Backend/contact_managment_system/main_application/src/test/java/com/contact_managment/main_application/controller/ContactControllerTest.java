@@ -129,4 +129,22 @@ class ContactControllerTest {
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.path").value("/api/contacts"));
     }
+
+    @Test
+    @DisplayName("GET /api/contacts with negative page should return 400 Bad Request")
+    void getContacts_NegativePage_Returns400() throws Exception {
+        mockMvc.perform(get("/api/contacts?page=-1")
+                        .with(user(userPrincipal)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("GET /api/contacts with oversized size should return 400 Bad Request")
+    void getContacts_OversizedSize_Returns400() throws Exception {
+        mockMvc.perform(get("/api/contacts?size=150")
+                        .with(user(userPrincipal)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
 }

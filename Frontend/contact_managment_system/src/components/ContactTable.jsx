@@ -5,7 +5,7 @@ import { getLabelClass } from '../utils/labels';
  * Data table component rendering contact listings, search filter, action buttons, and pagination controls.
  *
  * @param {{
- *   contacts?: Array<Object>,
+ *   contacts?: Array<import('../services/api').ContactDto>,
  *   totalElements?: number,
  *   totalPages?: number,
  *   currentPage?: number,
@@ -15,9 +15,9 @@ import { getLabelClass } from '../utils/labels';
  *   onPageChange?: (page: number) => void,
  *   onPageSizeChange?: (size: number) => void,
  *   onOpenCreate?: () => void,
- *   onOpenUpdate?: (c: Object) => void,
- *   onOpenDelete?: (c: Object) => void,
- *   onOpenDetail?: (c: Object) => void,
+ *   onOpenUpdate?: (c: import('../services/api').ContactDto) => void,
+ *   onOpenDelete?: (c: import('../services/api').ContactDto) => void,
+ *   onOpenDetail?: (c: import('../services/api').ContactDto) => void,
  *   onOpenImportExport?: () => void,
  *   loading?: boolean
  * }} props

@@ -2,6 +2,8 @@ package com.contact_managment.main_application.service;
 
 import com.contact_managment.main_application.dto.*;
 import com.contact_managment.main_application.entity.Contact;
+import com.contact_managment.main_application.entity.ContactEmail;
+import com.contact_managment.main_application.entity.ContactPhone;
 import com.contact_managment.main_application.entity.User;
 import com.contact_managment.main_application.exception.ResourceNotFoundException;
 import com.contact_managment.main_application.repository.ContactRepository;
@@ -106,22 +108,58 @@ class ContactServiceTest {
     }
 
     @Test
-    @DisplayName("Should update existing contact successfully")
+    @DisplayName("Should update existing contact successfully and replace nested email/phone children")
     void updateContact_Success() {
+        ContactEmail oldEmail = ContactEmail.builder().id(101L).email("old@example.com").label("WORK").build();
+        ContactPhone oldPhone = ContactPhone.builder().id(201L).phoneNumber("+123456789").label("WORK").build();
+        sampleContact.addEmail(oldEmail);
+        sampleContact.addPhone(oldPhone);
+
         ContactDto updateDto = ContactDto.builder()
                 .firstName("Alice Updated")
                 .lastName("Wonderland")
                 .title("Lead Engineer")
+                .emails(List.of(ContactEmailDto.builder().email("new@example.com").label("PERSONAL").build()))
+                .phones(List.of(ContactPhoneDto.builder().phoneNumber("+987654321").label("MOBILE").build()))
                 .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
         when(contactRepository.findByIdAndUser(10L, sampleUser)).thenReturn(Optional.of(sampleContact));
-        when(contactRepository.save(any(Contact.class))).thenReturn(sampleContact);
+        when(contactRepository.save(any(Contact.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ContactDto result = contactService.updateContact(1L, 10L, updateDto);
 
         assertNotNull(result);
+        assertEquals("Alice Updated", result.getFirstName());
+        assertEquals(1, result.getEmails().size());
+        assertEquals("new@example.com", result.getEmails().get(0).getEmail());
+        assertEquals(1, result.getPhones().size());
+        assertEquals("+987654321", result.getPhones().get(0).getPhoneNumber());
+
+        // Verify old children had back-references removed
+        assertNull(oldEmail.getContact());
+        assertNull(oldPhone.getContact());
+
+        // Verify replacement children reference sampleContact
+        assertEquals(1, sampleContact.getEmails().size());
+        assertEquals(sampleContact, sampleContact.getEmails().get(0).getContact());
+        assertEquals(1, sampleContact.getPhones().size());
+        assertEquals(sampleContact, sampleContact.getPhones().get(0).getContact());
+
         verify(contactRepository, times(1)).save(sampleContact);
+    }
+
+    @Test
+    @DisplayName("Should stream and export contacts for user successfully")
+    void exportContacts_Success() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        when(contactRepository.streamByUser(sampleUser)).thenReturn(java.util.stream.Stream.of(sampleContact));
+
+        List<ContactDto> exported = contactService.exportContacts(1L);
+
+        assertNotNull(exported);
+        assertEquals(1, exported.size());
+        assertEquals("Alice", exported.get(0).getFirstName());
     }
 
     @Test

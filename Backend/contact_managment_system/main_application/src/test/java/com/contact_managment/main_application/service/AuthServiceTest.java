@@ -309,5 +309,23 @@ class AuthServiceTest {
 
         assertThrows(BadRequestException.class, () -> authService.changePassword(1L, request));
     }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when register receives null request")
+    void register_NullRequest_ThrowsBadRequest() {
+        assertThrows(BadRequestException.class, () -> authService.register(null));
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when login receives null request")
+    void login_NullRequest_ThrowsBadRequest() {
+        assertThrows(BadRequestException.class, () -> authService.login(null));
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when changePassword receives null request")
+    void changePassword_NullRequest_ThrowsBadRequest() {
+        assertThrows(BadRequestException.class, () -> authService.changePassword(1L, null));
+    }
 }
 

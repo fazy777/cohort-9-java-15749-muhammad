@@ -72,7 +72,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(DataIntegrityViolationException ex, HttpServletRequest request) {
-        log.warn("Data integrity violation at {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Data integrity violation occurred at {}", request.getRequestURI());
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.CONFLICT.value())
@@ -193,6 +193,66 @@ public class GlobalExceptionHandler {
                 .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
                 .message(message)
                 .path(request.getRequestURI())
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles ConstraintViolationException for method and parameter-level validation failures.
+     *
+     * @param ex the constraint violation exception
+     * @param request the HTTP request
+     * @return response entity with ErrorResponse payload
+     */
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(
+            jakarta.validation.ConstraintViolationException ex,
+            HttpServletRequest request) {
+        log.warn("Constraint violation at {}", request.getRequestURI());
+        Map<String, String> errors = new HashMap<>();
+        ex.getConstraintViolations().forEach(violation -> {
+            String propertyPath = violation.getPropertyPath() != null ? violation.getPropertyPath().toString() : "_global";
+            errors.put(propertyPath, violation.getMessage());
+        });
+
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message("Constraint validation failed")
+                .path(request.getRequestURI())
+                .errors(errors)
+                .build();
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles HandlerMethodValidationException for controller method parameter validation.
+     *
+     * @param ex the method validation exception
+     * @param request the HTTP request
+     * @return response entity with ErrorResponse payload
+     */
+    @ExceptionHandler(org.springframework.web.method.annotation.HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleHandlerMethodValidationException(
+            org.springframework.web.method.annotation.HandlerMethodValidationException ex,
+            HttpServletRequest request) {
+        log.warn("Handler method validation failed at {}", request.getRequestURI());
+        Map<String, String> errors = new HashMap<>();
+        ex.getAllValidationResults().forEach(result -> {
+            String paramName = result.getMethodParameter().getParameterName();
+            result.getResolvableErrors().forEach(err -> {
+                errors.put(paramName != null ? paramName : "_param", err.getDefaultMessage());
+            });
+        });
+
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message("Parameter validation failed")
+                .path(request.getRequestURI())
+                .errors(errors)
                 .build();
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }

@@ -39,6 +39,9 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         log.debug("Registration attempt received");
+        if (request == null) {
+            throw new BadRequestException("Registration request payload cannot be null");
+        }
 
         String email = StringUtils.hasText(request.getEmail()) ? request.getEmail().trim().toLowerCase(java.util.Locale.ROOT) : null;
         String phone = StringUtils.hasText(request.getPhone()) ? request.getPhone().trim() : null;
@@ -97,6 +100,9 @@ public class AuthService {
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
         log.debug("Login attempt received");
+        if (request == null) {
+            throw new BadRequestException("Login request payload cannot be null");
+        }
 
         String rawCredential = request.getCredential() != null ? request.getCredential().trim() : "";
         String credential = rawCredential.toLowerCase(java.util.Locale.ROOT);
@@ -160,6 +166,9 @@ public class AuthService {
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
         log.info("Change password requested for user ID: {}", userId);
+        if (request == null) {
+            throw new BadRequestException("Change password request payload cannot be null");
+        }
 
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseGet(() -> userRepository.findById(userId)

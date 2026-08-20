@@ -258,8 +258,9 @@ public class ContactService {
     public List<ContactDto> exportContacts(Long userId) {
         log.info("Exporting all contacts for user ID: {}", userId);
         User user = getUserById(userId);
-        List<Contact> contacts = contactRepository.findByUser(user);
-        return contacts.stream().map(this::mapToDto).toList();
+        try (java.util.stream.Stream<Contact> stream = contactRepository.streamByUser(user)) {
+            return stream.map(this::mapToDto).toList();
+        }
     }
 
     /**

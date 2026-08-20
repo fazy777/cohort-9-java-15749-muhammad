@@ -180,8 +180,10 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
 
   /**
    * Clears preview state and aborts active file reading before triggering onClose.
+   * Prevents dismissal while import operation is actively in flight.
    */
   const handleModalClose = () => {
+    if (importing) return;
     setPreviewData(null);
     activeReaderRef.current = null;
     onClose?.();
@@ -394,7 +396,8 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
             type="button"
             aria-label="Close import and export modal"
             onClick={handleModalClose}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+            disabled={importing}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: importing ? 'not-allowed' : 'pointer' }}
           >
             <X size={20} />
           </button>
@@ -415,10 +418,10 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
             Download all your contacts to backup or use in external applications.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={exporting}>
+            <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={exporting || importing}>
               <Download size={14} /> Export as CSV
             </button>
-            <button className="btn btn-secondary btn-sm" onClick={handleExportJSON} disabled={exporting}>
+            <button className="btn btn-secondary btn-sm" onClick={handleExportJSON} disabled={exporting || importing}>
               <Download size={14} /> Export as JSON
             </button>
           </div>
@@ -432,7 +435,7 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
           border: '1px solid var(--border-color)'
         }}>
           <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Upload size={18} color="var(--accent-primary)" /> Import Contacts from File
+            <Upload size={18} color="var(--accent-primary)" /> Import Contacts
           </h4>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
             Upload a .json or .csv file containing contact information.
@@ -442,6 +445,7 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
             type="file"
             accept=".json,.csv"
             onChange={handleFileChange}
+            disabled={importing}
             style={{ display: 'none' }}
             id="import-file-input"
           />
@@ -456,7 +460,7 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
               padding: '1.5rem',
               border: '2px dashed var(--border-color)',
               borderRadius: 'var(--radius-md)',
-              cursor: 'pointer',
+              cursor: importing ? 'not-allowed' : 'pointer',
               background: 'rgba(255, 255, 255, 0.02)',
               transition: 'var(--transition-fast)'
             }}
@@ -492,7 +496,7 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
         </div>
 
         <div className="modal-footer">
-          <button type="button" className="btn btn-secondary" onClick={handleModalClose}>
+          <button type="button" className="btn btn-secondary" onClick={handleModalClose} disabled={importing}>
             Close
           </button>
         </div>

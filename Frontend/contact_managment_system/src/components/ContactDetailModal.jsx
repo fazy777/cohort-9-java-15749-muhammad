@@ -8,9 +8,9 @@ import { getLabelClass } from '../utils/labels';
  * @param {{
  *   isOpen: boolean,
  *   onClose: () => void,
- *   contact: Object | null,
- *   onEdit: (c: Object) => void,
- *   onDelete: (contact: Object) => void
+ *   contact: import('../services/api').ContactDto | null,
+ *   onEdit: (c: import('../services/api').ContactDto) => void,
+ *   onDelete: (contact: import('../services/api').ContactDto) => void
  * }} props
  * @returns {JSX.Element|null}
  */

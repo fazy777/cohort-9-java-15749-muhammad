@@ -62,4 +62,12 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
      * @return list of contacts
      */
     List<Contact> findByUser(User user);
+
+    /**
+     * Streams contacts belonging to a user for memory-efficient exports within a read-only transaction.
+     *
+     * @param user owning user
+     * @return stream of contacts
+     */
+    java.util.stream.Stream<Contact> streamByUser(User user);
 }
