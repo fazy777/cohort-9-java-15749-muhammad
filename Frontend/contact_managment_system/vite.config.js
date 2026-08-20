@@ -20,7 +20,7 @@ function createViteConfig() {
       server: {
         port: 5173,
         host: typeof process !== 'undefined' && process.env?.VITE_HOST ? process.env.VITE_HOST : 'localhost',
-        strictPort: false,
+        strictPort: true,
       },
       build: {
         outDir: 'dist',
