@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     cleanupLegacyStorage();
+    let isActive = true;
 
     const initAuth = async () => {
       try {
@@ -36,8 +37,8 @@ export const AuthProvider = ({ children }) => {
         const savedUser = safeStorage.getItem('cms_user');
 
         if (savedToken) {
-          setToken(savedToken);
-          if (savedUser) {
+          if (isActive) setToken(savedToken);
+          if (savedUser && isActive) {
             try {
               setUser(JSON.parse(savedUser));
             } catch {
@@ -47,7 +48,7 @@ export const AuthProvider = ({ children }) => {
           try {
             // Validate and refresh user profile from backend
             const freshUser = await api.getProfile();
-            if (freshUser) {
+            if (isActive && freshUser && safeStorage.getItem('cms_token') === savedToken) {
               setUser(freshUser);
               safeStorage.setItem('cms_user', JSON.stringify(freshUser));
             }
@@ -58,12 +59,18 @@ export const AuthProvider = ({ children }) => {
       } catch (err) {
         console.error('Failed to initialize authentication:', err);
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     };
 
     void initAuth();
-  }, [logout]);
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   useEffect(() => {
     const handleUnauthorizedEvent = () => {

@@ -5,6 +5,7 @@ import com.contact_managment.main_application.entity.Contact;
 import com.contact_managment.main_application.entity.ContactEmail;
 import com.contact_managment.main_application.entity.ContactPhone;
 import com.contact_managment.main_application.entity.User;
+import com.contact_managment.main_application.exception.BadRequestException;
 import com.contact_managment.main_application.exception.ResourceNotFoundException;
 import com.contact_managment.main_application.repository.ContactRepository;
 import com.contact_managment.main_application.repository.UserRepository;
@@ -120,6 +121,9 @@ public class ContactService {
     @Transactional
     public ContactDto createContact(Long userId, ContactDto contactDto) {
         log.info("Creating new contact for user ID: {}", userId);
+        if (contactDto == null) {
+            throw new BadRequestException("Contact data cannot be null");
+        }
         User user = getUserById(userId);
 
         Contact contact = Contact.builder()
@@ -135,7 +139,7 @@ public class ContactService {
         if (contactDto.getEmails() != null) {
             for (ContactEmailDto emailDto : contactDto.getEmails()) {
                 if (emailDto == null) {
-                    throw new com.contact_managment.main_application.exception.BadRequestException("Email entry cannot be null");
+                    throw new BadRequestException("Email entry cannot be null");
                 }
                 ContactEmail email = ContactEmail.builder()
                         .email(emailDto.getEmail())
@@ -148,7 +152,7 @@ public class ContactService {
         if (contactDto.getPhones() != null) {
             for (ContactPhoneDto phoneDto : contactDto.getPhones()) {
                 if (phoneDto == null) {
-                    throw new com.contact_managment.main_application.exception.BadRequestException("Phone entry cannot be null");
+                    throw new BadRequestException("Phone entry cannot be null");
                 }
                 ContactPhone phone = ContactPhone.builder()
                         .phoneNumber(phoneDto.getPhoneNumber())
@@ -175,6 +179,9 @@ public class ContactService {
     @Transactional
     public ContactDto updateContact(Long userId, Long contactId, ContactDto contactDto) {
         log.info("Updating contact ID: {} for user ID: {}", contactId, userId);
+        if (contactDto == null) {
+            throw new BadRequestException("Contact data cannot be null");
+        }
         User user = getUserById(userId);
 
         Contact contact = contactRepository.findByIdAndUser(contactId, user)

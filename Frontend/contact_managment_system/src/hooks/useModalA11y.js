@@ -14,6 +14,11 @@ import { useEffect, useRef } from 'react';
 export const useModalA11y = (isOpen, onClose) => {
   const modalRef = useRef(null);
   const previousActiveElementRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -21,8 +26,10 @@ export const useModalA11y = (isOpen, onClose) => {
     // Capture element with focus prior to modal opening
     previousActiveElementRef.current = document.activeElement;
 
-    const modalElement = modalRef.current;
-    if (modalElement) {
+    const focusModal = () => {
+      const modalElement = modalRef.current;
+      if (!modalElement) return;
+
       const focusableSelectors = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
       const focusables = modalElement.querySelectorAll(focusableSelectors);
       if (focusables.length > 0) {
@@ -33,12 +40,15 @@ export const useModalA11y = (isOpen, onClose) => {
         }
         modalElement.focus();
       }
-    }
+    };
+
+    // Defer initial focus check by requestAnimationFrame to allow child modal containers to mount
+    const frameId = requestAnimationFrame(focusModal);
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose?.();
+        onCloseRef.current?.();
         return;
       }
 
@@ -71,12 +81,13 @@ export const useModalA11y = (isOpen, onClose) => {
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      cancelAnimationFrame(frameId);
       document.removeEventListener('keydown', handleKeyDown);
       if (previousActiveElementRef.current && typeof previousActiveElementRef.current.focus === 'function') {
         previousActiveElementRef.current.focus();
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   return modalRef;
 };

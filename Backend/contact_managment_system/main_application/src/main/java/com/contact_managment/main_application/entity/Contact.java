@@ -42,11 +42,13 @@ public class Contact {
     @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonManagedReference("contact-emails")
     @Builder.Default
+    @Setter(AccessLevel.NONE)
     private List<ContactEmail> emails = new ArrayList<>();
 
     @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonManagedReference("contact-phones")
     @Builder.Default
+    @Setter(AccessLevel.NONE)
     private List<ContactPhone> phones = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)

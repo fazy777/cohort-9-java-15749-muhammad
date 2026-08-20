@@ -210,7 +210,7 @@ cohort-9-java-15749-muhammad/
 ### Prerequisites
 * [Java Development Kit (JDK) 21 or higher](https://www.oracle.com/java/technologies/downloads/)
 * [Maven](https://maven.apache.org/) (or use the included Maven wrapper `mvnw`)
-* [Node.js](https://nodejs.org/) (^20.19.0 || >=22.12.0) & `npm`
+* [Node.js](https://nodejs.org/) (^20.19.0 || ^22.13.0 || >=24) & `npm`
 * [SQL Server](https://www.microsoft.com/en-us/sql-server/) (Production) or H2 (included for local development)
 
 ---

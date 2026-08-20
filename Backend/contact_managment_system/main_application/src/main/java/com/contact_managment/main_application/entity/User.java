@@ -39,6 +39,9 @@ public class User {
     @Builder.Default
     private Long tokenVersion = 1L;
 
+    @Version
+    private Long version;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

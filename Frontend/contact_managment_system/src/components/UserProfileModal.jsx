@@ -246,7 +246,10 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => setShowPasswordModal(false)}
+                  onClick={() => {
+                    handleResetPasswordForm();
+                    setShowPasswordModal(false);
+                  }}
                 >
                   Cancel
                 </button>

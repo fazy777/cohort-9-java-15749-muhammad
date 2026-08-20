@@ -1,4 +1,5 @@
-import { useState } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useState, useEffect } from 'react';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
 
@@ -16,7 +17,21 @@ import { useModalA11y } from '../hooks/useModalA11y';
 export const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, contact }) => {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
-  const modalRef = useModalA11y(isOpen, onClose);
+
+  /**
+   * Guards dialog dismissal so in-flight deletion cannot be aborted by overlay click or Escape.
+   */
+  const handleRequestClose = () => {
+    if (deleting) return;
+    setError('');
+    onClose?.();
+  };
+
+  const modalRef = useModalA11y(isOpen, handleRequestClose);
+
+  useEffect(() => {
+    setError('');
+  }, [isOpen, contact]);
 
   if (!isOpen || !contact) return null;
 
@@ -42,7 +57,7 @@ export const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, contact }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleRequestClose}>
       <div
         ref={modalRef}
         role="dialog"
@@ -92,7 +107,7 @@ export const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, contact }) => {
         )}
 
         <div className="modal-footer" style={{ justifyContent: 'center', margin: 0, border: 'none', paddingTop: 0 }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={deleting}>
+          <button type="button" className="btn btn-secondary" onClick={handleRequestClose} disabled={deleting}>
             Cancel
           </button>
           <button type="button" className="btn btn-danger" onClick={handleConfirm} disabled={deleting}>

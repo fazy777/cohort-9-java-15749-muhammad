@@ -174,4 +174,18 @@ class ContactServiceTest {
         assertThrows(com.contact_managment.main_application.exception.BadRequestException.class,
                 () -> contactService.getContacts(1L, null, 0, 10, "firstName", "sideways"));
     }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when createContact receives null contactDto")
+    void createContact_NullDto_ThrowsBadRequest() {
+        assertThrows(com.contact_managment.main_application.exception.BadRequestException.class,
+                () -> contactService.createContact(1L, null));
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updateContact receives null contactDto")
+    void updateContact_NullDto_ThrowsBadRequest() {
+        assertThrows(com.contact_managment.main_application.exception.BadRequestException.class,
+                () -> contactService.updateContact(1L, 10L, null));
+    }
 }

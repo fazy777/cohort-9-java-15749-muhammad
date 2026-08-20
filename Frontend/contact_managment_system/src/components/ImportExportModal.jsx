@@ -12,8 +12,8 @@ const serializeCsvField = (val) => {
   if (val == null) return '""';
   let str = String(val);
 
-  // Neutralize formula injection for spreadsheet software (Excel, Google Sheets, Calc)
-  if (/^[=+\-@\t\r]/.test(str)) {
+  // Neutralize formula injection for spreadsheet software (Excel, Google Sheets, Calc) based on trimmed content
+  if (/^[=+\-@\t\r]/.test(str.trim())) {
     str = `'${str}`;
   }
 
@@ -272,6 +272,12 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
       e.target.value = '';
     }
 
+    const MAX_IMPORT_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit
+    if (file.size > MAX_IMPORT_SIZE_BYTES) {
+      showToast?.('File size exceeds the 5MB maximum limit', 'error');
+      return;
+    }
+
     const reader = new FileReader();
     const currentReader = reader;
     activeReaderRef.current = currentReader;
@@ -288,7 +294,9 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
         const text = evt?.target?.result;
         if (typeof text !== 'string') return;
 
-        if (file.name.endsWith('.json')) {
+        const fileNameLower = (file.name || '').toLowerCase();
+
+        if (fileNameLower.endsWith('.json')) {
           const parsed = JSON.parse(text);
           if (Array.isArray(parsed)) {
             const valid = parsed.filter(c => c && (c.firstName || c.lastName));
@@ -297,25 +305,43 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
           } else {
             throw new Error('JSON file must contain an array of contacts');
           }
-        } else if (file.name.endsWith('.csv')) {
+        } else if (fileNameLower.endsWith('.csv')) {
           const rows = parseCsv(text);
           if (rows.length <= 1) throw new Error('CSV file is empty or missing data rows');
+
+          const headerRow = rows[0].map(h => h.trim().toLowerCase().replace(/[\s_-]+/g, ''));
+          const colIndex = {
+            firstName: headerRow.findIndex(h => h === 'firstname' || h === 'first'),
+            lastName: headerRow.findIndex(h => h === 'lastname' || h === 'last'),
+            title: headerRow.findIndex(h => h === 'title'),
+            emails: headerRow.findIndex(h => h === 'emails' || h === 'email' || h === 'emailaddress' || h === 'emailaddresses'),
+            phones: headerRow.findIndex(h => h === 'phones' || h === 'phone' || h === 'phonenumber' || h === 'phonenumbers'),
+            notes: headerRow.findIndex(h => h === 'notes' || h === 'note')
+          };
+
+          const hasMatchedHeaders = colIndex.firstName !== -1 || colIndex.lastName !== -1;
+          const fnIdx = hasMatchedHeaders && colIndex.firstName !== -1 ? colIndex.firstName : 0;
+          const lnIdx = hasMatchedHeaders && colIndex.lastName !== -1 ? colIndex.lastName : 1;
+          const titleIdx = hasMatchedHeaders && colIndex.title !== -1 ? colIndex.title : 2;
+          const emailsIdx = hasMatchedHeaders && colIndex.emails !== -1 ? colIndex.emails : 3;
+          const phonesIdx = hasMatchedHeaders && colIndex.phones !== -1 ? colIndex.phones : 4;
+          const notesIdx = hasMatchedHeaders && colIndex.notes !== -1 ? colIndex.notes : 5;
 
           const parsed = [];
           for (let i = 1; i < rows.length; i++) {
             const cols = rows[i];
             if (cols.length >= 2) {
-              const firstName = sanitizeImportValue(cols[0]);
-              const lastName = sanitizeImportValue(cols[1]);
+              const firstName = sanitizeImportValue(cols[fnIdx] || '');
+              const lastName = sanitizeImportValue(cols[lnIdx] || '');
 
               if (firstName || lastName) {
                 parsed.push({
                   firstName: firstName || 'Unnamed',
                   lastName: lastName || 'Contact',
-                  title: sanitizeImportValue(cols[2] || ''),
-                  emails: parseEmailsFromCsv(cols[3] || ''),
-                  phones: parsePhonesFromCsv(cols[4] || ''),
-                  notes: sanitizeImportValue(cols[5] || '')
+                  title: sanitizeImportValue(cols[titleIdx] || ''),
+                  emails: parseEmailsFromCsv(cols[emailsIdx] || ''),
+                  phones: parsePhonesFromCsv(cols[phonesIdx] || ''),
+                  notes: sanitizeImportValue(cols[notesIdx] || '')
                 });
               }
             }

@@ -1,5 +1,6 @@
 import { User, Mail, Phone, Calendar, Clock, X, Briefcase, FileText } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
+import { getLabelClass } from '../utils/labels';
 
 /**
  * Modal dialog displaying comprehensive details, timestamps, emails, phones, and actions for a contact.
@@ -39,21 +40,6 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
       });
     } catch {
       return 'N/A';
-    }
-  };
-
-  /**
-   * Returns the CSS badge class corresponding to an email or phone label.
-   * @param {string} label
-   * @returns {string}
-   */
-  const getLabelClass = (label) => {
-    switch (label?.toUpperCase()) {
-      case 'WORK': return 'badge-work';
-      case 'PERSONAL': return 'badge-personal';
-      case 'HOME': return 'badge-home';
-      case 'MOBILE': return 'badge-mobile';
-      default: return 'badge-other';
     }
   };
 
@@ -131,7 +117,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
           {emails.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {emails.map((e, idx) => (
-                <div key={idx} style={{
+                <div key={e?.id ?? `email-${idx}`} style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
@@ -139,7 +125,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
                   padding: '0.65rem 0.9rem',
                   borderRadius: 'var(--radius-md)'
                 }}>
-                  <a href={`mailto:${e?.email}`} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
+                  <a href={`mailto:${encodeURIComponent(e?.email || '')}`} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
                     {e?.email}
                   </a>
                   <span className={`badge ${getLabelClass(e?.label)}`}>{e?.label || 'WORK'}</span>
@@ -159,7 +145,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
           {phones.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {phones.map((p, idx) => (
-                <div key={idx} style={{
+                <div key={p?.id ?? `phone-${idx}`} style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
@@ -167,7 +153,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
                   padding: '0.65rem 0.9rem',
                   borderRadius: 'var(--radius-md)'
                 }}>
-                  <a href={`tel:${p?.phoneNumber}`} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
+                  <a href={`tel:${encodeURIComponent(p?.phoneNumber || '')}`} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
                     {p?.phoneNumber}
                   </a>
                   <span className={`badge ${getLabelClass(p?.label)}`}>{p?.label || 'WORK'}</span>

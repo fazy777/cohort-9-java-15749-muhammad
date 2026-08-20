@@ -29,5 +29,6 @@ public class ContactEmail {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "contact_id", nullable = false)
     @JsonBackReference("contact-emails")
+    @Setter(AccessLevel.PACKAGE)
     private Contact contact;
 }

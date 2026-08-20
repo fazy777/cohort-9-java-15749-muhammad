@@ -36,10 +36,12 @@ public class ContactDto {
     private String notes;
 
     @Valid
+    @Size(max = 50, message = "Cannot exceed 50 email addresses")
     @Builder.Default
     private List<@NotNull(message = "Email entry cannot be null") @Valid ContactEmailDto> emails = new ArrayList<>();
 
     @Valid
+    @Size(max = 50, message = "Cannot exceed 50 phone numbers")
     @Builder.Default
     private List<@NotNull(message = "Phone entry cannot be null") @Valid ContactPhoneDto> phones = new ArrayList<>();
 

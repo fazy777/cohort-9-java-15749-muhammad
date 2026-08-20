@@ -1,4 +1,5 @@
 import { Search, Plus, Edit, Trash2, Eye, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getLabelClass } from '../utils/labels';
 
 /**
  * Data table component rendering contact listings, search filter, action buttons, and pagination controls.
@@ -40,21 +41,6 @@ export const ContactTable = ({
   loading = false
 }) => {
   const safeContacts = Array.isArray(contacts) ? contacts.filter(Boolean) : [];
-
-  /**
-   * Returns styling class for email/phone badge labels.
-   * @param {string} label
-   * @returns {string}
-   */
-  const getLabelClass = (label) => {
-    switch (label?.toUpperCase()) {
-      case 'WORK': return 'badge-work';
-      case 'PERSONAL': return 'badge-personal';
-      case 'HOME': return 'badge-home';
-      case 'MOBILE': return 'badge-mobile';
-      default: return 'badge-other';
-    }
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -193,6 +179,7 @@ export const ContactTable = ({
                           <button
                             className="btn btn-secondary btn-sm btn-icon"
                             onClick={() => onOpenDetail?.(c)}
+                            aria-label={`View details for ${c?.firstName ?? ''} ${c?.lastName ?? ''}`.trim()}
                             title="View Contact Details"
                           >
                             <Eye size={16} />
@@ -200,6 +187,7 @@ export const ContactTable = ({
                           <button
                             className="btn btn-secondary btn-sm btn-icon"
                             onClick={() => onOpenUpdate?.(c)}
+                            aria-label={`Edit ${c?.firstName ?? ''} ${c?.lastName ?? ''}`.trim()}
                             title="Edit Contact"
                           >
                             <Edit size={16} color="var(--accent-primary)" />
@@ -207,6 +195,7 @@ export const ContactTable = ({
                           <button
                             className="btn btn-secondary btn-sm btn-icon"
                             onClick={() => onOpenDelete?.(c)}
+                            aria-label={`Delete ${c?.firstName ?? ''} ${c?.lastName ?? ''}`.trim()}
                             title="Delete Contact"
                             style={{ borderColor: 'rgba(239,68,68,0.3)' }}
                           >
@@ -231,6 +220,7 @@ export const ContactTable = ({
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <select
+                aria-label="Contacts per page"
                 className="input-control"
                 value={pageSize}
                 onChange={(e) => onPageSizeChange?.(Number(e.target.value))}

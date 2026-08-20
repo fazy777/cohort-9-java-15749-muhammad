@@ -13,7 +13,7 @@ export const Toast = ({ toasts = [], removeToast }) => {
   const safeToasts = Array.isArray(toasts) ? toasts.filter(Boolean) : [];
 
   return (
-    <div className="toast-container" aria-live="polite" aria-atomic="true">
+    <div className="toast-container">
       {safeToasts.map((toast, index) => {
         const toastKey = toast?.id != null ? `toast-${toast.id}` : `toast-idx-${index}`;
         const isError = toast?.type === 'error';

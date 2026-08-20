@@ -131,16 +131,23 @@ export const AuthForm = ({ showToast }) => {
 
               {/* Toggle Register By Email or Phone */}
               <div className="form-group">
-                <label>Register With</label>
-                <div style={{
-                  display: 'flex',
-                  gap: '0.5rem',
-                  background: 'rgba(15, 23, 42, 0.5)',
-                  padding: '4px',
-                  borderRadius: 'var(--radius-md)'
-                }}>
+                <span id="reg-type-label" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-main)' }}>
+                  Register With
+                </span>
+                <div
+                  role="group"
+                  aria-labelledby="reg-type-label"
+                  style={{
+                    display: 'flex',
+                    gap: '0.5rem',
+                    background: 'rgba(15, 23, 42, 0.5)',
+                    padding: '4px',
+                    borderRadius: 'var(--radius-md)'
+                  }}
+                >
                   <button
                     type="button"
+                    aria-pressed={regType === 'email'}
                     style={{
                       flex: 1,
                       padding: '0.5rem',
@@ -162,6 +169,7 @@ export const AuthForm = ({ showToast }) => {
                   </button>
                   <button
                     type="button"
+                    aria-pressed={regType === 'phone'}
                     style={{
                       flex: 1,
                       padding: '0.5rem',
@@ -179,7 +187,7 @@ export const AuthForm = ({ showToast }) => {
                     }}
                     onClick={() => setRegType('phone')}
                   >
-                    <Phone size={16} /> Phone Number
+                    <Phone size={16} /> Phone
                   </button>
                 </div>
               </div>

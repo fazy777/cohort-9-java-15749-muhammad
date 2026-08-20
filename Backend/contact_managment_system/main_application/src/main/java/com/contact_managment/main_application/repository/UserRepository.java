@@ -31,6 +31,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByPhone(String phone);
 
     /**
+     * Finds a user by ID with a pessimistic write lock for atomic updates.
+     *
+     * @param id user ID
+     * @return Optional containing the User if found
+     */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.id = :id")
+    Optional<User> findByIdForUpdate(@Param("id") Long id);
+
+    /**
      * Finds a user by either email or phone number matching the provided credential.
      *
      * @param credential email or phone number

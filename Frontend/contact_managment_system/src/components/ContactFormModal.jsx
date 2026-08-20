@@ -88,27 +88,23 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   };
 
   /**
-   * Removes an email row at specified index.
-   * @param {number} index
+   * Removes an email row by unique rowId.
+   * @param {string} rowId
    */
-  const handleRemoveEmail = (index) => {
-    setEmails((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveEmail = (rowId) => {
+    setEmails((prev) => prev.filter((item) => item.rowId !== rowId));
   };
 
   /**
-   * Updates a specific field on an email row.
-   * @param {number} index
+   * Updates a specific field on an email row by rowId.
+   * @param {string} rowId
    * @param {string} field
    * @param {string} value
    */
-  const handleEmailChange = (index, field, value) => {
-    setEmails((prev) => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = { ...updated[index], [field]: value };
-      }
-      return updated;
-    });
+  const handleEmailChange = (rowId, field, value) => {
+    setEmails((prev) =>
+      prev.map((item) => (item.rowId === rowId ? { ...item, [field]: value } : item))
+    );
   };
 
   /**
@@ -119,27 +115,23 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   };
 
   /**
-   * Removes a phone row at specified index.
-   * @param {number} index
+   * Removes a phone row by unique rowId.
+   * @param {string} rowId
    */
-  const handleRemovePhone = (index) => {
-    setPhones((prev) => prev.filter((_, i) => i !== index));
+  const handleRemovePhone = (rowId) => {
+    setPhones((prev) => prev.filter((item) => item.rowId !== rowId));
   };
 
   /**
-   * Updates a specific field on a phone row.
-   * @param {number} index
+   * Updates a specific field on a phone row by rowId.
+   * @param {string} rowId
    * @param {string} field
    * @param {string} value
    */
-  const handlePhoneChange = (index, field, value) => {
-    setPhones((prev) => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = { ...updated[index], [field]: value };
-      }
-      return updated;
-    });
+  const handlePhoneChange = (rowId, field, value) => {
+    setPhones((prev) =>
+      prev.map((item) => (item.rowId === rowId ? { ...item, [field]: value } : item))
+    );
   };
 
   /**
@@ -283,24 +275,24 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
 
             {(emails || []).map((emailObj, idx) => (
               <div key={emailObj.rowId} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <label htmlFor={`contact-email-${idx}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
+                <label htmlFor={`contact-email-${emailObj.rowId}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
                   Email Address {idx + 1}
                 </label>
                 <input
-                  id={`contact-email-${idx}`}
+                  id={`contact-email-${emailObj.rowId}`}
                   type="email"
                   className="input-control"
                   placeholder="name@company.com"
                   value={emailObj?.email || ''}
-                  onChange={(e) => handleEmailChange(idx, 'email', e.target.value)}
+                  onChange={(e) => handleEmailChange(emailObj.rowId, 'email', e.target.value)}
                   style={{ flex: 1 }}
                 />
                 <select
-                  id={`contact-email-label-${idx}`}
+                  id={`contact-email-label-${emailObj.rowId}`}
                   aria-label={`Email label for email ${idx + 1}`}
                   className="input-control"
                   value={emailObj?.label || 'WORK'}
-                  onChange={(e) => handleEmailChange(idx, 'label', e.target.value)}
+                  onChange={(e) => handleEmailChange(emailObj.rowId, 'label', e.target.value)}
                   style={{ width: '130px' }}
                 >
                   <option value="WORK">Work</option>
@@ -311,7 +303,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
                   <button
                     type="button"
                     aria-label={`Remove email ${idx + 1}`}
-                    onClick={() => handleRemoveEmail(idx)}
+                    onClick={() => handleRemoveEmail(emailObj.rowId)}
                     style={{ background: 'rgba(239, 68, 68, 0.2)', border: 'none', color: '#ef4444', borderRadius: 'var(--radius-sm)', padding: '0 0.6rem', cursor: 'pointer' }}
                   >
                     <Trash2 size={16} />
@@ -339,24 +331,24 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
 
             {(phones || []).map((phoneObj, idx) => (
               <div key={phoneObj.rowId} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <label htmlFor={`contact-phone-${idx}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
+                <label htmlFor={`contact-phone-${phoneObj.rowId}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
                   Phone Number {idx + 1}
                 </label>
                 <input
-                  id={`contact-phone-${idx}`}
+                  id={`contact-phone-${phoneObj.rowId}`}
                   type="tel"
                   className="input-control"
                   placeholder="+1 (555) 000-0000"
                   value={phoneObj?.phoneNumber || ''}
-                  onChange={(e) => handlePhoneChange(idx, 'phoneNumber', e.target.value)}
+                  onChange={(e) => handlePhoneChange(phoneObj.rowId, 'phoneNumber', e.target.value)}
                   style={{ flex: 1 }}
                 />
                 <select
-                  id={`contact-phone-label-${idx}`}
+                  id={`contact-phone-label-${phoneObj.rowId}`}
                   aria-label={`Phone label for phone ${idx + 1}`}
                   className="input-control"
                   value={phoneObj?.label || 'WORK'}
-                  onChange={(e) => handlePhoneChange(idx, 'label', e.target.value)}
+                  onChange={(e) => handlePhoneChange(phoneObj.rowId, 'label', e.target.value)}
                   style={{ width: '130px' }}
                 >
                   <option value="WORK">Work</option>
@@ -369,7 +361,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
                   <button
                     type="button"
                     aria-label={`Remove phone ${idx + 1}`}
-                    onClick={() => handleRemovePhone(idx)}
+                    onClick={() => handleRemovePhone(phoneObj.rowId)}
                     style={{ background: 'rgba(239, 68, 68, 0.2)', border: 'none', color: '#ef4444', borderRadius: 'var(--radius-sm)', padding: '0 0.6rem', cursor: 'pointer' }}
                   >
                     <Trash2 size={16} />

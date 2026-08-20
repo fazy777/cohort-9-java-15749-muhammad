@@ -259,7 +259,7 @@ class AuthServiceTest {
                 .newPassword("newPass123")
                 .build();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches("oldPass", "encodedPassword")).thenReturn(true);
         when(passwordEncoder.encode("newPass123")).thenReturn("newEncodedPassword");
 
@@ -271,6 +271,32 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Should change password consecutively and increment tokenVersion sequentially")
+    void changePassword_ConsecutiveCalls_IncrementsTokenVersionEachTime() {
+        ChangePasswordRequest request1 = ChangePasswordRequest.builder()
+                .currentPassword("oldPass")
+                .newPassword("pass1")
+                .build();
+        ChangePasswordRequest request2 = ChangePasswordRequest.builder()
+                .currentPassword("pass1")
+                .newPassword("pass2")
+                .build();
+
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
+        when(passwordEncoder.matches("oldPass", "encodedPassword")).thenReturn(true);
+        when(passwordEncoder.encode("pass1")).thenReturn("encodedPass1");
+
+        authService.changePassword(1L, request1);
+        assertEquals(2L, sampleUser.getTokenVersion());
+
+        when(passwordEncoder.matches("pass1", "encodedPass1")).thenReturn(true);
+        when(passwordEncoder.encode("pass2")).thenReturn("encodedPass2");
+
+        authService.changePassword(1L, request2);
+        assertEquals(3L, sampleUser.getTokenVersion());
+    }
+
+    @Test
     @DisplayName("Should throw exception when current password is incorrect")
     void changePassword_WrongCurrentPassword() {
         ChangePasswordRequest request = ChangePasswordRequest.builder()
@@ -278,7 +304,7 @@ class AuthServiceTest {
                 .newPassword("newPass123")
                 .build();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches("wrongOldPass", "encodedPassword")).thenReturn(false);
 
         assertThrows(BadRequestException.class, () -> authService.changePassword(1L, request));

@@ -19,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/contacts")
 @RequiredArgsConstructor
+@org.springframework.validation.annotation.Validated
 public class ContactController {
 
     private final ContactService contactService;
@@ -43,7 +44,7 @@ public class ContactController {
      * @param userPrincipal the authenticated user principal
      * @param search optional search query to filter contacts by name, email, phone, or title
      * @param page zero-based page index
-     * @param size page size limit
+     * @param size page size limit (max 100)
      * @param sortBy property to sort by
      * @param sortDir sort direction ('asc' or 'desc')
      * @return response entity with paginated contact data
@@ -52,7 +53,10 @@ public class ContactController {
     public ResponseEntity<ApiResponse<PagedResponse<ContactDto>>> getContacts(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestParam(value = "search", required = false) String search,
+            @jakarta.validation.constraints.Min(value = 0, message = "Page index must not be less than zero")
             @RequestParam(value = "page", defaultValue = "0") int page,
+            @jakarta.validation.constraints.Min(value = 1, message = "Page size must be at least 1")
+            @jakarta.validation.constraints.Max(value = 100, message = "Page size cannot exceed 100")
             @RequestParam(value = "size", defaultValue = "10") int size,
             @RequestParam(value = "sortBy", defaultValue = "firstName") String sortBy,
             @RequestParam(value = "sortDir", defaultValue = "asc") String sortDir) {
@@ -151,10 +155,13 @@ public class ContactController {
     @PostMapping("/import")
     public ResponseEntity<ApiResponse<Integer>> importContacts(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @RequestBody @Valid List<@Valid ContactDto> contactDtos) {
+            @RequestBody @Valid @jakarta.validation.constraints.Size(max = 1000, message = "Cannot import more than 1000 contacts at a time") List<@Valid ContactDto> contactDtos) {
 
         if (contactDtos == null || contactDtos.isEmpty()) {
             throw new com.contact_managment.main_application.exception.BadRequestException("Import list cannot be empty");
+        }
+        if (contactDtos.size() > 1000) {
+            throw new com.contact_managment.main_application.exception.BadRequestException("Cannot import more than 1000 contacts at a time");
         }
         int importedCount = contactService.importContacts(getUserId(userPrincipal), contactDtos);
         return ResponseEntity.ok(ApiResponse.success("Imported " + importedCount + " contacts successfully", importedCount));

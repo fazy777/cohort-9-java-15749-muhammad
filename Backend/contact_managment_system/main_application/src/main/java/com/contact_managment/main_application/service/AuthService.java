@@ -161,8 +161,9 @@ public class AuthService {
     public void changePassword(Long userId, ChangePasswordRequest request) {
         log.info("Change password requested for user ID: {}", userId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseGet(() -> userRepository.findById(userId)
+                        .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId)));
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             log.warn("Password change failed for user ID {}: Current password incorrect", userId);

@@ -99,7 +99,12 @@ const MainDashboard = () => {
    * Fetches paginated contacts from backend API with stale response protection.
    */
   const fetchContacts = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setContacts([]);
+      setTotalPages(0);
+      setTotalElements(0);
+      return;
+    }
     const requestId = ++latestRequestIdRef.current;
     setLoading(true);
     try {
@@ -173,7 +178,7 @@ const MainDashboard = () => {
         await api.createContact(contactPayload);
         showToast('Contact created successfully!', 'success');
       }
-      fetchContacts();
+      await fetchContacts();
     } catch (err) {
       showToast(err?.message || 'Failed to save contact', 'error');
       throw err;
