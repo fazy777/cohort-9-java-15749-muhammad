@@ -33,9 +33,10 @@ class MaxByteLengthValidatorTest {
             }
 
             @Override
-            public Class<? extends Payload>[] payload() {
-                return new Class[0];
-            }
+            @SuppressWarnings("unchecked")
+public Class<? extends Payload>[] payload() {
+    return (Class<? extends Payload>[]) new Class<?>[0];
+}
 
             @Override
             public int max() {
