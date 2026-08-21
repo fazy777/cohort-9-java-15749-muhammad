@@ -24,9 +24,12 @@ const formatMailtoLink = (email) => {
  * @param {string} phoneNumber
  * @returns {string}
  */
-const formatTelLink = (phoneNumber) => {
-  if (!phoneNumber) return 'tel:';
-  return `tel:${encodeURIComponent(String(phoneNumber).trim())}`;
+const formatTelLink = (phone) => {
+  const trimmed = phone.trim();
+  if (!trimmed) return '';
+  const hasPlus = trimmed.startsWith('+');
+  const digits = hasPlus ? trimmed.slice(1) : trimmed;
+  return `tel:${hasPlus ? '+' : ''}${encodeURIComponent(digits)}`;
 };
 
 /**
