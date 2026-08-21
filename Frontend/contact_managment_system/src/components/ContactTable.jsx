@@ -117,6 +117,7 @@ export const ContactTable = ({
                   const primaryEmail = Array.isArray(c?.emails) && c.emails.length > 0 ? c.emails[0] : null;
                   const primaryPhone = Array.isArray(c?.phones) && c.phones.length > 0 ? c.phones[0] : null;
                   const contactKey = c?.id != null ? `contact-${c.id}` : `contact-idx-${index}`;
+            const emailLabel = email.label || 'WORK';
 
                   return (
                     <tr key={contactKey}>
@@ -156,7 +157,7 @@ export const ContactTable = ({
                         {primaryEmail?.email ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <span style={{ fontSize: '0.9rem' }}>{primaryEmail.email}</span>
-                            <span className={`badge ${getLabelClass(primaryEmail.label)}`}>{primaryEmail.label || 'WORK'}</span>
+                            <span className={getLabelClass(emailLabel)}>{emailLabel}</span>
                           </div>
                         ) : (
                           <span style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>—</span>
@@ -167,7 +168,7 @@ export const ContactTable = ({
                         {primaryPhone?.phoneNumber ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <span style={{ fontSize: '0.9rem' }}>{primaryPhone.phoneNumber}</span>
-                            <span className={`badge ${getLabelClass(primaryPhone.label)}`}>{primaryPhone.label || 'WORK'}</span>
+                            <span className={getLabelClass(emailLabel)}>{emailLabel}</span>
                           </div>
                         ) : (
                           <span style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>—</span>
