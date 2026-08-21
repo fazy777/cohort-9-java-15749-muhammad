@@ -3,6 +3,33 @@ import { useModalA11y } from '../hooks/useModalA11y';
 import { getLabelClass } from '../utils/labels';
 
 /**
+ * Encodes an email address for mailto: scheme, preserving valid @ delimiter while encoding other special characters.
+ * @param {string} email
+ * @returns {string}
+ */
+const formatMailtoLink = (email) => {
+  if (!email) return 'mailto:';
+  const trimmed = String(email).trim();
+  const atIndex = trimmed.lastIndexOf('@');
+  if (atIndex === -1) {
+    return `mailto:${encodeURIComponent(trimmed)}`;
+  }
+  const localPart = trimmed.slice(0, atIndex);
+  const domainPart = trimmed.slice(atIndex + 1);
+  return `mailto:${encodeURIComponent(localPart)}@${encodeURIComponent(domainPart)}`;
+};
+
+/**
+ * Encodes a phone number for tel: scheme targets.
+ * @param {string} phoneNumber
+ * @returns {string}
+ */
+const formatTelLink = (phoneNumber) => {
+  if (!phoneNumber) return 'tel:';
+  return `tel:${encodeURIComponent(String(phoneNumber).trim())}`;
+};
+
+/**
  * Modal dialog displaying comprehensive details, timestamps, emails, phones, and actions for a contact.
  *
  * @param {{
@@ -125,7 +152,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
                   padding: '0.65rem 0.9rem',
                   borderRadius: 'var(--radius-md)'
                 }}>
-                  <a href={`mailto:${encodeURIComponent(e?.email || '')}`} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
+                  <a href={formatMailtoLink(e?.email)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
                     {e?.email}
                   </a>
                   <span className={`badge ${getLabelClass(e?.label)}`}>{e?.label || 'WORK'}</span>
@@ -153,7 +180,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
                   padding: '0.65rem 0.9rem',
                   borderRadius: 'var(--radius-md)'
                 }}>
-                  <a href={`tel:${encodeURIComponent(p?.phoneNumber || '')}`} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
+                  <a href={formatTelLink(p?.phoneNumber)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
                     {p?.phoneNumber}
                   </a>
                   <span className={`badge ${getLabelClass(p?.label)}`}>{p?.label || 'WORK'}</span>

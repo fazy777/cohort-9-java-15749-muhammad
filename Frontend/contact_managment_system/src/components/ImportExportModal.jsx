@@ -321,31 +321,25 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
             notes: headerRow.findIndex(h => h === 'notes' || h === 'note')
           };
 
-          const hasMatchedHeaders = colIndex.firstName !== -1 || colIndex.lastName !== -1;
-          const fnIdx = hasMatchedHeaders && colIndex.firstName !== -1 ? colIndex.firstName : 0;
-          const lnIdx = hasMatchedHeaders && colIndex.lastName !== -1 ? colIndex.lastName : 1;
-          const titleIdx = hasMatchedHeaders && colIndex.title !== -1 ? colIndex.title : 2;
-          const emailsIdx = hasMatchedHeaders && colIndex.emails !== -1 ? colIndex.emails : 3;
-          const phonesIdx = hasMatchedHeaders && colIndex.phones !== -1 ? colIndex.phones : 4;
-          const notesIdx = hasMatchedHeaders && colIndex.notes !== -1 ? colIndex.notes : 5;
+          if (colIndex.firstName === -1 || colIndex.lastName === -1) {
+            throw new Error('CSV import requires both "First Name" and "Last Name" headers');
+          }
 
           const parsed = [];
           for (let i = 1; i < rows.length; i++) {
             const cols = rows[i];
-            if (cols.length >= 2) {
-              const firstName = sanitizeImportValue(cols[fnIdx] || '');
-              const lastName = sanitizeImportValue(cols[lnIdx] || '');
+            const firstName = sanitizeImportValue(cols[colIndex.firstName] || '');
+            const lastName = sanitizeImportValue(cols[colIndex.lastName] || '');
 
-              if (firstName || lastName) {
-                parsed.push({
-                  firstName: firstName || 'Unnamed',
-                  lastName: lastName || 'Contact',
-                  title: sanitizeImportValue(cols[titleIdx] || ''),
-                  emails: parseEmailsFromCsv(cols[emailsIdx] || ''),
-                  phones: parsePhonesFromCsv(cols[phonesIdx] || ''),
-                  notes: sanitizeImportValue(cols[notesIdx] || '')
-                });
-              }
+            if (firstName || lastName) {
+              parsed.push({
+                firstName: firstName || 'Unnamed',
+                lastName: lastName || 'Contact',
+                title: colIndex.title !== -1 ? sanitizeImportValue(cols[colIndex.title] || '') : '',
+                emails: colIndex.emails !== -1 ? parseEmailsFromCsv(cols[colIndex.emails] || '') : [],
+                phones: colIndex.phones !== -1 ? parsePhonesFromCsv(cols[colIndex.phones] || '') : [],
+                notes: colIndex.notes !== -1 ? sanitizeImportValue(cols[colIndex.notes] || '') : ''
+              });
             }
           }
 

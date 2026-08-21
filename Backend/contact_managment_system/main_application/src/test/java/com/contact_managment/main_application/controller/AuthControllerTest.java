@@ -225,4 +225,59 @@ class AuthControllerTest {
 
         verify(authService).changePassword(eq(1L), any(ChangePasswordRequest.class));
     }
+
+    @Test
+    @DisplayName("POST /api/auth/register with overlong UTF-8 password (>72 bytes) should return 400 Bad Request")
+    void register_OverlongPassword_Returns400() throws Exception {
+        String overlongPassword = "🔒".repeat(20);
+        RegisterRequest request = RegisterRequest.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("john@example.com")
+                .password(overlongPassword)
+                .build();
+
+        mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/change-password with overlong UTF-8 new password (>72 bytes) should return 400 Bad Request")
+    void changePassword_OverlongNewPassword_Returns400() throws Exception {
+        String overlongPassword = "🔒".repeat(20);
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .currentPassword("oldPassword123")
+                .newPassword(overlongPassword)
+                .build();
+
+        mockMvc.perform(post("/api/auth/change-password")
+                        .with(csrf())
+                        .with(user(userPrincipal))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/change-password with overlong UTF-8 current password (>72 bytes) should return 400 Bad Request")
+    void changePassword_OverlongCurrentPassword_Returns400() throws Exception {
+        String overlongPassword = "a".repeat(73);
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .currentPassword(overlongPassword)
+                .newPassword("newValidPassword123")
+                .build();
+
+        mockMvc.perform(post("/api/auth/change-password")
+                        .with(csrf())
+                        .with(user(userPrincipal))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
 }

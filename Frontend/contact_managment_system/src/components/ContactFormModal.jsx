@@ -9,6 +9,114 @@ import { useModalA11y } from '../hooks/useModalA11y';
  */
 const generateRowId = () => Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
 
+const EMAIL_LABEL_OPTIONS = [
+  { value: 'WORK', label: 'Work' },
+  { value: 'PERSONAL', label: 'Personal' },
+  { value: 'OTHER', label: 'Other' }
+];
+
+const PHONE_LABEL_OPTIONS = [
+  { value: 'WORK', label: 'Work' },
+  { value: 'HOME', label: 'Home' },
+  { value: 'PERSONAL', label: 'Personal' },
+  { value: 'MOBILE', label: 'Mobile' },
+  { value: 'OTHER', label: 'Other' }
+];
+
+/**
+ * Shared row component for dynamic contact value fields (email, phone).
+ *
+ * @param {{
+ *   fieldName: string,
+ *   fieldKey: string,
+ *   fieldTitle: string,
+ *   inputType: string,
+ *   placeholder: string,
+ *   rowId: string,
+ *   index: number,
+ *   value: string,
+ *   label: string,
+ *   labelOptions: Array<{ value: string, label: string }>,
+ *   canRemove: boolean,
+ *   onChange: (rowId: string, field: string, value: string) => void,
+ *   onRemove: (rowId: string) => void
+ * }} props
+ */
+const ContactValueRow = ({
+  fieldName,
+  fieldKey,
+  fieldTitle,
+  inputType,
+  placeholder,
+  rowId,
+  index,
+  value,
+  label,
+  labelOptions,
+  canRemove,
+  onChange,
+  onRemove
+}) => (
+  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+    <label
+      htmlFor={`contact-${fieldName}-${rowId}`}
+      style={{
+        position: 'absolute',
+        width: '1px',
+        height: '1px',
+        padding: 0,
+        margin: '-1px',
+        overflow: 'hidden',
+        clip: 'rect(0, 0, 0, 0)',
+        whiteSpace: 'nowrap',
+        border: 0
+      }}
+    >
+      {fieldTitle} {index + 1}
+    </label>
+    <input
+      id={`contact-${fieldName}-${rowId}`}
+      type={inputType}
+      className="input-control"
+      placeholder={placeholder}
+      value={value || ''}
+      onChange={(e) => onChange(rowId, fieldKey, e.target.value)}
+      style={{ flex: 1 }}
+    />
+    <select
+      id={`contact-${fieldName}-label-${rowId}`}
+      aria-label={`${fieldName === 'email' ? 'Email' : 'Phone'} label for ${fieldName} ${index + 1}`}
+      className="input-control"
+      value={label || 'WORK'}
+      onChange={(e) => onChange(rowId, 'label', e.target.value)}
+      style={{ width: '130px' }}
+    >
+      {labelOptions.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+    {canRemove && (
+      <button
+        type="button"
+        aria-label={`Remove ${fieldName} ${index + 1}`}
+        onClick={() => onRemove(rowId)}
+        style={{
+          background: 'rgba(239, 68, 68, 0.2)',
+          border: 'none',
+          color: '#ef4444',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0 0.6rem',
+          cursor: 'pointer'
+        }}
+      >
+        <Trash2 size={16} />
+      </button>
+    )}
+  </div>
+);
+
 /**
  * @typedef {Omit<import('../services/api').ContactDto, 'id' | 'createdAt' | 'updatedAt'>} ContactFormPayload
  */
@@ -67,6 +175,19 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   if (!isOpen) return null;
 
   /**
+   * Generic helper to update a specific field on a dynamic row by rowId.
+   * @param {React.Dispatch<React.SetStateAction<Array<any>>>} setter
+   * @param {string} rowId
+   * @param {string} field
+   * @param {string} value
+   */
+  const updateRow = (setter, rowId, field, value) => {
+    setter((prev) =>
+      prev.map((item) => (item.rowId === rowId ? { ...item, [field]: value } : item))
+    );
+  };
+
+  /**
    * Appends a new empty email row.
    */
   const handleAddEmail = () => {
@@ -88,9 +209,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
    * @param {string} value
    */
   const handleEmailChange = (rowId, field, value) => {
-    setEmails((prev) =>
-      prev.map((item) => (item.rowId === rowId ? { ...item, [field]: value } : item))
-    );
+    updateRow(setEmails, rowId, field, value);
   };
 
   /**
@@ -115,9 +234,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
    * @param {string} value
    */
   const handlePhoneChange = (rowId, field, value) => {
-    setPhones((prev) =>
-      prev.map((item) => (item.rowId === rowId ? { ...item, [field]: value } : item))
-    );
+    updateRow(setPhones, rowId, field, value);
   };
 
   /**
@@ -260,42 +377,22 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
             </div>
 
             {(emails || []).map((emailObj, idx) => (
-              <div key={emailObj.rowId} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <label htmlFor={`contact-email-${emailObj.rowId}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
-                  Email Address {idx + 1}
-                </label>
-                <input
-                  id={`contact-email-${emailObj.rowId}`}
-                  type="email"
-                  className="input-control"
-                  placeholder="name@company.com"
-                  value={emailObj?.email || ''}
-                  onChange={(e) => handleEmailChange(emailObj.rowId, 'email', e.target.value)}
-                  style={{ flex: 1 }}
-                />
-                <select
-                  id={`contact-email-label-${emailObj.rowId}`}
-                  aria-label={`Email label for email ${idx + 1}`}
-                  className="input-control"
-                  value={emailObj?.label || 'WORK'}
-                  onChange={(e) => handleEmailChange(emailObj.rowId, 'label', e.target.value)}
-                  style={{ width: '130px' }}
-                >
-                  <option value="WORK">Work</option>
-                  <option value="PERSONAL">Personal</option>
-                  <option value="OTHER">Other</option>
-                </select>
-                {emails.length > 1 && (
-                  <button
-                    type="button"
-                    aria-label={`Remove email ${idx + 1}`}
-                    onClick={() => handleRemoveEmail(emailObj.rowId)}
-                    style={{ background: 'rgba(239, 68, 68, 0.2)', border: 'none', color: '#ef4444', borderRadius: 'var(--radius-sm)', padding: '0 0.6rem', cursor: 'pointer' }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
+              <ContactValueRow
+                key={emailObj.rowId}
+                rowId={emailObj.rowId}
+                index={idx}
+                fieldName="email"
+                fieldKey="email"
+                fieldTitle="Email Address"
+                inputType="email"
+                placeholder="name@company.com"
+                value={emailObj?.email || ''}
+                label={emailObj?.label || 'WORK'}
+                labelOptions={EMAIL_LABEL_OPTIONS}
+                canRemove={emails.length > 1}
+                onChange={handleEmailChange}
+                onRemove={handleRemoveEmail}
+              />
             ))}
           </div>
 
@@ -316,44 +413,22 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
             </div>
 
             {(phones || []).map((phoneObj, idx) => (
-              <div key={phoneObj.rowId} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <label htmlFor={`contact-phone-${phoneObj.rowId}`} style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
-                  Phone Number {idx + 1}
-                </label>
-                <input
-                  id={`contact-phone-${phoneObj.rowId}`}
-                  type="tel"
-                  className="input-control"
-                  placeholder="+1 (555) 000-0000"
-                  value={phoneObj?.phoneNumber || ''}
-                  onChange={(e) => handlePhoneChange(phoneObj.rowId, 'phoneNumber', e.target.value)}
-                  style={{ flex: 1 }}
-                />
-                <select
-                  id={`contact-phone-label-${phoneObj.rowId}`}
-                  aria-label={`Phone label for phone ${idx + 1}`}
-                  className="input-control"
-                  value={phoneObj?.label || 'WORK'}
-                  onChange={(e) => handlePhoneChange(phoneObj.rowId, 'label', e.target.value)}
-                  style={{ width: '130px' }}
-                >
-                  <option value="WORK">Work</option>
-                  <option value="HOME">Home</option>
-                  <option value="PERSONAL">Personal</option>
-                  <option value="MOBILE">Mobile</option>
-                  <option value="OTHER">Other</option>
-                </select>
-                {phones.length > 1 && (
-                  <button
-                    type="button"
-                    aria-label={`Remove phone ${idx + 1}`}
-                    onClick={() => handleRemovePhone(phoneObj.rowId)}
-                    style={{ background: 'rgba(239, 68, 68, 0.2)', border: 'none', color: '#ef4444', borderRadius: 'var(--radius-sm)', padding: '0 0.6rem', cursor: 'pointer' }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
+              <ContactValueRow
+                key={phoneObj.rowId}
+                rowId={phoneObj.rowId}
+                index={idx}
+                fieldName="phone"
+                fieldKey="phoneNumber"
+                fieldTitle="Phone Number"
+                inputType="tel"
+                placeholder="+1 (555) 000-0000"
+                value={phoneObj?.phoneNumber || ''}
+                label={phoneObj?.label || 'WORK'}
+                labelOptions={PHONE_LABEL_OPTIONS}
+                canRemove={phones.length > 1}
+                onChange={handlePhoneChange}
+                onRemove={handleRemovePhone}
+              />
             ))}
           </div>
 

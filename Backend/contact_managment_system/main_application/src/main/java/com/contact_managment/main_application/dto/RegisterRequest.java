@@ -1,5 +1,6 @@
 package com.contact_managment.main_application.dto;
 
+import com.contact_managment.main_application.validation.MaxByteLength;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -34,5 +35,6 @@ public class RegisterRequest {
 
     @NotBlank(message = "Password is required")
     @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
+    @MaxByteLength(max = 72, message = "Password cannot exceed 72 bytes")
     private String password;
 }
