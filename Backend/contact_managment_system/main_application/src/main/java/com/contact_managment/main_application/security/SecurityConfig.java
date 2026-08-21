@@ -1,6 +1,7 @@
 package com.contact_managment.main_application.security;
 
 import com.contact_managment.main_application.exception.ErrorResponse;
+import org.springframework.security.authorization.AuthorizationDecision;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -144,9 +145,15 @@ public class SecurityConfig {
             auth.requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll();
 
-            if (h2ConsoleEnabled) {
-                auth.requestMatchers("/h2-console/**").permitAll();
-            }
+           if (h2ConsoleEnabled) {
+    auth.requestMatchers("/h2-console/**").access(
+        (authentication, context) -> {
+            String remoteAddr = context.getRequest().getRemoteAddr();
+            boolean isLocal = "127.0.0.1".equals(remoteAddr) || "0:0:0:0:0:0:0:1".equals(remoteAddr) || "::1".equals(remoteAddr);
+            return new org.springframework.security.authorization.AuthorizationDecision(isLocal);
+        }
+    );
+}
 
             auth.anyRequest().authenticated();
         });
