@@ -75,6 +75,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
 
   const emails = Array.isArray(contact?.emails) ? contact.emails.filter(Boolean) : [];
   const phones = Array.isArray(contact?.phones) ? contact.phones.filter(Boolean) : [];
+  const emailLabel = email.label || 'WORK';
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -158,7 +159,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
                   <a href={formatMailtoLink(e?.email)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
                     {e?.email}
                   </a>
-                  <span className={`badge ${getLabelClass(e?.label)}`}>{e?.label || 'WORK'}</span>
+                  <span className={getLabelClass(emailLabel)}>{emailLabel}</span>
                 </div>
               ))}
             </div>
@@ -186,7 +187,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
                   <a href={formatTelLink(p?.phoneNumber)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
                     {p?.phoneNumber}
                   </a>
-                  <span className={`badge ${getLabelClass(p?.label)}`}>{p?.label || 'WORK'}</span>
+                  <span className={getLabelClass(emailLabel)}>{emailLabel}</span>
                 </div>
               ))}
             </div>
