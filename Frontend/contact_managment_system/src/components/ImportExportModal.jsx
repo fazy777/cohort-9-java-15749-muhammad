@@ -326,23 +326,25 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
           }
 
           const parsed = [];
-          for (let i = 1; i < rows.length; i++) {
-            const cols = rows[i];
-            const firstName = sanitizeImportValue(cols[colIndex.firstName] || '');
-            const lastName = sanitizeImportValue(cols[colIndex.lastName] || '');
+for (let i = 1; i < rows.length; i++) {
+  const rowNumber = i + 1; // +1 if row 1 (index 0) is a header and you want 1-based file line numbers
+  const cols = rows[i];
+  const firstName = cols[colIndex.firstName]?.trim();
+  const lastName = cols[colIndex.lastName]?.trim();
 
-            if (firstName || lastName) {
-              parsed.push({
-                firstName: firstName || 'Unnamed',
-                lastName: lastName || 'Contact',
-                title: colIndex.title !== -1 ? sanitizeImportValue(cols[colIndex.title] || '') : '',
-                emails: colIndex.emails !== -1 ? parseEmailsFromCsv(cols[colIndex.emails] || '') : [],
-                phones: colIndex.phones !== -1 ? parsePhonesFromCsv(cols[colIndex.phones] || '') : [],
-                notes: colIndex.notes !== -1 ? sanitizeImportValue(cols[colIndex.notes] || '') : ''
-              });
-            }
-          }
-
+  if (firstName && lastName) {
+    parsed.push({
+      firstName,
+      lastName,
+      title: colIndex.title !== -1 ? sanitizeImportValue(cols[colIndex.title] || '') : '',
+      emails: colIndex.emails !== -1 ? parseEmailsFromCsv(cols[colIndex.emails] || '') : [],
+      phones: colIndex.phones !== -1 ? parsePhonesFromCsv(cols[colIndex.phones] || '') : [],
+      notes: colIndex.notes !== -1 ? sanitizeImportValue(cols[colIndex.notes] || '') : ''
+    });
+  } else {
+    errors.push(`Row ${rowNumber}: missing first or last name — skipped`);
+  }
+}
           if (parsed.length === 0) throw new Error('No valid contact entries found in CSV');
           setPreviewData(parsed);
         } else {
