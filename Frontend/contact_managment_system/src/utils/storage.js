@@ -3,6 +3,7 @@
  */
 
 const memoryStore = new Map();
+const tombstonedKeys = new Set();
 
 /**
  * Clean up legacy localStorage items that may contain sensitive data from previous versions.
@@ -28,6 +29,9 @@ export const safeStorage = {
     if (memoryStore.has(key)) {
       return memoryStore.get(key) ?? null;
     }
+    if (tombstonedKeys.has(key)) {
+      return null;
+    }
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         return window.sessionStorage.getItem(key);
@@ -44,6 +48,7 @@ export const safeStorage = {
    * @param {string} value
    */
   setItem(key, value) {
+    tombstonedKeys.delete(key);
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.setItem(key, value);
@@ -61,14 +66,16 @@ export const safeStorage = {
    * @param {string} key
    */
   removeItem(key) {
+    memoryStore.delete(key);
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.removeItem(key);
       }
+      tombstonedKeys.delete(key);
     } catch (e) {
       console.warn('Browser storage remove failed:', e);
+      tombstonedKeys.add(key); // removal failed — mask future reads until overwritten
     }
-    memoryStore.delete(key);
   },
 
   /**
@@ -92,5 +99,6 @@ export const safeStorage = {
       console.warn('Browser storage clear failed:', e);
     }
     memoryStore.clear();
+    tombstonedKeys.clear();
   }
 };
