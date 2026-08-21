@@ -276,7 +276,10 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
       setSubmitting(false);
     }
   };
-
+const handleRequestClose = () => {
+  if (submitting) return;
+  onClose();
+};
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
@@ -297,6 +300,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
             type="button"
             aria-label="Close contact form"
             onClick={onClose}
+            disabled={submitting}
             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
           >
             <X size={20} />
@@ -445,7 +449,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <button type="button" className="btn btn-secondary" disabled={submitting} onClick={onClose}>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={submitting}>
