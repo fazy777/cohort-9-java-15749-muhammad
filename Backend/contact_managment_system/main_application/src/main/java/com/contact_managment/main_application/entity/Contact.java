@@ -15,8 +15,6 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Contact {
 
     @Id
@@ -39,15 +37,23 @@ public class Contact {
     @Column(length = 500)
     private String notes;
 
-    @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "contact",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     @JsonManagedReference("contact-emails")
-    @Builder.Default
     @Setter(AccessLevel.NONE)
     private List<ContactEmail> emails = new ArrayList<>();
 
-    @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(
+            mappedBy = "contact",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
     @JsonManagedReference("contact-phones")
-    @Builder.Default
     @Setter(AccessLevel.NONE)
     private List<ContactPhone> phones = new ArrayList<>();
 
@@ -55,6 +61,30 @@ public class Contact {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    /**
+     * Constructor used by Lombok's builder.
+     *
+     * The email and phone collections are intentionally excluded from the builder.
+     * They must be added through addEmail() and addPhone() so that the
+     * bidirectional relationship is always established correctly.
+     */
+    @Builder
+    public Contact(
+            Long id,
+            User user,
+            String firstName,
+            String lastName,
+            String title,
+            String notes
+    ) {
+        this.id = id;
+        this.user = user;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.title = title;
+        this.notes = notes;
+    }
 
     @PrePersist
     protected void onCreate() {
@@ -76,12 +106,15 @@ public class Contact {
         if (email == null) {
             throw new IllegalArgumentException("ContactEmail cannot be null");
         }
+
         if (email.getContact() != null && email.getContact() != this) {
             email.getContact().removeEmail(email);
         }
+
         if (!emails.contains(email)) {
             emails.add(email);
         }
+
         email.setContact(this);
     }
 
@@ -94,6 +127,7 @@ public class Contact {
         if (email == null) {
             throw new IllegalArgumentException("ContactEmail cannot be null");
         }
+
         if (emails.remove(email)) {
             email.setContact(null);
         }
@@ -108,12 +142,15 @@ public class Contact {
         if (phone == null) {
             throw new IllegalArgumentException("ContactPhone cannot be null");
         }
+
         if (phone.getContact() != null && phone.getContact() != this) {
             phone.getContact().removePhone(phone);
         }
+
         if (!phones.contains(phone)) {
             phones.add(phone);
         }
+
         phone.setContact(this);
     }
 
@@ -126,6 +163,7 @@ public class Contact {
         if (phone == null) {
             throw new IllegalArgumentException("ContactPhone cannot be null");
         }
+
         if (phones.remove(phone)) {
             phone.setContact(null);
         }
