@@ -55,8 +55,6 @@ class ContactServiceTest {
                 .lastName("Wonderland")
                 .title("Senior Developer")
                 .notes("Friend from tech conference")
-                .emails(new ArrayList<>())
-                .phones(new ArrayList<>())
                 .build();
     }
 

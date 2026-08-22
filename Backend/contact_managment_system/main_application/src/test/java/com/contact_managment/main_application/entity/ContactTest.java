@@ -12,7 +12,7 @@ class ContactTest {
     @Test
     @DisplayName("Should add email successfully and bind relationship")
     void addEmail_Success() {
-        Contact contact = Contact.builder().emails(new ArrayList<>()).build();
+        Contact contact = Contact.builder().build();
         ContactEmail email = ContactEmail.builder().email("test@example.com").label("WORK").build();
 
         contact.addEmail(email);
@@ -24,7 +24,7 @@ class ContactTest {
     @Test
     @DisplayName("Should prevent duplicate email entries when same email added twice")
     void addEmail_Duplicate_PreservesSingleInstance() {
-        Contact contact = Contact.builder().emails(new ArrayList<>()).build();
+        Contact contact = Contact.builder().build();
         ContactEmail email = ContactEmail.builder().email("test@example.com").label("WORK").build();
 
         contact.addEmail(email);
@@ -37,14 +37,14 @@ class ContactTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException when adding null email")
     void addEmail_Null_ThrowsException() {
-        Contact contact = Contact.builder().emails(new ArrayList<>()).build();
+        Contact contact = Contact.builder().build();
         assertThrows(IllegalArgumentException.class, () -> contact.addEmail(null));
     }
 
     @Test
     @DisplayName("Should remove email successfully and unbind relationship")
     void removeEmail_Success() {
-        Contact contact = Contact.builder().emails(new ArrayList<>()).build();
+        Contact contact = Contact.builder().build();
         ContactEmail email = ContactEmail.builder().email("test@example.com").label("WORK").build();
         contact.addEmail(email);
 
@@ -57,8 +57,8 @@ class ContactTest {
     @Test
     @DisplayName("Should preserve email contact association when email is not present in contact")
     void removeEmail_NotPresent_PreservesContact() {
-        Contact contact1 = Contact.builder().emails(new ArrayList<>()).build();
-        Contact contact2 = Contact.builder().emails(new ArrayList<>()).build();
+        Contact contact1 = Contact.builder().build();
+        Contact contact2 = Contact.builder().build();
         ContactEmail email = ContactEmail.builder().email("test@example.com").label("WORK").build();
         contact1.addEmail(email);
 
@@ -71,14 +71,14 @@ class ContactTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException when removing null email")
     void removeEmail_Null_ThrowsException() {
-        Contact contact = Contact.builder().emails(new ArrayList<>()).build();
+        Contact contact = Contact.builder().build();
         assertThrows(IllegalArgumentException.class, () -> contact.removeEmail(null));
     }
 
     @Test
     @DisplayName("Should add phone successfully and bind relationship")
     void addPhone_Success() {
-        Contact contact = Contact.builder().phones(new ArrayList<>()).build();
+        Contact contact = Contact.builder().build();
         ContactPhone phone = ContactPhone.builder().phoneNumber("+1234567890").label("WORK").build();
 
         contact.addPhone(phone);
@@ -90,7 +90,7 @@ class ContactTest {
     @Test
     @DisplayName("Should prevent duplicate phone entries when same phone added twice")
     void addPhone_Duplicate_PreservesSingleInstance() {
-        Contact contact = Contact.builder().phones(new ArrayList<>()).build();
+        Contact contact = Contact.builder().build();
         ContactPhone phone = ContactPhone.builder().phoneNumber("+1234567890").label("WORK").build();
 
         contact.addPhone(phone);
@@ -103,14 +103,14 @@ class ContactTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException when adding null phone")
     void addPhone_Null_ThrowsException() {
-        Contact contact = Contact.builder().phones(new ArrayList<>()).build();
+        Contact contact = Contact.builder().build();
         assertThrows(IllegalArgumentException.class, () -> contact.addPhone(null));
     }
 
     @Test
     @DisplayName("Should remove phone successfully and unbind relationship")
     void removePhone_Success() {
-        Contact contact = Contact.builder().phones(new ArrayList<>()).build();
+        Contact contact = Contact.builder().build();
         ContactPhone phone = ContactPhone.builder().phoneNumber("+1234567890").label("WORK").build();
         contact.addPhone(phone);
 
@@ -123,8 +123,8 @@ class ContactTest {
     @Test
     @DisplayName("Should preserve phone contact association when phone is not present in contact")
     void removePhone_NotPresent_PreservesContact() {
-        Contact contact1 = Contact.builder().phones(new ArrayList<>()).build();
-        Contact contact2 = Contact.builder().phones(new ArrayList<>()).build();
+        Contact contact1 = Contact.builder().build();
+        Contact contact2 = Contact.builder().build();
         ContactPhone phone = ContactPhone.builder().phoneNumber("+1234567890").label("WORK").build();
         contact1.addPhone(phone);
 
@@ -137,8 +137,8 @@ class ContactTest {
     @Test
     @DisplayName("Should remove email from old contact when added to a new contact (reparenting)")
     void addEmail_Reparent_Success() {
-        Contact oldContact = Contact.builder().emails(new ArrayList<>()).build();
-        Contact newContact = Contact.builder().emails(new ArrayList<>()).build();
+        Contact oldContact = Contact.builder().build();
+        Contact newContact = Contact.builder().build();
         ContactEmail email = ContactEmail.builder().email("test@example.com").label("WORK").build();
 
         oldContact.addEmail(email);
@@ -154,8 +154,8 @@ class ContactTest {
     @Test
     @DisplayName("Should remove phone from old contact when added to a new contact (reparenting)")
     void addPhone_Reparent_Success() {
-        Contact oldContact = Contact.builder().phones(new ArrayList<>()).build();
-        Contact newContact = Contact.builder().phones(new ArrayList<>()).build();
+        Contact oldContact = Contact.builder().build();
+        Contact newContact = Contact.builder().build();
         ContactPhone phone = ContactPhone.builder().phoneNumber("+1234567890").label("WORK").build();
 
         oldContact.addPhone(phone);
@@ -171,7 +171,7 @@ class ContactTest {
     @Test
     @DisplayName("Should throw IllegalArgumentException when removing null phone")
     void removePhone_Null_ThrowsException() {
-        Contact contact = Contact.builder().phones(new ArrayList<>()).build();
+        Contact contact = Contact.builder().build();
         assertThrows(IllegalArgumentException.class, () -> contact.removePhone(null));
     }
 }

@@ -254,6 +254,28 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw BadRequestException when login password is null")
+    void login_NullPassword_ThrowsBadRequestException() {
+        LoginRequest request = LoginRequest.builder()
+                .credential("john.doe@example.com")
+                .password(null)
+                .build();
+
+        assertThrows(BadRequestException.class, () -> authService.login(request));
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when login password exceeds 72 bytes")
+    void login_PasswordExceeds72Bytes_ThrowsBadRequestException() {
+        LoginRequest request = LoginRequest.builder()
+                .credential("john.doe@example.com")
+                .password("a".repeat(73))
+                .build();
+
+        assertThrows(BadRequestException.class, () -> authService.login(request));
+    }
+
+    @Test
     @DisplayName("Should retrieve current user profile successfully")
     void getCurrentUserProfile_Success() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));

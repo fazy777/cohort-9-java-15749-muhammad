@@ -274,6 +274,9 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
       e.target.value = '';
     }
 
+    setPreviewData(null);
+    activeReaderRef.current = null;
+
     const MAX_IMPORT_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit
     if (file.size > MAX_IMPORT_SIZE_BYTES) {
       showToast?.('File size exceeds the 5MB maximum limit', 'error');

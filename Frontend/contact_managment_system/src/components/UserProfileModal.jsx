@@ -77,8 +77,20 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
       showToast?.('New passwords do not match', 'error');
       return;
     }
-    if (newPassword.length < 6) {
+    if (!newPassword || newPassword.length < 6) {
       showToast?.('Password must be at least 6 characters long', 'error');
+      return;
+    }
+
+    const currentPasswordBytes = new TextEncoder().encode(currentPassword || '').length;
+    if (currentPasswordBytes > 72) {
+      showToast?.('Current password cannot exceed 72 bytes', 'error');
+      return;
+    }
+
+    const newPasswordBytes = new TextEncoder().encode(newPassword).length;
+    if (newPasswordBytes > 72) {
+      showToast?.('Password cannot exceed 72 bytes', 'error');
       return;
     }
 

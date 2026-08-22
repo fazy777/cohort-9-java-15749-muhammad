@@ -32,9 +32,6 @@ export const safeStorage = {
     if (memoryStore.has(key)) {
       return memoryStore.get(key) ?? null;
     }
-    if (tombstonedKeys.has(key)) {
-      return null;
-    }
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         return window.sessionStorage.getItem(key);
@@ -56,13 +53,11 @@ export const safeStorage = {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.setItem(key, value);
         memoryStore.delete(key);
-        tombstonedKeys.delete(key);
         return;
       }
     } catch (e) {
       console.warn('Browser storage write failed, using memory store:', e);
     }
-    tombstonedKeys.delete(key);
     memoryStore.set(key, String(value));
   },
 
@@ -89,6 +84,7 @@ export const safeStorage = {
    * Clear all application-specific items from sessionStorage and in-memory store.
    */
   clear() {
+    const failedKeys = new Set();
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         const keysToRemove = [];
@@ -104,7 +100,7 @@ export const safeStorage = {
             tombstonedKeys.delete(key);
           } catch (err) {
             console.warn(`Failed to remove sessionStorage key "${key}", tombstoning:`, err);
-            tombstonedKeys.add(key);
+            failedKeys.add(key);
           }
         });
       }
@@ -113,5 +109,8 @@ export const safeStorage = {
     }
     memoryStore.clear();
     tombstonedKeys.clear();
+    failedKeys.forEach((key) => {
+      tombstonedKeys.add(key);
+    });
   }
 };

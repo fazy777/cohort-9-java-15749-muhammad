@@ -110,6 +110,8 @@ public class AuthService {
             throw new BadRequestException("Login request payload cannot be null");
         }
 
+        validatePassword(request.getPassword(), "Password");
+
         String rawCredential = request.getCredential() != null ? request.getCredential().trim() : "";
         String credential = rawCredential.toLowerCase(java.util.Locale.ROOT);
         java.util.List<User> users = userRepository.findByEmailOrPhone(credential);

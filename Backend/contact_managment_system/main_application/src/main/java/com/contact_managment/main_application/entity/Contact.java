@@ -84,6 +84,8 @@ public class Contact {
         this.lastName = lastName;
         this.title = title;
         this.notes = notes;
+        this.emails = new ArrayList<>();
+        this.phones = new ArrayList<>();
     }
 
     @PrePersist

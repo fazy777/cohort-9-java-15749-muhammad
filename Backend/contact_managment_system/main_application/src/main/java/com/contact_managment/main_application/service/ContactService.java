@@ -62,16 +62,25 @@ public class ContactService {
         if (size > MAX_PAGE_SIZE) {
             throw new BadRequestException("Page size must not exceed " + MAX_PAGE_SIZE);
         }
-        if (!StringUtils.hasText(sortBy) || !ALLOWED_SORT_FIELDS.contains(sortBy.trim())) {
+        if (!StringUtils.hasText(sortBy)) {
             throw new BadRequestException("Invalid sort field provided. Allowed fields are: " + String.join(", ", ALLOWED_SORT_FIELDS));
         }
-        if (!StringUtils.hasText(sortDir) || (!sortDir.trim().equalsIgnoreCase("asc") && !sortDir.trim().equalsIgnoreCase("desc"))) {
+        String trimmedSortBy = sortBy.trim();
+        if (!ALLOWED_SORT_FIELDS.contains(trimmedSortBy)) {
+            throw new BadRequestException("Invalid sort field provided. Allowed fields are: " + String.join(", ", ALLOWED_SORT_FIELDS));
+        }
+
+        if (!StringUtils.hasText(sortDir)) {
+            throw new BadRequestException("Invalid sort direction provided. Allowed values are 'asc' or 'desc'");
+        }
+        String trimmedSortDir = sortDir.trim();
+        if (!trimmedSortDir.equalsIgnoreCase("asc") && !trimmedSortDir.equalsIgnoreCase("desc")) {
             throw new BadRequestException("Invalid sort direction provided. Allowed values are 'asc' or 'desc'");
         }
 
         User user = getUserById(userId);
 
-        Sort sort = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Sort sort = trimmedSortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by(trimmedSortBy).ascending() : Sort.by(trimmedSortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<Contact> contactPage;
@@ -144,8 +153,6 @@ public class ContactService {
                 .lastName(contactDto.getLastName())
                 .title(contactDto.getTitle())
                 .notes(contactDto.getNotes())
-                .emails(new ArrayList<>())
-                .phones(new ArrayList<>())
                 .build();
 
         if (contactDto.getEmails() != null) {
