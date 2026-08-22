@@ -24,9 +24,13 @@ const formatMailtoLink = (email) => {
  * @param {string} phoneNumber
  * @returns {string}
  */
-const formatTelLink = (phoneNumber) => {
-  if (!phoneNumber) return 'tel:';
-  return `tel:${encodeURIComponent(String(phoneNumber).trim())}`;
+const formatTelLink = (phone) => {
+  if (!phone || typeof phone !== 'string') return '';
+  const trimmed = phone.trim();
+  if (!trimmed) return '';
+  const hasPlus = trimmed.startsWith('+');
+  const digits = hasPlus ? trimmed.slice(1) : trimmed;
+  return `tel:${hasPlus ? '+' : ''}${encodeURIComponent(digits)}`;
 };
 
 /**
@@ -155,7 +159,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
                   <a href={formatMailtoLink(e?.email)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
                     {e?.email}
                   </a>
-                  <span className={`badge ${getLabelClass(e?.label)}`}>{e?.label || 'WORK'}</span>
+                  <span className={`badge ${getLabelClass(e?.label || 'WORK')}`}>{e?.label || 'WORK'}</span>
                 </div>
               ))}
             </div>
@@ -183,7 +187,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
                   <a href={formatTelLink(p?.phoneNumber)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
                     {p?.phoneNumber}
                   </a>
-                  <span className={`badge ${getLabelClass(p?.label)}`}>{p?.label || 'WORK'}</span>
+                  <span className={`badge ${getLabelClass(p?.label || 'WORK')}`}>{p?.label || 'WORK'}</span>
                 </div>
               ))}
             </div>

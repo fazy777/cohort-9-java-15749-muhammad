@@ -361,7 +361,6 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
               errors.push(`Row ${i + 1}: Missing first name or last name`);
             }
           }
-
           if (parsed.length === 0) throw new Error('No valid contact entries found in CSV');
           if (parsed.length > MAX_CONTACTS_IMPORT) throw new Error(`Cannot import more than ${MAX_CONTACTS_IMPORT} contacts at a time`);
           if (errors.length > 0) {

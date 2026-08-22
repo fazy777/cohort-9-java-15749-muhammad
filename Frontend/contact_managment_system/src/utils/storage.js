@@ -32,6 +32,9 @@ export const safeStorage = {
     if (memoryStore.has(key)) {
       return memoryStore.get(key) ?? null;
     }
+    if (tombstonedKeys.has(key)) {
+      return null;
+    }
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         return window.sessionStorage.getItem(key);
@@ -48,6 +51,7 @@ export const safeStorage = {
    * @param {string} value
    */
   setItem(key, value) {
+    tombstonedKeys.delete(key);
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.setItem(key, value);
@@ -74,6 +78,7 @@ export const safeStorage = {
         tombstonedKeys.delete(key);
         return;
       }
+      tombstonedKeys.delete(key);
     } catch (e) {
       console.warn('Browser storage remove failed, tombstoning key:', e);
       tombstonedKeys.add(key);
@@ -107,5 +112,6 @@ export const safeStorage = {
       console.warn('Browser storage clear failed:', e);
     }
     memoryStore.clear();
+    tombstonedKeys.clear();
   }
 };

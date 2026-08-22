@@ -18,7 +18,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MaxByteLength {
 
-    String message() default "Value exceeds maximum byte length";
+    String message() default "{com.contact_managment.main_application.validation.MaxByteLength.message}";
 
     Class<?>[] groups() default {};
 

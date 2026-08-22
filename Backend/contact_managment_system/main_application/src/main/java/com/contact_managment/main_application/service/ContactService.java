@@ -21,6 +21,8 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * Service providing contact CRUD operations, filtered search, pagination, bulk import/export, and user association.
@@ -33,7 +35,7 @@ public class ContactService {
     private final ContactRepository contactRepository;
     private final UserRepository userRepository;
 
-    private static final java.util.Set<String> ALLOWED_SORT_FIELDS = java.util.Set.of("id", "firstName", "lastName", "title", "createdAt", "updatedAt");
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "firstName", "lastName", "title", "createdAt", "updatedAt");
     private static final int MAX_PAGE_SIZE = 100;
 
     /**
@@ -52,19 +54,19 @@ public class ContactService {
         log.debug("Fetching contacts for userId={}, page={}, size={}, searchProvided={}", userId, page, size, StringUtils.hasText(search));
 
         if (page < 0) {
-            throw new com.contact_managment.main_application.exception.BadRequestException("Page index must not be less than zero");
+            throw new BadRequestException("Page index must not be less than zero");
         }
         if (size <= 0) {
-            throw new com.contact_managment.main_application.exception.BadRequestException("Page size must be greater than zero");
+            throw new BadRequestException("Page size must be greater than zero");
         }
         if (size > MAX_PAGE_SIZE) {
-            throw new com.contact_managment.main_application.exception.BadRequestException("Page size must not exceed " + MAX_PAGE_SIZE);
+            throw new BadRequestException("Page size must not exceed " + MAX_PAGE_SIZE);
         }
         if (!StringUtils.hasText(sortBy) || !ALLOWED_SORT_FIELDS.contains(sortBy.trim())) {
-            throw new com.contact_managment.main_application.exception.BadRequestException("Invalid sort field provided. Allowed fields are: " + String.join(", ", ALLOWED_SORT_FIELDS));
+            throw new BadRequestException("Invalid sort field provided. Allowed fields are: " + String.join(", ", ALLOWED_SORT_FIELDS));
         }
         if (!StringUtils.hasText(sortDir) || (!sortDir.trim().equalsIgnoreCase("asc") && !sortDir.trim().equalsIgnoreCase("desc"))) {
-            throw new com.contact_managment.main_application.exception.BadRequestException("Invalid sort direction provided. Allowed values are 'asc' or 'desc'");
+            throw new BadRequestException("Invalid sort direction provided. Allowed values are 'asc' or 'desc'");
         }
 
         User user = getUserById(userId);
@@ -208,7 +210,7 @@ public class ContactService {
         if (contactDto.getEmails() != null) {
             for (ContactEmailDto emailDto : contactDto.getEmails()) {
                 if (emailDto == null) {
-                    throw new com.contact_managment.main_application.exception.BadRequestException("Email entry cannot be null");
+                    throw new BadRequestException("Email entry cannot be null");
                 }
                 ContactEmail email = ContactEmail.builder()
                         .email(emailDto.getEmail())
@@ -224,7 +226,7 @@ public class ContactService {
         if (contactDto.getPhones() != null) {
             for (ContactPhoneDto phoneDto : contactDto.getPhones()) {
                 if (phoneDto == null) {
-                    throw new com.contact_managment.main_application.exception.BadRequestException("Phone entry cannot be null");
+                    throw new BadRequestException("Phone entry cannot be null");
                 }
                 ContactPhone phone = ContactPhone.builder()
                         .phoneNumber(phoneDto.getPhoneNumber())
@@ -268,7 +270,7 @@ public class ContactService {
     public List<ContactDto> exportContacts(Long userId) {
         log.info("Exporting all contacts for user ID: {}", userId);
         User user = getUserById(userId);
-        try (java.util.stream.Stream<Contact> stream = contactRepository.streamByUser(user)) {
+        try (Stream<Contact> stream = contactRepository.streamByUser(user)) {
             return stream.map(this::mapToDto).toList();
         }
     }

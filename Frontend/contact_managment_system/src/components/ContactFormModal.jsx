@@ -141,7 +141,18 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   const [phones, setPhones] = useState(() => [{ rowId: generateRowId(), phoneNumber: '', label: 'WORK' }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const modalRef = useModalA11y(isOpen, onClose);
+
+  /**
+   * Guards against modal dismissal while form submission is active.
+   */
+  const handleRequestClose = () => {
+    if (submitting) return;
+    if (typeof onClose === 'function') {
+      onClose();
+    }
+  };
+
+  const modalRef = useModalA11y(isOpen, handleRequestClose);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -287,7 +298,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleRequestClose}>
       <div
         ref={modalRef}
         role="dialog"
@@ -305,8 +316,9 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
           <button
             type="button"
             aria-label="Close contact form"
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+            onClick={handleRequestClose}
+            disabled={submitting}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: submitting ? 'not-allowed' : 'pointer' }}
           >
             <X size={20} />
           </button>
@@ -454,7 +466,7 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <button type="button" className="btn btn-secondary" disabled={submitting} onClick={handleRequestClose}>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={submitting}>
