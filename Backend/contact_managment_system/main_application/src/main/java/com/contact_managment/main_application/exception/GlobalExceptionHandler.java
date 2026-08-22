@@ -24,6 +24,19 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     /**
+     * Sanitizes input strings before writing to application logs to prevent CRLF log injection (CWE-117).
+     *
+     * @param input the raw string
+     * @return sanitized string with CRLF and control characters stripped
+     */
+    private String sanitizeForLog(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input.replaceAll("[\r\n\t]", "_");
+    }
+
+    /**
      * Handles ResourceNotFoundException and returns HTTP 404 Not Found.
      *
      * @param ex the exception
@@ -32,7 +45,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest request) {
-        log.warn("Resource not found exception at {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Resource not found exception at {}: {}", sanitizeForLog(request.getRequestURI()), sanitizeForLog(ex.getMessage()));
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
@@ -52,7 +65,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleUserAlreadyExistsException(UserAlreadyExistsException ex, HttpServletRequest request) {
-        log.warn("User conflict at {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("User conflict at {}: {}", sanitizeForLog(request.getRequestURI()), sanitizeForLog(ex.getMessage()));
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.CONFLICT.value())
@@ -72,7 +85,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(DataIntegrityViolationException ex, HttpServletRequest request) {
-        log.warn("Data integrity violation occurred at {}", request.getRequestURI());
+        log.warn("Data integrity violation occurred at {}", sanitizeForLog(request.getRequestURI()));
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.CONFLICT.value())
@@ -92,7 +105,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex, HttpServletRequest request) {
-        log.warn("Authentication failed at {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Authentication failed at {}: {}", sanitizeForLog(request.getRequestURI()), sanitizeForLog(ex.getMessage()));
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
@@ -112,7 +125,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ErrorResponse> handleBadRequestException(BadRequestException ex, HttpServletRequest request) {
-        log.warn("Bad request exception at {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Bad request exception at {}", sanitizeForLog(request.getRequestURI()));
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
@@ -132,7 +145,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex, HttpServletRequest request) {
-        log.warn("Malformed HTTP message at {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Malformed HTTP message at {}: {}", sanitizeForLog(request.getRequestURI()), sanitizeForLog(ex.getMessage()));
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
@@ -152,7 +165,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request) {
-        log.warn("Validation failed for request {}", request.getRequestURI());
+        log.warn("Validation failed for request {}", sanitizeForLog(request.getRequestURI()));
         Map<String, String> fieldErrors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             if (error instanceof FieldError fieldError) {
@@ -185,7 +198,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(
             MethodArgumentTypeMismatchException ex,
             HttpServletRequest request) {
-        log.warn("Parameter type mismatch at {}: parameter '{}'", request.getRequestURI(), ex.getName());
+        log.warn("Parameter type mismatch at {}: parameter '{}'", sanitizeForLog(request.getRequestURI()), sanitizeForLog(ex.getName()));
         String message = String.format("Invalid parameter '%s'", ex.getName());
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
@@ -208,7 +221,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleConstraintViolationException(
             jakarta.validation.ConstraintViolationException ex,
             HttpServletRequest request) {
-        log.warn("Constraint violation at {}", request.getRequestURI());
+        log.warn("Constraint violation at {}", sanitizeForLog(request.getRequestURI()));
         Map<String, String> errors = new HashMap<>();
         ex.getConstraintViolations().forEach(violation -> {
             String propertyPath = violation.getPropertyPath() != null ? violation.getPropertyPath().toString() : "_global";
@@ -237,7 +250,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleHandlerMethodValidationException(
             org.springframework.web.method.annotation.HandlerMethodValidationException ex,
             HttpServletRequest request) {
-        log.warn("Handler method validation failed at {}", request.getRequestURI());
+        log.warn("Handler method validation failed at {}", sanitizeForLog(request.getRequestURI()));
         Map<String, String> errors = new HashMap<>();
         ex.getAllValidationResults().forEach(result -> {
             String paramName = result.getMethodParameter().getParameterName();
@@ -266,7 +279,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
-        log.error("Unhandled exception occurred at {}: ", request.getRequestURI(), ex);
+        log.error("Unhandled exception occurred at {}: ", sanitizeForLog(request.getRequestURI()), ex);
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())

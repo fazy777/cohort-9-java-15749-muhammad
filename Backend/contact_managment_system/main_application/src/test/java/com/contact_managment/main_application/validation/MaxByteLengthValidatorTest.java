@@ -11,37 +11,18 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class MaxByteLengthValidatorTest {
 
+    @MaxByteLength(max = 72)
+    private String fixtureField;
+
     private MaxByteLengthValidator validator;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws NoSuchFieldException {
         validator = new MaxByteLengthValidator();
-        validator.initialize(new MaxByteLength() {
-            @Override
-            public Class<? extends Annotation> annotationType() {
-                return MaxByteLength.class;
-            }
-
-            @Override
-            public String message() {
-                return "Value exceeds maximum byte length";
-            }
-
-            @Override
-            public Class<?>[] groups() {
-                return new Class<?>[0];
-            }
-
-            @Override
-            public Class<? extends Payload>[] payload() {
-                return new Class[0];
-            }
-
-            @Override
-            public int max() {
-                return 72;
-            }
-        });
+        MaxByteLength annotation = MaxByteLengthValidatorTest.class
+                .getDeclaredField("fixtureField")
+                .getAnnotation(MaxByteLength.class);
+        validator.initialize(annotation);
     }
 
     @Test

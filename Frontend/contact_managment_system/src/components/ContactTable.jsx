@@ -156,7 +156,7 @@ export const ContactTable = ({
                         {primaryEmail?.email ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <span style={{ fontSize: '0.9rem' }}>{primaryEmail.email}</span>
-                            <span className={`badge ${getLabelClass(primaryEmail.label)}`}>{primaryEmail.label || 'WORK'}</span>
+                            <span className={`badge ${getLabelClass(primaryEmail?.label || 'WORK')}`}>{primaryEmail?.label || 'WORK'}</span>
                           </div>
                         ) : (
                           <span style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>—</span>
@@ -167,7 +167,7 @@ export const ContactTable = ({
                         {primaryPhone?.phoneNumber ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <span style={{ fontSize: '0.9rem' }}>{primaryPhone.phoneNumber}</span>
-                            <span className={`badge ${getLabelClass(primaryPhone.label)}`}>{primaryPhone.label || 'WORK'}</span>
+                            <span className={`badge ${getLabelClass(primaryPhone?.label || 'WORK')}`}>{primaryPhone?.label || 'WORK'}</span>
                           </div>
                         ) : (
                           <span style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>—</span>

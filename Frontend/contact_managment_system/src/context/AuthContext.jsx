@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Helper that updates authentication state and persists session storage.
-   * @param {Object} data - response auth data containing token and user fields
+   * @param {import('../services/api').AuthResponseData} data - response auth data containing token and user fields
    * @returns {{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }}
    */
   const handleAuthSuccess = useCallback((data) => {

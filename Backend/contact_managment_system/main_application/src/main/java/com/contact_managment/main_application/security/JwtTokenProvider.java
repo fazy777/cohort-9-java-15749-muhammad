@@ -75,6 +75,9 @@ public class JwtTokenProvider {
      * @return compact JWT token string
      */
     public String generateToken(Long userId, Long tokenVersion) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null when generating JWT token");
+        }
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 

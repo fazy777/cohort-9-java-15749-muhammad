@@ -22,6 +22,19 @@ class ContactTest {
     }
 
     @Test
+    @DisplayName("Should prevent duplicate email entries when same email added twice")
+    void addEmail_Duplicate_PreservesSingleInstance() {
+        Contact contact = Contact.builder().emails(new ArrayList<>()).build();
+        ContactEmail email = ContactEmail.builder().email("test@example.com").label("WORK").build();
+
+        contact.addEmail(email);
+        contact.addEmail(email);
+
+        assertEquals(1, contact.getEmails().size());
+        assertEquals(contact, email.getContact());
+    }
+
+    @Test
     @DisplayName("Should throw IllegalArgumentException when adding null email")
     void addEmail_Null_ThrowsException() {
         Contact contact = Contact.builder().emails(new ArrayList<>()).build();
@@ -68,6 +81,19 @@ class ContactTest {
         Contact contact = Contact.builder().phones(new ArrayList<>()).build();
         ContactPhone phone = ContactPhone.builder().phoneNumber("+1234567890").label("WORK").build();
 
+        contact.addPhone(phone);
+
+        assertEquals(1, contact.getPhones().size());
+        assertEquals(contact, phone.getContact());
+    }
+
+    @Test
+    @DisplayName("Should prevent duplicate phone entries when same phone added twice")
+    void addPhone_Duplicate_PreservesSingleInstance() {
+        Contact contact = Contact.builder().phones(new ArrayList<>()).build();
+        ContactPhone phone = ContactPhone.builder().phoneNumber("+1234567890").label("WORK").build();
+
+        contact.addPhone(phone);
         contact.addPhone(phone);
 
         assertEquals(1, contact.getPhones().size());

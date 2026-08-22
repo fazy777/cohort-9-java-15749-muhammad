@@ -28,8 +28,12 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String credential) throws UsernameNotFoundException {
-        User user = userRepository.findByEmailOrPhone(credential)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email or phone: " + credential));
+        String trimmed = credential != null ? credential.trim() : "";
+        String normalized = trimmed.toLowerCase(java.util.Locale.ROOT);
+        User user = userRepository.findByEmail(normalized)
+                .or(() -> userRepository.findByPhone(trimmed))
+                .or(() -> userRepository.findByEmailOrPhone(normalized).stream().findFirst())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with provided credential"));
         return UserPrincipal.create(user);
     }
 

@@ -22,10 +22,9 @@ import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -86,7 +85,6 @@ class AuthControllerTest {
         when(authService.register(any(RegisterRequest.class))).thenReturn(authResponse);
 
         mockMvc.perform(post("/api/auth/register")
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -106,7 +104,6 @@ class AuthControllerTest {
                 .build();
 
         mockMvc.perform(post("/api/auth/register")
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -127,7 +124,6 @@ class AuthControllerTest {
                 .thenThrow(new UserAlreadyExistsException("User with this email already exists"));
 
         mockMvc.perform(post("/api/auth/register")
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
@@ -151,7 +147,6 @@ class AuthControllerTest {
         when(authService.login(any(LoginRequest.class))).thenReturn(authResponse);
 
         mockMvc.perform(post("/api/auth/login")
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -171,7 +166,6 @@ class AuthControllerTest {
                 .thenThrow(new InvalidCredentialsException("Invalid email/phone or password"));
 
         mockMvc.perform(post("/api/auth/login")
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
@@ -190,16 +184,15 @@ class AuthControllerTest {
 
         when(authService.getCurrentUserProfile(1L)).thenReturn(profileDto);
 
-        mockMvc.perform(get("/api/auth/profile")
-                        .with(user(userPrincipal)))
+        mockMvc.perform(get("/api/auth/profile"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.email").value("john@example.com"));
     }
 
     @Test
-    @DisplayName("GET /api/auth/profile without authentication should return 401 Unauthorized")
-    void getProfile_NullPrincipal_Returns401() throws Exception {
+    @DisplayName("GET /api/auth/profile without authentication should return handled 401 Unauthorized")
+    void getProfile_NullPrincipal_ReturnsHandledUnauthorized() throws Exception {
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
         mockMvc.perform(get("/api/auth/profile"))
                 .andExpect(status().isUnauthorized())
@@ -215,8 +208,6 @@ class AuthControllerTest {
                 .build();
 
         mockMvc.perform(post("/api/auth/change-password")
-                        .with(csrf())
-                        .with(user(userPrincipal))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -238,11 +229,12 @@ class AuthControllerTest {
                 .build();
 
         mockMvc.perform(post("/api/auth/register")
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
+
+        verify(authService, never()).register(any());
     }
 
     @Test
@@ -255,12 +247,12 @@ class AuthControllerTest {
                 .build();
 
         mockMvc.perform(post("/api/auth/change-password")
-                        .with(csrf())
-                        .with(user(userPrincipal))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
+
+        verify(authService, never()).changePassword(any(), any());
     }
 
     @Test
@@ -273,11 +265,29 @@ class AuthControllerTest {
                 .build();
 
         mockMvc.perform(post("/api/auth/change-password")
-                        .with(csrf())
-                        .with(user(userPrincipal))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
+
+        verify(authService, never()).changePassword(any(), any());
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/login with overlong UTF-8 password (>72 bytes) should return 400 Bad Request")
+    void login_OverlongPassword_Returns400() throws Exception {
+        String overlongPassword = "🔒".repeat(20);
+        LoginRequest request = LoginRequest.builder()
+                .credential("john@example.com")
+                .password(overlongPassword)
+                .build();
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+
+        verify(authService, never()).login(any());
     }
 }

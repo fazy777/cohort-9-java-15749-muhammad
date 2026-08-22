@@ -298,11 +298,26 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
 
         const fileNameLower = (file.name || '').toLowerCase();
 
+        const MAX_CONTACTS_IMPORT = 1000;
+
         if (fileNameLower.endsWith('.json')) {
           const parsed = JSON.parse(text);
           if (Array.isArray(parsed)) {
-            const valid = parsed.filter(c => c && (c.firstName || c.lastName));
-            if (valid.length === 0) throw new Error('No valid contacts found in JSON file');
+            if (parsed.length > MAX_CONTACTS_IMPORT) {
+              throw new Error(`Cannot import more than ${MAX_CONTACTS_IMPORT} contacts at a time`);
+            }
+            const valid = parsed
+              .filter(c => c && typeof c === 'object' && typeof c.firstName === 'string' && c.firstName.trim().length > 0 && typeof c.lastName === 'string' && c.lastName.trim().length > 0)
+              .map(c => ({
+                ...c,
+                firstName: c.firstName.trim(),
+                lastName: c.lastName.trim(),
+                title: typeof c.title === 'string' ? c.title.trim() : '',
+                notes: typeof c.notes === 'string' ? c.notes.trim() : '',
+                emails: Array.isArray(c.emails) ? c.emails.filter(e => e && typeof e.email === 'string' && e.email.trim().length > 0) : [],
+                phones: Array.isArray(c.phones) ? c.phones.filter(p => p && typeof p.phoneNumber === 'string' && p.phoneNumber.trim().length > 0) : []
+              }));
+            if (valid.length === 0) throw new Error('No valid contacts found in JSON file (requires First Name and Last Name)');
             setPreviewData(valid);
           } else {
             throw new Error('JSON file must contain an array of contacts');
@@ -326,24 +341,32 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
           }
 
           const parsed = [];
+          const errors = [];
           for (let i = 1; i < rows.length; i++) {
             const cols = rows[i];
+            if (!Array.isArray(cols) || cols.length === 0) continue;
             const firstName = sanitizeImportValue(cols[colIndex.firstName] || '');
             const lastName = sanitizeImportValue(cols[colIndex.lastName] || '');
 
-            if (firstName || lastName) {
+            if (firstName && lastName) {
               parsed.push({
-                firstName: firstName || 'Unnamed',
-                lastName: lastName || 'Contact',
+                firstName,
+                lastName,
                 title: colIndex.title !== -1 ? sanitizeImportValue(cols[colIndex.title] || '') : '',
                 emails: colIndex.emails !== -1 ? parseEmailsFromCsv(cols[colIndex.emails] || '') : [],
                 phones: colIndex.phones !== -1 ? parsePhonesFromCsv(cols[colIndex.phones] || '') : [],
                 notes: colIndex.notes !== -1 ? sanitizeImportValue(cols[colIndex.notes] || '') : ''
               });
+            } else {
+              errors.push(`Row ${i + 1}: Missing first name or last name`);
             }
           }
 
           if (parsed.length === 0) throw new Error('No valid contact entries found in CSV');
+          if (parsed.length > MAX_CONTACTS_IMPORT) throw new Error(`Cannot import more than ${MAX_CONTACTS_IMPORT} contacts at a time`);
+          if (errors.length > 0) {
+            showToast?.(`Parsed ${parsed.length} contacts (${errors.length} skipped row${errors.length > 1 ? 's' : ''} missing names)`, 'warning');
+          }
           setPreviewData(parsed);
         } else {
           throw new Error('Please select a .json or .csv file');
@@ -362,11 +385,13 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
     try {
       const res = await api.importContacts(previewData);
       showToast?.(`Successfully imported ${res?.data ?? previewData.length} contacts!`, 'success');
+      setPreviewData(null);
+      activeReaderRef.current = null;
+      setImporting(false);
       onImportSuccess?.();
-      handleModalClose();
+      onClose?.();
     } catch (err) {
       showToast?.(err?.message || 'Import failed', 'error');
-    } finally {
       setImporting(false);
     }
   };

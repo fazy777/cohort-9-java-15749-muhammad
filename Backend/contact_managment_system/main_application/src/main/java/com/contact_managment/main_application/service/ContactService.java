@@ -60,11 +60,11 @@ public class ContactService {
         if (size > MAX_PAGE_SIZE) {
             throw new com.contact_managment.main_application.exception.BadRequestException("Page size must not exceed " + MAX_PAGE_SIZE);
         }
-        if (!StringUtils.hasText(sortBy) || !ALLOWED_SORT_FIELDS.contains(sortBy)) {
-            throw new com.contact_managment.main_application.exception.BadRequestException("Invalid sort field: '" + sortBy + "'. Allowed fields are: " + String.join(", ", ALLOWED_SORT_FIELDS));
+        if (!StringUtils.hasText(sortBy) || !ALLOWED_SORT_FIELDS.contains(sortBy.trim())) {
+            throw new com.contact_managment.main_application.exception.BadRequestException("Invalid sort field provided. Allowed fields are: " + String.join(", ", ALLOWED_SORT_FIELDS));
         }
-        if (!StringUtils.hasText(sortDir) || (!sortDir.equalsIgnoreCase("asc") && !sortDir.equalsIgnoreCase("desc"))) {
-            throw new com.contact_managment.main_application.exception.BadRequestException("Invalid sort direction: '" + sortDir + "'. Allowed values are 'asc' or 'desc'");
+        if (!StringUtils.hasText(sortDir) || (!sortDir.trim().equalsIgnoreCase("asc") && !sortDir.trim().equalsIgnoreCase("desc"))) {
+            throw new com.contact_managment.main_application.exception.BadRequestException("Invalid sort direction provided. Allowed values are 'asc' or 'desc'");
         }
 
         User user = getUserById(userId);
@@ -125,7 +125,17 @@ public class ContactService {
             throw new BadRequestException("Contact data cannot be null");
         }
         User user = getUserById(userId);
+        return createContactInternal(user, contactDto);
+    }
 
+    /**
+     * Internal helper to persist a contact for a pre-loaded user entity.
+     *
+     * @param user the pre-loaded User entity
+     * @param contactDto contact data
+     * @return saved contact DTO
+     */
+    private ContactDto createContactInternal(User user, ContactDto contactDto) {
         Contact contact = Contact.builder()
                 .user(user)
                 .firstName(contactDto.getFirstName())
@@ -273,18 +283,19 @@ public class ContactService {
     @Transactional
     public int importContacts(Long userId, List<ContactDto> contactDtos) {
         if (contactDtos == null || contactDtos.isEmpty()) {
-            throw new com.contact_managment.main_application.exception.BadRequestException("Contacts list cannot be empty");
+            throw new BadRequestException("Contacts list cannot be empty");
         }
         log.info("Importing {} contacts for user ID: {}", contactDtos.size(), userId);
+        User user = getUserById(userId);
         int count = 0;
         for (ContactDto dto : contactDtos) {
             if (dto == null) {
-                throw new com.contact_managment.main_application.exception.BadRequestException("Imported contact entry cannot be null");
+                throw new BadRequestException("Imported contact entry cannot be null");
             }
             if (!StringUtils.hasText(dto.getFirstName()) || !StringUtils.hasText(dto.getLastName())) {
-                throw new com.contact_managment.main_application.exception.BadRequestException("First name and Last name are required for all imported contacts");
+                throw new BadRequestException("First name and Last name are required for all imported contacts");
             }
-            createContact(userId, dto);
+            createContactInternal(user, dto);
             count++;
         }
         log.info("Successfully imported {} contacts for user ID: {}", count, userId);

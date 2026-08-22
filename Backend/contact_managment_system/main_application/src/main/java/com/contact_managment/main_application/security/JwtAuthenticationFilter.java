@@ -49,41 +49,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(jwt)) {
                 Claims claims = tokenProvider.getClaimsFromJWT(jwt);
                 if (claims != null && claims.getSubject() != null) {
-                    Long userId;
+                    Long userId = null;
                     try {
                         userId = Long.parseLong(claims.getSubject());
                     } catch (NumberFormatException nfe) {
                         log.debug("Invalid subject in JWT: {}", claims.getSubject());
-                        filterChain.doFilter(request, response);
-                        return;
                     }
 
-                    Number versionNum = claims.get("tokenVersion", Number.class);
-                    Long tokenVersionInJwt = versionNum != null ? versionNum.longValue() : null;
+                    if (userId != null) {
+                        Number versionNum = claims.get("tokenVersion", Number.class);
+                        Long tokenVersionInJwt = versionNum != null ? versionNum.longValue() : null;
 
-                    UserDetails userDetails;
-                    try {
-                        userDetails = customUserDetailsService.loadUserById(userId);
-                    } catch (com.contact_managment.main_application.exception.ResourceNotFoundException | UsernameNotFoundException ex) {
-                        log.debug("User not found for token subject ID {}: {}", userId, ex.getMessage());
-                        filterChain.doFilter(request, response);
-                        return;
-                    }
+                        UserDetails userDetails = null;
+                        try {
+                            userDetails = customUserDetailsService.loadUserById(userId);
+                        } catch (com.contact_managment.main_application.exception.ResourceNotFoundException | UsernameNotFoundException ex) {
+                            log.debug("User not found for token subject ID {}: {}", userId, ex.getMessage());
+                        }
 
-                    if (userDetails instanceof UserPrincipal principal) {
-                        if (tokenVersionInJwt == null || principal.getTokenVersion() == null
-                                || !tokenVersionInJwt.equals(principal.getTokenVersion())) {
-                            log.debug("Rejecting expired/revoked JWT token for user ID: {} due to token version mismatch or missing version", userId);
-                            filterChain.doFilter(request, response);
-                            return;
+                        if (userDetails instanceof UserPrincipal principal) {
+                            if (tokenVersionInJwt != null && principal.getTokenVersion() != null
+                                    && tokenVersionInJwt.equals(principal.getTokenVersion())) {
+                                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                        userDetails, null, userDetails.getAuthorities());
+                                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                                SecurityContextHolder.getContext().setAuthentication(authentication);
+                            } else {
+                                log.debug("Rejecting expired/revoked JWT token for user ID: {} due to token version mismatch or missing version", userId);
+                            }
+                        } else if (userDetails != null) {
+                            log.debug("Rejecting non-UserPrincipal principal for user ID: {}", userId);
                         }
                     }
-
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
         } catch (JwtException | IllegalArgumentException ex) {

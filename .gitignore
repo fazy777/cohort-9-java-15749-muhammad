@@ -24,8 +24,6 @@ dist-ssr/
 target/
 **/target/
 .mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
 
 # IDE and OS
 .idea/

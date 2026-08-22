@@ -66,6 +66,6 @@ VITE_API_URL=http://localhost:8080/api
 ## 🔐 Authentication & Session Flow
 
 1. **Login & Registration**: Submits user credentials to the Spring Boot backend API.
-2. **Session Storage**: JWT tokens are maintained in session state with guarded access utilities (`safeStorage`), avoiding unsafe `localStorage` exposure.
+2. **Session Storage**: JWT tokens are stored in browser session storage (`sessionStorage`) via client-side access utilities (`safeStorage`) for session persistence across page reloads within the current browser session.
 3. **Automatic Revalidation**: Upon initial load, the user session is verified and fresh profile data is retrieved from `/api/auth/profile`.
 4. **Token Invalidation**: Changing passwords immediately invalidates existing tokens across devices via backend token versioning.

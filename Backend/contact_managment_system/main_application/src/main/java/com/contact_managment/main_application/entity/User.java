@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "users")
+@org.hibernate.annotations.Check(constraints = "email IS NOT NULL OR phone IS NOT NULL")
 @Getter
 @Setter
 @NoArgsConstructor

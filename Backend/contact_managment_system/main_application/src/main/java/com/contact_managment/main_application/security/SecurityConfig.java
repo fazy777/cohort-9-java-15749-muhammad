@@ -9,7 +9,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -42,9 +44,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final ObjectMapper objectMapper;
 
-    @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://localhost:4173}")
     private String allowedOrigins;
 
     @Value("${spring.h2.console.enabled:false}")
@@ -122,17 +123,21 @@ public class SecurityConfig {
      * Defines the primary Spring Security filter chain with JWT authentication, stateless sessions, CORS, and endpoint rules.
      *
      * @param http HttpSecurity configuration builder
+     * @param authenticationEntryPoint custom 401 entry point
+     * @param accessDeniedHandler custom 403 access denied handler
      * @return configured SecurityFilterChain
      * @throws Exception in case of configuration errors
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           AuthenticationEntryPoint authenticationEntryPoint,
+                                           AccessDeniedHandler accessDeniedHandler) throws Exception {
         http
             .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .exceptionHandling(exceptions -> exceptions
-                .authenticationEntryPoint(authenticationEntryPoint(objectMapper))
-                .accessDeniedHandler(accessDeniedHandler(objectMapper))
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler)
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
@@ -145,7 +150,14 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll();
 
             if (h2ConsoleEnabled) {
-                auth.requestMatchers("/h2-console/**").permitAll();
+                auth.requestMatchers("/h2-console/**").access((authentication, context) -> {
+                    String remoteAddr = context.getRequest().getRemoteAddr();
+                    boolean isLoopback = "127.0.0.1".equals(remoteAddr) || "0:0:0:0:0:0:0:1".equals(remoteAddr) || "::1".equals(remoteAddr) || "localhost".equals(remoteAddr);
+                    boolean isAuthenticated = authentication != null && authentication.get() != null
+                            && authentication.get().isAuthenticated()
+                            && !(authentication.get() instanceof AnonymousAuthenticationToken);
+                    return new AuthorizationDecision(isLoopback && isAuthenticated);
+                });
             }
 
             auth.anyRequest().authenticated();
@@ -169,6 +181,10 @@ public class SecurityConfig {
                 .map(String::trim)
                 .filter(StringUtils::hasText)
                 .toList();
+
+        if (origins.contains("*")) {
+            throw new IllegalStateException("Wildcard origin '*' is not allowed when allowCredentials is true");
+        }
 
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

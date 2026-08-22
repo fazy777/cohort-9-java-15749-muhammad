@@ -223,7 +223,7 @@ cohort-9-java-15749-muhammad/
    ```
 
 2. **Configure Environment / Properties:**
-   For local development, the `dev` profile with in-memory H2 is active by default.
+   For local development, run the application with the `dev` profile to use the in-memory H2 database.
    For production with MS SQL Server, configure the database connection and JWT secret:
    ```properties
    spring.datasource.url=jdbc:sqlserver://YOUR_SERVER_NAME:1433;databaseName=ContactDB;encrypt=true;trustServerCertificate=false
@@ -278,7 +278,7 @@ To run code quality scans locally using SonarQube and Maven:
    cd Backend/contact_managment_system/main_application
    export SONAR_TOKEN="YOUR_SONAR_TOKEN"
    ./mvnw clean verify sonar:sonar \
-     -Dsonar.projectKey=ContactManagementSystem \
+     -Dsonar.projectKey=contact-management-system-backend \
      -Dsonar.host.url=http://localhost:9000
    ```
 

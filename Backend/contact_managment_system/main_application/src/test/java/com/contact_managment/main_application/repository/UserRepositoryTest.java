@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,12 +31,38 @@ class UserRepositoryTest {
 
         userRepository.save(user);
 
-        Optional<User> foundByEmail = userRepository.findByEmailOrPhone("test@example.com");
-        assertTrue(foundByEmail.isPresent());
-        assertEquals("Test", foundByEmail.get().getFirstName());
+        List<User> foundByEmail = userRepository.findByEmailOrPhone("test@example.com");
+        assertFalse(foundByEmail.isEmpty());
+        assertEquals("Test", foundByEmail.get(0).getFirstName());
 
-        Optional<User> foundByPhone = userRepository.findByEmailOrPhone("+999888777");
-        assertTrue(foundByPhone.isPresent());
-        assertEquals("User", foundByPhone.get().getLastName());
+        List<User> foundByPhone = userRepository.findByEmailOrPhone("+999888777");
+        assertFalse(foundByPhone.isEmpty());
+        assertEquals("User", foundByPhone.get(0).getLastName());
+    }
+
+    @Test
+    @DisplayName("Should find multiple users if phone of user1 matches email of user2 without throwing exception")
+    void findByEmailOrPhone_MultipleMatches() {
+        User user1 = User.builder()
+                .firstName("UserOne")
+                .lastName("First")
+                .email("user1@example.com")
+                .phone("shared-credential")
+                .password("secret1")
+                .build();
+
+        User user2 = User.builder()
+                .firstName("UserTwo")
+                .lastName("Second")
+                .email("shared-credential")
+                .phone("+111222333")
+                .password("secret2")
+                .build();
+
+        userRepository.save(user1);
+        userRepository.save(user2);
+
+        List<User> found = userRepository.findByEmailOrPhone("shared-credential");
+        assertEquals(2, found.size());
     }
 }

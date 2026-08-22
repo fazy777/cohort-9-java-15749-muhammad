@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * Service managing user authentication, account creation, token generation, profile retrieval, and password rotation.
  */
@@ -23,6 +25,8 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 @Slf4j
 public class AuthService {
+
+    private static final String DUMMY_PASSWORD_HASH = "$2a$10$wT8f6sQ4dJg0K8V5W6jJCe9sM/tJ4/m9yvE.e/L3Hw4H4u2x7C7nS";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -42,6 +46,8 @@ public class AuthService {
         if (request == null) {
             throw new BadRequestException("Registration request payload cannot be null");
         }
+
+        validatePassword(request.getPassword(), "Password");
 
         String email = StringUtils.hasText(request.getEmail()) ? request.getEmail().trim().toLowerCase(java.util.Locale.ROOT) : null;
         String phone = StringUtils.hasText(request.getPhone()) ? request.getPhone().trim() : null;
@@ -106,12 +112,23 @@ public class AuthService {
 
         String rawCredential = request.getCredential() != null ? request.getCredential().trim() : "";
         String credential = rawCredential.toLowerCase(java.util.Locale.ROOT);
-        User user = userRepository.findByEmailOrPhone(credential)
-                .orElseThrow(() -> {
-                    log.warn("Login failed: User not found");
-                    return new InvalidCredentialsException("Invalid email/phone or password");
-                });
+        java.util.List<User> users = userRepository.findByEmailOrPhone(credential);
+        if (users.isEmpty() && !rawCredential.equalsIgnoreCase(credential)) {
+            users = userRepository.findByEmailOrPhone(rawCredential);
+        }
 
+        if (users.isEmpty()) {
+            passwordEncoder.matches(request.getPassword(), DUMMY_PASSWORD_HASH);
+            log.warn("Login failed: User not found");
+            throw new InvalidCredentialsException("Invalid email/phone or password");
+        }
+
+        if (users.size() > 1) {
+            log.warn("Login failed: Multiple users matched credential");
+            throw new InvalidCredentialsException("Invalid email/phone or password");
+        }
+
+        User user = users.get(0);
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             log.warn("Login failed: Invalid password for user ID: {}", user.getId());
             throw new InvalidCredentialsException("Invalid email/phone or password");
@@ -170,9 +187,11 @@ public class AuthService {
             throw new BadRequestException("Change password request payload cannot be null");
         }
 
+        validatePassword(request.getCurrentPassword(), "Current password");
+        validatePassword(request.getNewPassword(), "New password");
+
         User user = userRepository.findByIdForUpdate(userId)
-                .orElseGet(() -> userRepository.findById(userId)
-                        .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId)));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             log.warn("Password change failed for user ID {}: Current password incorrect", userId);
@@ -184,6 +203,22 @@ public class AuthService {
         user.setTokenVersion((user.getTokenVersion() != null ? user.getTokenVersion() : 1L) + 1L);
         userRepository.save(user);
         log.info("Password updated and existing tokens invalidated successfully for user ID: {}", userId);
+    }
+
+    /**
+     * Validates that a password is non-null and does not exceed 72 UTF-8 bytes.
+     *
+     * @param password the password to validate
+     * @param fieldName the field name for error reporting
+     * @throws BadRequestException if the password is null or exceeds 72 UTF-8 bytes
+     */
+    private void validatePassword(String password, String fieldName) {
+        if (password == null) {
+            throw new BadRequestException(fieldName + " cannot be null");
+        }
+        if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new BadRequestException(fieldName + " cannot exceed 72 bytes");
+        }
     }
 }
 

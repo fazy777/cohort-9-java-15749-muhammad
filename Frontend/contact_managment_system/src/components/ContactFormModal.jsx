@@ -175,10 +175,19 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   if (!isOpen) return null;
 
   /**
+   * @typedef {Object} ContactFormRow
+   * @property {string} rowId
+   * @property {string} [email]
+   * @property {string} [phoneNumber]
+   * @property {string} label
+   */
+
+  /**
    * Generic helper to update a specific field on a dynamic row by rowId.
-   * @param {React.Dispatch<React.SetStateAction<Array<any>>>} setter
+   * @template {ContactFormRow} T
+   * @param {React.Dispatch<React.SetStateAction<T[]>>} setter
    * @param {string} rowId
-   * @param {string} field
+   * @param {'email' | 'phoneNumber' | 'label'} field
    * @param {string} value
    */
   const updateRow = (setter, rowId, field, value) => {

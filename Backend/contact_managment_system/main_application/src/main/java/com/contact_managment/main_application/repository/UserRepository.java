@@ -41,13 +41,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByIdForUpdate(@Param("id") Long id);
 
     /**
-     * Finds a user by either email or phone number matching the provided credential.
+     * Finds users by either email or phone number matching the provided credential.
      *
      * @param credential email or phone number
-     * @return Optional containing the User if found
+     * @return List containing matching User entities
      */
     @Query("SELECT u FROM User u WHERE (u.email IS NOT NULL AND u.email = :credential) OR (u.phone IS NOT NULL AND u.phone = :credential)")
-    Optional<User> findByEmailOrPhone(@Param("credential") String credential);
+    java.util.List<User> findByEmailOrPhone(@Param("credential") String credential);
 
     /**
      * Checks if a user exists with the given email address.

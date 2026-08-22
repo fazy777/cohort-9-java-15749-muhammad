@@ -174,7 +174,7 @@ class AuthServiceTest {
                 .password("password123")
                 .build();
 
-        when(userRepository.findByEmailOrPhone(request.getCredential())).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByEmailOrPhone(request.getCredential())).thenReturn(java.util.List.of(sampleUser));
         when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
         when(tokenProvider.generateToken(1L, 1L)).thenReturn("jwt-token-123");
 
@@ -193,7 +193,7 @@ class AuthServiceTest {
                 .password("password123")
                 .build();
 
-        when(userRepository.findByEmailOrPhone("john.doe@example.com")).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByEmailOrPhone("john.doe@example.com")).thenReturn(java.util.List.of(sampleUser));
         when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
         when(tokenProvider.generateToken(1L, 1L)).thenReturn("jwt-token-123");
 
@@ -211,7 +211,7 @@ class AuthServiceTest {
                 .password("wrongpassword")
                 .build();
 
-        when(userRepository.findByEmailOrPhone(request.getCredential())).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByEmailOrPhone(request.getCredential())).thenReturn(java.util.List.of(sampleUser));
         when(passwordEncoder.matches("wrongpassword", "encodedPassword")).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
@@ -225,7 +225,30 @@ class AuthServiceTest {
                 .password("password123")
                 .build();
 
-        when(userRepository.findByEmailOrPhone("unknown@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailOrPhone("unknown@example.com")).thenReturn(java.util.Collections.emptyList());
+
+        assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when multiple users match the credential")
+    void login_MultipleMatchingUsers_ThrowsInvalidCredentials() {
+        User otherUser = User.builder()
+                .id(2L)
+                .firstName("Jane")
+                .lastName("Doe")
+                .email("other@example.com")
+                .phone("shared-credential")
+                .password("otherEncodedPassword")
+                .tokenVersion(1L)
+                .build();
+
+        LoginRequest request = LoginRequest.builder()
+                .credential("shared-credential")
+                .password("password123")
+                .build();
+
+        when(userRepository.findByEmailOrPhone("shared-credential")).thenReturn(java.util.List.of(otherUser, sampleUser));
 
         assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
     }

@@ -39,13 +39,13 @@ public class Contact {
     @Column(length = 500)
     private String notes;
 
-    @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference("contact-emails")
     @Builder.Default
     @Setter(AccessLevel.NONE)
     private List<ContactEmail> emails = new ArrayList<>();
 
-    @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference("contact-phones")
     @Builder.Default
     @Setter(AccessLevel.NONE)

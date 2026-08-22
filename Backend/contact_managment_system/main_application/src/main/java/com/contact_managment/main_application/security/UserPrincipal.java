@@ -19,18 +19,18 @@ import java.util.List;
 @AllArgsConstructor
 public class UserPrincipal implements UserDetails {
 
-    private Long id;
-    private String firstName;
-    private String lastName;
-    private String email;
-    private String phone;
+    private final Long id;
+    private final String firstName;
+    private final String lastName;
+    private final String email;
+    private final String phone;
 
-    private Long tokenVersion;
+    private final Long tokenVersion;
 
     @JsonIgnore
-    private String password;
+    private final String password;
 
-    private Collection<? extends GrantedAuthority> authorities;
+    private final Collection<? extends GrantedAuthority> authorities;
 
     /**
      * Factory method creating a UserPrincipal from a User entity.

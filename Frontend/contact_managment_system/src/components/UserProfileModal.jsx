@@ -25,7 +25,16 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
   const currentPasswordRef = useRef(null);
   const changePasswordBtnRef = useRef(null);
   const prevShowPasswordRef = useRef(showPasswordModal);
-  const modalRef = useModalA11y(isOpen, onClose);
+
+  /**
+   * Guards modal dismissal while a password update operation is in progress.
+   */
+  const handleModalClose = () => {
+    if (submitting) return;
+    onClose?.();
+  };
+
+  const modalRef = useModalA11y(isOpen, handleModalClose);
 
   useEffect(() => {
     if (prevShowPasswordRef.current !== showPasswordModal) {
@@ -89,7 +98,7 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleModalClose}>
       <div
         ref={modalRef}
         role="dialog"
@@ -106,8 +115,9 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
           <button
             type="button"
             aria-label="Close profile"
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+            onClick={handleModalClose}
+            disabled={submitting}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: submitting ? 'not-allowed' : 'pointer' }}
           >
             <X size={20} />
           </button>
@@ -237,6 +247,7 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={handleResetPasswordForm}
+                disabled={submitting}
                 title="Reset Form"
               >
                 <RotateCcw size={14} /> Reset
@@ -247,9 +258,11 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={() => {
+                    if (submitting) return;
                     handleResetPasswordForm();
                     setShowPasswordModal(false);
                   }}
+                  disabled={submitting}
                 >
                   Cancel
                 </button>

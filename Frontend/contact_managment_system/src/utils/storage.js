@@ -3,6 +3,7 @@
  */
 
 const memoryStore = new Map();
+const tombstonedKeys = new Set();
 
 /**
  * Clean up legacy localStorage items that may contain sensitive data from previous versions.
@@ -25,6 +26,9 @@ export const safeStorage = {
    * @returns {string | null}
    */
   getItem(key) {
+    if (tombstonedKeys.has(key)) {
+      return null;
+    }
     if (memoryStore.has(key)) {
       return memoryStore.get(key) ?? null;
     }
@@ -48,11 +52,13 @@ export const safeStorage = {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.setItem(key, value);
         memoryStore.delete(key);
+        tombstonedKeys.delete(key);
         return;
       }
     } catch (e) {
       console.warn('Browser storage write failed, using memory store:', e);
     }
+    tombstonedKeys.delete(key);
     memoryStore.set(key, String(value));
   },
 
@@ -61,14 +67,17 @@ export const safeStorage = {
    * @param {string} key
    */
   removeItem(key) {
+    memoryStore.delete(key);
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.removeItem(key);
+        tombstonedKeys.delete(key);
+        return;
       }
     } catch (e) {
-      console.warn('Browser storage remove failed:', e);
+      console.warn('Browser storage remove failed, tombstoning key:', e);
+      tombstonedKeys.add(key);
     }
-    memoryStore.delete(key);
   },
 
   /**
@@ -85,7 +94,13 @@ export const safeStorage = {
           }
         }
         keysToRemove.forEach((key) => {
-          window.sessionStorage.removeItem(key);
+          try {
+            window.sessionStorage.removeItem(key);
+            tombstonedKeys.delete(key);
+          } catch (err) {
+            console.warn(`Failed to remove sessionStorage key "${key}", tombstoning:`, err);
+            tombstonedKeys.add(key);
+          }
         });
       }
     } catch (e) {
