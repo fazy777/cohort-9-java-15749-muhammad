@@ -5,10 +5,12 @@ const DEFAULT_TIMEOUT_MS = 15000;
 const TRANSFER_TIMEOUT_MS = 60000;
 
 /**
+ * Generic API response envelope.
+ * @template [T=void]
  * @typedef {Object} ApiResponse
  * @property {boolean} success
  * @property {string} [message]
- * @property {any} [data]
+ * @property {T} [data]
  */
 
 /**
@@ -200,7 +202,7 @@ export const api = {
   /**
    * Registers a new user account.
    * @param {RegisterPayload} data - user registration data
-   * @returns {Promise<{ success: boolean, message?: string, data: AuthResponseData }>}
+   * @returns {Promise<ApiResponse<AuthResponseData>>}
    */
   async register(data) {
     if (!data) throw new Error('Registration data is required');
@@ -213,7 +215,7 @@ export const api = {
   /**
    * Authenticates user credentials.
    * @param {LoginPayload} data - login credentials
-   * @returns {Promise<{ success: boolean, message?: string, data: AuthResponseData }>}
+   * @returns {Promise<ApiResponse<AuthResponseData>>}
    */
   async login(data) {
     if (!data) throw new Error('Login credentials are required');
@@ -235,7 +237,7 @@ export const api = {
   /**
    * Changes the authenticated user's password.
    * @param {ChangePasswordPayload} data - password change payload
-   * @returns {Promise<ApiResponse>}
+   * @returns {Promise<ApiResponse<void>>}
    */
   async changePassword(data) {
     if (!data) throw new Error('Change password data is required');
@@ -308,7 +310,7 @@ export const api = {
   /**
    * Deletes a contact by ID.
    * @param {number|string} id - contact ID
-   * @returns {Promise<ApiResponse>}
+   * @returns {Promise<ApiResponse<void>>}
    */
   async deleteContact(id) {
     if (id == null) throw new Error('Contact ID is required');
@@ -329,7 +331,7 @@ export const api = {
   /**
    * Imports a batch list of contacts.
    * @param {ContactDto[]} contactsList - contacts to import
-   * @returns {Promise<ApiResponse>}
+   * @returns {Promise<ApiResponse<number>>}
    */
   async importContacts(contactsList) {
     if (!Array.isArray(contactsList)) throw new Error('Contacts list must be an array');

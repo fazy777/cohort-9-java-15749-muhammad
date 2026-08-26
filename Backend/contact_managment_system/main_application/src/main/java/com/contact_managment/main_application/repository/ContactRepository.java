@@ -25,7 +25,6 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
      * @param pageable pagination parameters
      * @return page of contacts
      */
-    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"emails", "phones"})
     Page<Contact> findByUser(User user, Pageable pageable);
 
     /**
@@ -36,8 +35,16 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
      * @param pageable pagination parameters
      * @return page of matched contacts
      */
-    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"emails", "phones"})
-    @Query("SELECT DISTINCT c FROM Contact c " +
+    @Query(value = "SELECT DISTINCT c FROM Contact c " +
+           "LEFT JOIN c.emails e " +
+           "LEFT JOIN c.phones p " +
+           "WHERE c.user = :user AND (" +
+           "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(c.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(e.email) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "p.phoneNumber LIKE CONCAT('%', :query, '%'))",
+           countQuery = "SELECT COUNT(DISTINCT c) FROM Contact c " +
            "LEFT JOIN c.emails e " +
            "LEFT JOIN c.phones p " +
            "WHERE c.user = :user AND (" +
@@ -55,7 +62,6 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
      * @param user owning user
      * @return Optional containing the contact if found
      */
-    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"emails", "phones"})
     Optional<Contact> findByIdAndUser(Long id, User user);
 
     /**
@@ -64,7 +70,6 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
      * @param user owning user
      * @return list of contacts
      */
-    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"emails", "phones"})
     List<Contact> findByUser(User user);
 
     /**
@@ -73,6 +78,5 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
      * @param user owning user
      * @return stream of contacts
      */
-    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"emails", "phones"})
     java.util.stream.Stream<Contact> streamByUser(User user);
 }

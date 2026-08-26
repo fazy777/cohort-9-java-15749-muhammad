@@ -43,6 +43,7 @@ public class Contact {
             orphanRemoval = true,
             fetch = FetchType.LAZY
     )
+    @org.hibernate.annotations.BatchSize(size = 50)
     @JsonManagedReference("contact-emails")
     @Setter(AccessLevel.NONE)
     private List<ContactEmail> emails = new ArrayList<>();
@@ -53,6 +54,7 @@ public class Contact {
             orphanRemoval = true,
             fetch = FetchType.LAZY
     )
+    @org.hibernate.annotations.BatchSize(size = 50)
     @JsonManagedReference("contact-phones")
     @Setter(AccessLevel.NONE)
     private List<ContactPhone> phones = new ArrayList<>();
