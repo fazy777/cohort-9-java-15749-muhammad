@@ -36,11 +36,17 @@ export const AuthForm = ({ showToast }) => {
         if (!loginCredential || !password) {
           throw new Error('Please fill in all login fields');
         }
+        if (new TextEncoder().encode(password).length > 72) {
+          throw new Error('Password cannot exceed 72 bytes');
+        }
         await login({ credential: loginCredential.trim(), password });
         showToast?.('Successfully logged in!', 'success');
       } else {
         if (!firstName || !lastName || !password) {
           throw new Error('Please fill in all required fields');
+        }
+        if (new TextEncoder().encode(password).length > 72) {
+          throw new Error('Password cannot exceed 72 bytes');
         }
 
         if (regType === 'email' && !email) {

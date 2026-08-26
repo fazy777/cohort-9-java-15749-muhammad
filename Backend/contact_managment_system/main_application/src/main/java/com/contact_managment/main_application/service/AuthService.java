@@ -56,11 +56,11 @@ public class AuthService {
             throw new BadRequestException("Either Email or Phone number must be provided for registration");
         }
 
-        if (StringUtils.hasText(email) && userRepository.existsByEmail(email)) {
+        if (StringUtils.hasText(email) && (userRepository.existsByEmail(email) || userRepository.existsByPhone(email))) {
             throw new UserAlreadyExistsException("User with this email already exists");
         }
 
-        if (StringUtils.hasText(phone) && userRepository.existsByPhone(phone)) {
+        if (StringUtils.hasText(phone) && (userRepository.existsByPhone(phone) || userRepository.existsByEmail(phone))) {
             throw new UserAlreadyExistsException("User with this phone number already exists");
         }
 

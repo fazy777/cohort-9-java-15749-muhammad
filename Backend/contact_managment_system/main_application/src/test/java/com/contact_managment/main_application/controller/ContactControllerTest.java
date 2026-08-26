@@ -22,8 +22,6 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -84,8 +82,7 @@ class ContactControllerTest {
 
         when(contactService.getContacts(eq(1L), any(), eq(0), eq(10), eq("firstName"), eq("asc"))).thenReturn(pagedResponse);
 
-        mockMvc.perform(get("/api/contacts")
-                        .with(user(userPrincipal)))
+        mockMvc.perform(get("/api/contacts"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.content[0].firstName").value("Alice"));
@@ -97,8 +94,6 @@ class ContactControllerTest {
         when(contactService.createContact(eq(1L), any(ContactDto.class))).thenReturn(contactDto);
 
         mockMvc.perform(post("/api/contacts")
-                        .with(csrf())
-                        .with(user(userPrincipal))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(contactDto)))
                 .andExpect(status().isCreated())
@@ -111,9 +106,7 @@ class ContactControllerTest {
     void deleteContact_Returns200() throws Exception {
         doNothing().when(contactService).deleteContact(1L, 10L);
 
-        mockMvc.perform(delete("/api/contacts/10")
-                        .with(csrf())
-                        .with(user(userPrincipal)))
+        mockMvc.perform(delete("/api/contacts/10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Contact deleted successfully"));
@@ -122,8 +115,7 @@ class ContactControllerTest {
     @Test
     @DisplayName("GET /api/contacts?page=invalid should return 400 Bad Request")
     void getContacts_InvalidPageParam_Returns400() throws Exception {
-        mockMvc.perform(get("/api/contacts?page=invalid")
-                        .with(user(userPrincipal)))
+        mockMvc.perform(get("/api/contacts?page=invalid"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("Bad Request"))
@@ -133,8 +125,7 @@ class ContactControllerTest {
     @Test
     @DisplayName("GET /api/contacts with negative page should return 400 Bad Request")
     void getContacts_NegativePage_Returns400() throws Exception {
-        mockMvc.perform(get("/api/contacts?page=-1")
-                        .with(user(userPrincipal)))
+        mockMvc.perform(get("/api/contacts?page=-1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }
@@ -142,8 +133,7 @@ class ContactControllerTest {
     @Test
     @DisplayName("GET /api/contacts with oversized size should return 400 Bad Request")
     void getContacts_OversizedSize_Returns400() throws Exception {
-        mockMvc.perform(get("/api/contacts?size=150")
-                        .with(user(userPrincipal)))
+        mockMvc.perform(get("/api/contacts?size=150"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }

@@ -167,6 +167,40 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw exception when registering email that already exists as a phone number")
+    void register_EmailMatchesExistingPhone_ThrowsUserAlreadyExists() {
+        RegisterRequest request = RegisterRequest.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("conflict@example.com")
+                .password("password123")
+                .build();
+
+        when(userRepository.existsByEmail("conflict@example.com")).thenReturn(false);
+        when(userRepository.existsByPhone("conflict@example.com")).thenReturn(true);
+
+        assertThrows(UserAlreadyExistsException.class, () -> authService.register(request));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when registering phone that already exists as an email")
+    void register_PhoneMatchesExistingEmail_ThrowsUserAlreadyExists() {
+        RegisterRequest request = RegisterRequest.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .phone("+1234567890")
+                .password("password123")
+                .build();
+
+        when(userRepository.existsByPhone("+1234567890")).thenReturn(false);
+        when(userRepository.existsByEmail("+1234567890")).thenReturn(true);
+
+        assertThrows(UserAlreadyExistsException.class, () -> authService.register(request));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
     @DisplayName("Should login successfully with valid credentials")
     void login_Success() {
         LoginRequest request = LoginRequest.builder()

@@ -23,18 +23,21 @@ public class CustomUserDetailsService implements UserDetailsService {
      *
      * @param credential email address or phone number
      * @return UserDetails representation for Spring Security
-     * @throws UsernameNotFoundException if no user is found
+     * @throws UsernameNotFoundException if no user or multiple users are found
      */
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String credential) throws UsernameNotFoundException {
-        String trimmed = credential != null ? credential.trim() : "";
-        String normalized = trimmed.toLowerCase(java.util.Locale.ROOT);
-        User user = userRepository.findByEmail(normalized)
-                .or(() -> userRepository.findByPhone(trimmed))
-                .or(() -> userRepository.findByEmailOrPhone(normalized).stream().findFirst())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with provided credential"));
-        return UserPrincipal.create(user);
+        String rawCredential = credential != null ? credential.trim() : "";
+        String normalized = rawCredential.toLowerCase(java.util.Locale.ROOT);
+        java.util.List<User> users = userRepository.findByEmailOrPhone(normalized);
+        if (users.isEmpty() && !rawCredential.equalsIgnoreCase(normalized)) {
+            users = userRepository.findByEmailOrPhone(rawCredential);
+        }
+        if (users.size() != 1) {
+            throw new UsernameNotFoundException("User not found or ambiguous credentials provided");
+        }
+        return UserPrincipal.create(users.get(0));
     }
 
     /**
@@ -44,7 +47,7 @@ public class CustomUserDetailsService implements UserDetailsService {
      * @return UserDetails representation for Spring Security
      * @throws UsernameNotFoundException if no user is found
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public UserDetails loadUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + id));
