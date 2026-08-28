@@ -500,13 +500,10 @@ describe('Browser-Level Cookie Jar and Delayed Auth Race Conditions', () => {
     assert.equal(cookieJar, '');
 
     // 5. Verify getProfile() returns null / 401 unauthorized
-    try {
-      const profile = await api.getProfile();
-      assert.equal(profile, null);
-    } catch {
-      // In case 401 throws
-      assert.ok(true);
-    }
+    await assert.rejects(
+      () => api.getProfile(),
+      /Unauthorized/
+    );
   });
 
   test('Delayed competing register: slower Register 1 does NOT overwrite newer Register 2 session cookie', async () => {
