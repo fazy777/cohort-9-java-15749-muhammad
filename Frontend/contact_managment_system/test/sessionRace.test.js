@@ -1,6 +1,7 @@
 import test, { describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  api,
   getSessionGeneration,
   incrementSessionGeneration,
   resetSessionGeneration,
@@ -301,3 +302,262 @@ describe('Authentication Session-Generation Race Condition Protection', () => {
     assert.equal(stored.firstName, 'Diana');
   });
 });
+
+describe('Browser-Level Cookie Jar and Delayed Auth Race Conditions', () => {
+  const originalFetch = globalThis.fetch;
+  let cookieJar = '';
+
+  beforeEach(() => {
+    resetSessionGeneration(0);
+    safeStorage.clear();
+    cookieJar = '';
+
+    globalThis.fetch = async (url, options = {}) => {
+      const urlStr = String(url);
+      const signal = options.signal;
+
+      if (signal?.aborted) {
+        const error = new Error('The operation was aborted');
+        error.name = 'AbortError';
+        throw error;
+      }
+
+      const wait = (ms) => new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+          const error = new Error('The operation was aborted');
+          error.name = 'AbortError';
+          return reject(error);
+        }
+        const timer = setTimeout(() => {
+          if (signal?.aborted) {
+            const error = new Error('The operation was aborted');
+            error.name = 'AbortError';
+            reject(error);
+          } else {
+            resolve();
+          }
+        }, ms);
+        signal?.addEventListener('abort', () => {
+          clearTimeout(timer);
+          const error = new Error('The operation was aborted');
+          error.name = 'AbortError';
+          reject(error);
+        }, { once: true });
+      });
+
+      if (urlStr.endsWith('/auth/login')) {
+        const body = JSON.parse(options.body || '{}');
+        const isAlice = body.credential?.includes('alice');
+        const delayMs = isAlice ? 60 : 15;
+        await wait(delayMs);
+
+        const token = isAlice ? 'token_alice' : 'token_bob';
+        cookieJar = `cms_auth_token=${token}`;
+
+        const userData = isAlice
+          ? { id: 1, firstName: 'Alice', email: 'alice@example.com' }
+          : { id: 2, firstName: 'Bob', email: 'bob@example.com' };
+
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({ success: true, data: userData })
+        };
+      }
+
+      if (urlStr.endsWith('/auth/register')) {
+        const body = JSON.parse(options.body || '{}');
+        const isUser1 = body.firstName === 'User1';
+        const delayMs = isUser1 ? 60 : 15;
+        await wait(delayMs);
+
+        const token = isUser1 ? 'token_user1' : 'token_user2';
+        cookieJar = `cms_auth_token=${token}`;
+
+        const userData = isUser1
+          ? { id: 10, firstName: 'User1', email: 'user1@example.com' }
+          : { id: 20, firstName: 'User2', email: 'user2@example.com' };
+
+        return {
+          ok: true,
+          status: 201,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({ success: true, data: userData })
+        };
+      }
+
+      if (urlStr.endsWith('/auth/logout')) {
+        await wait(10);
+        cookieJar = '';
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({ success: true, message: 'Logged out successfully' })
+        };
+      }
+
+      if (urlStr.endsWith('/auth/profile')) {
+        if (cookieJar.includes('token_alice')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ success: true, data: { id: 1, firstName: 'Alice', email: 'alice@example.com' } })
+          };
+        }
+        if (cookieJar.includes('token_bob')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ success: true, data: { id: 2, firstName: 'Bob', email: 'bob@example.com' } })
+          };
+        }
+        if (cookieJar.includes('token_user1')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ success: true, data: { id: 10, firstName: 'User1', email: 'user1@example.com' } })
+          };
+        }
+        if (cookieJar.includes('token_user2')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ success: true, data: { id: 20, firstName: 'User2', email: 'user2@example.com' } })
+          };
+        }
+        return {
+          ok: false,
+          status: 401,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({ success: false, message: 'Unauthorized' })
+        };
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({ success: true })
+      };
+    };
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    resetSessionGeneration(0);
+    safeStorage.clear();
+  });
+
+  test('Delayed competing login: slower Login A response does NOT overwrite newer Login B session cookie', async () => {
+    // 1. Initiate slow login for Alice (takes 60ms)
+    const loginAlicePromise = api.login({ credential: 'alice@example.com', password: 'password123' });
+
+    // 2. Shortly after (5ms), initiate fast login for Bob (takes 15ms)
+    await new Promise((r) => setTimeout(r, 5));
+    const loginBobPromise = api.login({ credential: 'bob@example.com', password: 'password123' });
+
+    // 3. Wait for all requests to finish
+    const results = await Promise.allSettled([loginAlicePromise, loginBobPromise]);
+
+    // Bob's login must succeed
+    assert.equal(results[1].status, 'fulfilled');
+    assert.equal(results[1].value.data.firstName, 'Bob');
+
+    // Alice's attempt was aborted/superseded
+    assert.equal(results[0].status, 'rejected');
+
+    // 4. Verify cookie jar contains Bob's token, not Alice's
+    assert.equal(cookieJar, 'cms_auth_token=token_bob');
+
+    // 5. Verify getProfile() returns the latest user (Bob)
+    const profile = await api.getProfile();
+    assert.notEqual(profile, null);
+    assert.equal(profile.id, 2);
+    assert.equal(profile.firstName, 'Bob');
+  });
+
+  test('Delayed login response arriving after logout does NOT set cookie or authenticate user', async () => {
+    // 1. Initiate slow login for Alice (takes 60ms)
+    const loginAlicePromise = api.login({ credential: 'alice@example.com', password: 'password123' });
+
+    // 2. Shortly after (5ms), user clicks logout (takes 10ms)
+    await new Promise((r) => setTimeout(r, 5));
+    const logoutPromise = api.logout();
+
+    // 3. Wait for all requests to settle
+    const results = await Promise.allSettled([loginAlicePromise, logoutPromise]);
+
+    // Logout succeeded
+    assert.equal(results[1].status, 'fulfilled');
+
+    // 4. Verify cookie jar was cleared by logout and not overwritten by Alice's delayed response
+    assert.equal(cookieJar, '');
+
+    // 5. Verify getProfile() returns null / 401 unauthorized
+    try {
+      const profile = await api.getProfile();
+      assert.equal(profile, null);
+    } catch {
+      // In case 401 throws
+      assert.ok(true);
+    }
+  });
+
+  test('Delayed competing register: slower Register 1 does NOT overwrite newer Register 2 session cookie', async () => {
+    // 1. Initiate slow register for User 1 (takes 60ms)
+    const reg1Promise = api.register({ firstName: 'User1', lastName: 'Test', email: 'user1@example.com', password: 'pwd' });
+
+    // 2. Shortly after (5ms), initiate fast register for User 2 (takes 15ms)
+    await new Promise((r) => setTimeout(r, 5));
+    const reg2Promise = api.register({ firstName: 'User2', lastName: 'Test', email: 'user2@example.com', password: 'pwd' });
+
+    // 3. Wait for all requests to settle
+    const results = await Promise.allSettled([reg1Promise, reg2Promise]);
+
+    // User 2 register succeeded
+    assert.equal(results[1].status, 'fulfilled');
+    assert.equal(results[1].value.data.firstName, 'User2');
+
+    // 4. Verify cookie jar contains User 2's token
+    assert.equal(cookieJar, 'cms_auth_token=token_user2');
+
+    // 5. Verify getProfile() returns User 2
+    const profile = await api.getProfile();
+    assert.notEqual(profile, null);
+    assert.equal(profile.id, 20);
+    assert.equal(profile.firstName, 'User2');
+  });
+
+  test('Delayed register response arriving after logout does NOT set cookie or authenticate user', async () => {
+    // 1. Initiate slow register for User 1 (takes 60ms)
+    const reg1Promise = api.register({ firstName: 'User1', lastName: 'Test', email: 'user1@example.com', password: 'pwd' });
+
+    // 2. Shortly after (5ms), user logs out
+    await new Promise((r) => setTimeout(r, 5));
+    const logoutPromise = api.logout();
+
+    // 3. Wait for all requests to settle
+    const results = await Promise.allSettled([reg1Promise, logoutPromise]);
+
+    // Logout succeeded
+    assert.equal(results[1].status, 'fulfilled');
+
+    // 4. Verify cookie jar is empty
+    assert.equal(cookieJar, '');
+
+    // 5. Verify getProfile() returns null / unauthenticated
+    try {
+      const profile = await api.getProfile();
+      assert.equal(profile, null);
+    } catch {
+      assert.ok(true);
+    }
+  });
+});
+

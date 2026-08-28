@@ -99,6 +99,8 @@ const TRANSFER_TIMEOUT_MS = 60000;
  */
 
 let sessionGeneration = 0;
+let activeAuthAbortController = null;
+let authQueue = Promise.resolve();
 
 /**
  * Returns the current non-secret authentication session generation counter.
@@ -116,13 +118,57 @@ export const incrementSessionGeneration = () => {
 };
 
 /**
- * Resets the session generation counter (primarily used for test cleanup).
+ * Resets the session generation counter and cancels pending auth attempts (primarily used for test cleanup).
  * @param {number} [val=0]
  * @returns {number}
  */
 export const resetSessionGeneration = (val = 0) => {
+  if (activeAuthAbortController) {
+    try {
+      activeAuthAbortController.abort();
+    } catch {
+      // ignore
+    }
+    activeAuthAbortController = null;
+  }
+  authQueue = Promise.resolve();
   sessionGeneration = val;
   return sessionGeneration;
+};
+
+/**
+ * Serializes auth operations and invalidates obsolete in-flight attempts.
+ * Ensures that prior auth attempts are aborted at the network level so their Set-Cookie
+ * response headers cannot activate or overwrite the browser session.
+ *
+ * @template T
+ * @param {(signal: AbortSignal) => Promise<T>} authFn
+ * @returns {Promise<T>}
+ */
+const serializeAuth = (authFn) => {
+  if (activeAuthAbortController) {
+    try {
+      activeAuthAbortController.abort();
+    } catch {
+      // ignore
+    }
+  }
+  const controller = new AbortController();
+  activeAuthAbortController = controller;
+
+  const execute = async () => {
+    try {
+      return await authFn(controller.signal);
+    } finally {
+      if (activeAuthAbortController === controller) {
+        activeAuthAbortController = null;
+      }
+    }
+  };
+
+  const nextPromise = authQueue.then(execute, execute);
+  authQueue = nextPromise.catch(() => {});
+  return nextPromise;
 };
 
 /**
@@ -187,21 +233,30 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
     ...(options.headers || {})
   };
 
+  const { signal: callerSignal, ...fetchOptions } = options;
+  if (callerSignal) {
+    if (callerSignal.aborted) {
+      controller.abort();
+    } else {
+      callerSignal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+  }
+
   try {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
-      ...options,
+      ...fetchOptions,
       headers,
       credentials: 'include',
       signal: controller.signal
     });
 
     let result;
-    const contentType = response.headers.get('content-type') || '';
+    const contentType = response.headers?.get?.('content-type') || '';
     if (contentType.includes('application/json')) {
       try {
         result = await response.json();
       } catch (parseErr) {
-        if (controller.signal.aborted || parseErr?.name === 'AbortError') {
+        if (controller.signal.aborted || callerSignal?.aborted || parseErr?.name === 'AbortError') {
           throw parseErr;
         }
         result = null;
@@ -211,7 +266,7 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
         const text = await response.text();
         result = text ? { message: text } : null;
       } catch (parseErr) {
-        if (controller.signal.aborted || parseErr?.name === 'AbortError') {
+        if (controller.signal.aborted || callerSignal?.aborted || parseErr?.name === 'AbortError') {
           throw parseErr;
         }
         result = null;
@@ -229,6 +284,11 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
 
     return result;
   } catch (err) {
+    if (callerSignal?.aborted) {
+      const abortErr = new Error('Authentication request was superseded or aborted', { cause: err });
+      abortErr.name = 'AbortError';
+      throw abortErr;
+    }
     if (err?.name === 'AbortError' || controller.signal.aborted) {
       throw new Error(`Request timed out after ${timeoutMs / 1000}s`, { cause: err });
     }
@@ -254,38 +314,50 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
 export const api = {
   /**
    * Registers a new user account and receives an HttpOnly session cookie.
+   * Serializes with other auth mutations and invalidates any obsolete in-flight attempt.
    * @param {RegisterPayload} data - user registration data
    * @returns {Promise<ApiResponse<AuthResponseData>>}
    */
   async register(data) {
     if (!data) throw new Error('Registration data is required');
-    return request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
+    return serializeAuth((signal) =>
+      request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        signal
+      })
+    );
   },
 
   /**
    * Authenticates user credentials and receives an HttpOnly session cookie.
+   * Serializes with other auth mutations and invalidates any obsolete in-flight attempt.
    * @param {LoginPayload} data - login credentials
    * @returns {Promise<ApiResponse<AuthResponseData>>}
    */
   async login(data) {
     if (!data) throw new Error('Login credentials are required');
-    return request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
+    return serializeAuth((signal) =>
+      request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        signal
+      })
+    );
   },
 
   /**
    * Logs out the user and instructs the backend to clear the HttpOnly session cookie.
+   * Serializes with other auth mutations and cancels any pending login/register attempts.
    * @returns {Promise<ApiResponse<void>>}
    */
   async logout() {
-    return request('/auth/logout', {
-      method: 'POST'
-    });
+    return serializeAuth((signal) =>
+      request('/auth/logout', {
+        method: 'POST',
+        signal
+      })
+    );
   },
 
   /**

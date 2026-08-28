@@ -126,14 +126,21 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(async (credentials) => {
     if (!credentials) throw new Error('Credentials are required');
     const requestGen = incrementSessionGeneration();
-    const res = await api.login(credentials);
-    const data = res?.data;
-    if (!data) throw new Error('Invalid login response from server');
+    try {
+      const res = await api.login(credentials);
+      const data = res?.data;
+      if (!data) throw new Error('Invalid login response from server');
 
-    if (getSessionGeneration() !== requestGen) {
-      return null;
+      if (getSessionGeneration() !== requestGen) {
+        return null;
+      }
+      return handleAuthSuccess(data);
+    } catch (err) {
+      if (getSessionGeneration() !== requestGen || err?.name === 'AbortError' || err?.message?.includes('aborted') || err?.message?.includes('superseded')) {
+        return null;
+      }
+      throw err;
     }
-    return handleAuthSuccess(data);
   }, [handleAuthSuccess]);
 
   /**
@@ -144,14 +151,21 @@ export const AuthProvider = ({ children }) => {
   const register = useCallback(async (registerData) => {
     if (!registerData) throw new Error('Registration data is required');
     const requestGen = incrementSessionGeneration();
-    const res = await api.register(registerData);
-    const data = res?.data;
-    if (!data) throw new Error('Invalid register response from server');
+    try {
+      const res = await api.register(registerData);
+      const data = res?.data;
+      if (!data) throw new Error('Invalid register response from server');
 
-    if (getSessionGeneration() !== requestGen) {
-      return null;
+      if (getSessionGeneration() !== requestGen) {
+        return null;
+      }
+      return handleAuthSuccess(data);
+    } catch (err) {
+      if (getSessionGeneration() !== requestGen || err?.name === 'AbortError' || err?.message?.includes('aborted') || err?.message?.includes('superseded')) {
+        return null;
+      }
+      throw err;
     }
-    return handleAuthSuccess(data);
   }, [handleAuthSuccess]);
 
   /**
