@@ -56,7 +56,8 @@ The application is implemented strictly using the proposed technologies and tool
 
 ### 1. User Authentication & Authorization
 * **Self-Registration:** Allow new users to sign up using either their email address or phone number.
-* **Secure Login:** Session token generation (JWT / Spring Security) to authorize subsequent API requests.
+* **Secure Cookie Authentication:** Issues `HttpOnly`, `Secure`, and `SameSite=Lax` JWT authentication cookies, protecting sessions against XSS token exfiltration.
+* **CSRF Defense:** Double-Submit Cookie CSRF protection (`XSRF-TOKEN` / `X-XSRF-TOKEN`) for all mutating API requests.
 * **Token Invalidation:** User token versioning invalidates old JWTs immediately upon password reset.
 * **Password Management:** Secure password hashing (BCrypt) and in-app password change features.
 
@@ -89,7 +90,7 @@ graph TD
     A[Guest / Visitor] -->|Access Web App| B(Login / Registration Screen)
     B -->|Submit Credentials| C{Authentication Success?}
     C -->|No (Show Error)| B
-    C -->|Yes (Redirect & Set JWT)| D(Contact Management Screen / Dashboard)
+    C -->|Yes (Set HttpOnly Cookie & Redirect)| D(Contact Management Screen / Dashboard)
     
     D -->|Click Create Contact| E[Create Contact Modal]
     D -->|Click Update Contact| F[Update Contact Modal]
@@ -98,7 +99,7 @@ graph TD
     D -->|Click Profile Icon| I(User Profile Screen)
     
     I -->|Click Change Password| J[Change Password Modal]
-    I -->|Click Logout| K[Clear JWT & Session]
+    I -->|Click Logout| K[Clear HttpOnly Cookie & Session]
     K --> B
 ```
 

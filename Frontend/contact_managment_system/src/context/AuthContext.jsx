@@ -6,25 +6,39 @@ import { safeStorage, cleanupLegacyStorage } from '../utils/storage';
 const AuthContext = createContext(null);
 
 /**
- * Authentication Context Provider that maintains user authentication state, token persistence, and login/logout handlers.
+ * Authentication Context Provider that maintains user authentication state and login/logout handlers.
+ * Authentication tokens are managed transparently and securely via HttpOnly/SameSite cookies.
  *
  * @param {{ children: import('react').ReactNode }} props
  * @returns {JSX.Element}
  */
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => safeStorage.getItem('cms_token'));
+  const [user, setUser] = useState(() => {
+    const savedUser = safeStorage.getItem('cms_user');
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
 
   /**
-   * Logs out the user and clears state and stored credentials.
+   * Logs out the user, clears backend HttpOnly session cookies, and purges client user state.
    */
-  const logout = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    safeStorage.removeItem('cms_token');
-    safeStorage.removeItem('cms_user');
-    cleanupLegacyStorage();
+  const logout = useCallback(async () => {
+    try {
+      await api.logout();
+    } catch (err) {
+      console.warn('Logout request failed:', err);
+    } finally {
+      setUser(null);
+      safeStorage.removeItem('cms_user');
+      cleanupLegacyStorage();
+    }
   }, []);
 
   useEffect(() => {
@@ -33,31 +47,23 @@ export const AuthProvider = ({ children }) => {
 
     const initAuth = async () => {
       try {
-        const savedToken = safeStorage.getItem('cms_token');
-        const savedUser = safeStorage.getItem('cms_user');
-
-        if (savedToken) {
-          if (isActive) setToken(savedToken);
-          if (savedUser && isActive) {
-            try {
-              setUser(JSON.parse(savedUser));
-            } catch {
-              // ignore parse errors
-            }
-          }
-          try {
-            // Validate and refresh user profile from backend
-            const freshUser = await api.getProfile();
-            if (isActive && freshUser && safeStorage.getItem('cms_token') === savedToken) {
-              setUser(freshUser);
-              safeStorage.setItem('cms_user', JSON.stringify(freshUser));
-            }
-          } catch (err) {
-            console.warn('Session token validation failed:', err);
+        // Validate active session with backend via HttpOnly cookies
+        const freshUser = await api.getProfile();
+        if (isActive) {
+          if (freshUser) {
+            setUser(freshUser);
+            safeStorage.setItem('cms_user', JSON.stringify(freshUser));
+          } else {
+            setUser(null);
+            safeStorage.removeItem('cms_user');
           }
         }
       } catch (err) {
-        console.error('Failed to initialize authentication:', err);
+        if (isActive) {
+          setUser(null);
+          safeStorage.removeItem('cms_user');
+        }
+        console.warn('Session verification failed:', err);
       } finally {
         if (isActive) {
           setLoading(false);
@@ -74,7 +80,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const handleUnauthorizedEvent = () => {
-      logout();
+      void logout();
     };
     if (typeof window !== 'undefined') {
       window.addEventListener('auth:unauthorized', handleUnauthorizedEvent);
@@ -85,8 +91,8 @@ export const AuthProvider = ({ children }) => {
   }, [logout]);
 
   /**
-   * Helper that updates authentication state and persists session storage.
-   * @param {import('../services/api').AuthResponseData} data - response auth data containing token and user fields
+   * Helper that updates authentication state upon login/register success.
+   * @param {import('../services/api').AuthResponseData} data - response auth data containing user fields
    * @returns {{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }}
    */
   const handleAuthSuccess = useCallback((data) => {
@@ -98,9 +104,7 @@ export const AuthProvider = ({ children }) => {
       phone: data.phone
     };
 
-    setToken(data.token);
     setUser(userObj);
-    safeStorage.setItem('cms_token', data.token);
     safeStorage.setItem('cms_user', JSON.stringify(userObj));
     cleanupLegacyStorage();
     return userObj;
@@ -139,27 +143,26 @@ export const AuthProvider = ({ children }) => {
    * @returns {Promise<void>}
    */
   const refreshProfile = useCallback(async () => {
-    if (!token) return;
+    if (!user) return;
     try {
       const profile = await api.getProfile();
-      if (profile && safeStorage.getItem('cms_token') === token) {
+      if (profile) {
         setUser(profile);
         safeStorage.setItem('cms_user', JSON.stringify(profile));
       }
     } catch (err) {
       console.warn('Failed to refresh user profile:', err);
     }
-  }, [token]);
+  }, [user]);
 
   const contextValue = useMemo(() => ({
     user,
-    token,
     loading,
     login,
     register,
     logout,
     refreshProfile
-  }), [user, token, loading, login, register, logout, refreshProfile]);
+  }), [user, loading, login, register, logout, refreshProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>
@@ -172,11 +175,10 @@ export const AuthProvider = ({ children }) => {
  * Custom hook to consume the AuthContext.
  * @returns {{
  *   user: { id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null } | null,
- *   token: string | null,
  *   loading: boolean,
  *   login: (credentials: { credential: string, password: string }) => Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>,
  *   register: (registerData: { firstName: string, lastName: string, email?: string|null, phone?: string|null, password: string }) => Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>,
- *   logout: () => void,
+ *   logout: () => Promise<void>,
  *   refreshProfile: () => Promise<void>
  * }} auth context value
  */

@@ -66,15 +66,17 @@ class AuthServiceTest {
                 .build();
 
         when(userRepository.existsByEmail("john.doe@example.com")).thenReturn(false);
+        when(userRepository.existsByPhone("john.doe@example.com")).thenReturn(false);
         when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
         when(userRepository.saveAndFlush(any(User.class))).thenReturn(sampleUser);
         when(tokenProvider.generateToken(1L, 1L)).thenReturn("jwt-token-123");
 
-        AuthResponse response = authService.register(request);
+        AuthResult response = authService.register(request);
 
         assertNotNull(response);
+        assertNotNull(response.getAuthResponse());
         assertEquals("jwt-token-123", response.getToken());
-        assertEquals("John", response.getFirstName());
+        assertEquals("John", response.getAuthResponse().getFirstName());
         verify(userRepository, times(1)).saveAndFlush(any(User.class));
     }
 
@@ -90,14 +92,18 @@ class AuthServiceTest {
                 .build();
 
         when(userRepository.existsByEmail("john.doe@example.com")).thenReturn(false);
+        when(userRepository.existsByPhone("john.doe@example.com")).thenReturn(false);
         when(userRepository.existsByPhone("+1234567890")).thenReturn(false);
+        when(userRepository.existsByEmail("+1234567890")).thenReturn(false);
         when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
         when(userRepository.saveAndFlush(any(User.class))).thenReturn(sampleUser);
         when(tokenProvider.generateToken(1L, 1L)).thenReturn("jwt-token-123");
 
-        AuthResponse response = authService.register(request);
+        AuthResult response = authService.register(request);
 
         assertNotNull(response);
+        assertNotNull(response.getAuthResponse());
+        assertEquals("jwt-token-123", response.getToken());
         org.mockito.ArgumentCaptor<User> userCaptor = org.mockito.ArgumentCaptor.forClass(User.class);
         verify(userRepository).saveAndFlush(userCaptor.capture());
         assertEquals("john.doe@example.com", userCaptor.getValue().getEmail());
@@ -212,11 +218,12 @@ class AuthServiceTest {
         when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
         when(tokenProvider.generateToken(1L, 1L)).thenReturn("jwt-token-123");
 
-        AuthResponse response = authService.login(request);
+        AuthResult response = authService.login(request);
 
         assertNotNull(response);
+        assertNotNull(response.getAuthResponse());
         assertEquals("jwt-token-123", response.getToken());
-        assertEquals("John", response.getFirstName());
+        assertEquals("John", response.getAuthResponse().getFirstName());
     }
 
     @Test
@@ -231,9 +238,10 @@ class AuthServiceTest {
         when(passwordEncoder.matches("password123", "encodedPassword")).thenReturn(true);
         when(tokenProvider.generateToken(1L, 1L)).thenReturn("jwt-token-123");
 
-        AuthResponse response = authService.login(request);
+        AuthResult response = authService.login(request);
 
         assertNotNull(response);
+        assertNotNull(response.getAuthResponse());
         assertEquals("jwt-token-123", response.getToken());
     }
 

@@ -65,7 +65,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/auth/register should return 201 Created")
+    @DisplayName("POST /api/auth/register should return 201 Created and set HttpOnly auth cookie")
     void register_Returns201() throws Exception {
         RegisterRequest request = RegisterRequest.builder()
                 .firstName("John")
@@ -75,21 +75,26 @@ class AuthControllerTest {
                 .build();
 
         AuthResponse authResponse = AuthResponse.builder()
-                .token("jwt-token")
                 .id(1L)
                 .firstName("John")
                 .lastName("Doe")
                 .email("john@example.com")
                 .build();
+        AuthResult authResult = AuthResult.builder()
+                .authResponse(authResponse)
+                .token("jwt-token")
+                .build();
 
-        when(authService.register(any(RegisterRequest.class))).thenReturn(authResponse);
+        when(authService.register(any(RegisterRequest.class))).thenReturn(authResult);
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Set-Cookie", org.hamcrest.Matchers.containsString("cms_auth_token=jwt-token")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Set-Cookie", org.hamcrest.Matchers.containsString("HttpOnly")))
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.token").value("jwt-token"))
+                .andExpect(jsonPath("$.data.token").doesNotExist())
                 .andExpect(jsonPath("$.data.firstName").value("John"));
     }
 
@@ -131,7 +136,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/auth/login should return 200 OK")
+    @DisplayName("POST /api/auth/login should return 200 OK and set HttpOnly auth cookie")
     void login_Returns200() throws Exception {
         LoginRequest request = LoginRequest.builder()
                 .credential("john@example.com")
@@ -139,19 +144,25 @@ class AuthControllerTest {
                 .build();
 
         AuthResponse authResponse = AuthResponse.builder()
-                .token("jwt-token")
                 .id(1L)
                 .firstName("John")
                 .build();
+        AuthResult authResult = AuthResult.builder()
+                .authResponse(authResponse)
+                .token("jwt-token")
+                .build();
 
-        when(authService.login(any(LoginRequest.class))).thenReturn(authResponse);
+        when(authService.login(any(LoginRequest.class))).thenReturn(authResult);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Set-Cookie", org.hamcrest.Matchers.containsString("cms_auth_token=jwt-token")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Set-Cookie", org.hamcrest.Matchers.containsString("HttpOnly")))
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.token").value("jwt-token"));
+                .andExpect(jsonPath("$.data.token").doesNotExist())
+                .andExpect(jsonPath("$.data.firstName").value("John"));
     }
 
     @Test
@@ -170,6 +181,24 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/logout should clear auth cookie and return 200 OK")
+    void logout_Returns200() throws Exception {
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Logged out successfully"));
+    }
+
+    @Test
+    @DisplayName("GET /api/auth/csrf should return 200 OK")
+    void csrf_Returns200() throws Exception {
+        mockMvc.perform(get("/api/auth/csrf"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
@@ -200,7 +229,7 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/auth/change-password should return 200 OK")
+    @DisplayName("POST /api/auth/change-password should return 200 OK and clear session cookie")
     void changePassword_Returns200() throws Exception {
         ChangePasswordRequest request = ChangePasswordRequest.builder()
                 .currentPassword("oldPassword123")
@@ -211,6 +240,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")))
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Password changed successfully"));
 

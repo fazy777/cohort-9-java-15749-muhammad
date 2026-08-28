@@ -29,8 +29,6 @@ const TRANSFER_TIMEOUT_MS = 60000;
  * @property {string} lastName
  * @property {string|null} email
  * @property {string|null} phone
- * @property {string} token
- * @property {string} [tokenType]
  */
 
 /**
@@ -101,11 +99,20 @@ const TRANSFER_TIMEOUT_MS = 60000;
  */
 
 /**
+ * Extracts CSRF token from the XSRF-TOKEN cookie if present.
+ * @returns {string | null}
+ */
+const getCsrfToken = () => {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+/**
  * Handles HTTP 401 Unauthorized by clearing cached session credentials and dispatching an auth event.
  * @returns {void}
  */
 const handleUnauthorized = () => {
-  safeStorage.removeItem('cms_token');
   safeStorage.removeItem('cms_user');
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('auth:unauthorized'));
@@ -113,7 +120,8 @@ const handleUnauthorized = () => {
 };
 
 /**
- * Performs an HTTP fetch request with timeout abort signal, centralized headers, and error handling.
+ * Performs an HTTP fetch request with timeout abort signal, credentials for HttpOnly cookies,
+ * centralized CSRF headers, and error handling.
  * @param {string} endpoint - API path relative to BASE_URL
  * @param {RequestInit} [options={}] - fetch options (method, body, headers)
  * @param {number} [timeoutMs=15000] - request timeout in milliseconds
@@ -123,12 +131,14 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  const requestToken = safeStorage.getItem('cms_token');
   const isAuthEndpoint = endpoint.startsWith('/auth/login') || endpoint.startsWith('/auth/register');
+  const method = (options.method || 'GET').toUpperCase();
+  const isMutating = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+  const csrfToken = isMutating ? getCsrfToken() : null;
 
   const headers = {
     'Content-Type': 'application/json',
-    ...(requestToken ? { 'Authorization': `Bearer ${requestToken}` } : {}),
+    ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
     ...(options.headers || {})
   };
 
@@ -136,6 +146,7 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
       headers,
+      credentials: 'include',
       signal: controller.signal
     });
 
@@ -163,10 +174,7 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
     }
 
     if (response.status === 401 && !isAuthEndpoint) {
-      const currentToken = safeStorage.getItem('cms_token');
-      if (requestToken && currentToken === requestToken) {
-        handleUnauthorized();
-      }
+      handleUnauthorized();
     }
 
     if (!response.ok) {
@@ -200,7 +208,7 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
  */
 export const api = {
   /**
-   * Registers a new user account.
+   * Registers a new user account and receives an HttpOnly session cookie.
    * @param {RegisterPayload} data - user registration data
    * @returns {Promise<ApiResponse<AuthResponseData>>}
    */
@@ -213,7 +221,7 @@ export const api = {
   },
 
   /**
-   * Authenticates user credentials.
+   * Authenticates user credentials and receives an HttpOnly session cookie.
    * @param {LoginPayload} data - login credentials
    * @returns {Promise<ApiResponse<AuthResponseData>>}
    */
@@ -222,6 +230,16 @@ export const api = {
     return request('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data)
+    });
+  },
+
+  /**
+   * Logs out the user and instructs the backend to clear the HttpOnly session cookie.
+   * @returns {Promise<ApiResponse<void>>}
+   */
+  async logout() {
+    return request('/auth/logout', {
+      method: 'POST'
     });
   },
 

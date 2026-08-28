@@ -64,6 +64,18 @@ class SecurityFilterIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should return 200 OK for protected endpoint when valid token is provided in HttpOnly cookie")
+    void protectedEndpoint_ValidCookie_Returns200() throws Exception {
+        String token = jwtTokenProvider.generateToken(testUser.getId(), 1L);
+
+        mockMvc.perform(get("/api/auth/profile")
+                        .cookie(new jakarta.servlet.http.Cookie("cms_auth_token", token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.email").value("alice.security@example.com"));
+    }
+
+    @Test
     @DisplayName("Should return 401 Unauthorized when token version does not match user current version (revoked token)")
     void protectedEndpoint_TokenVersionMismatch_Returns401() throws Exception {
         // Token has tokenVersion = 1L
@@ -74,9 +86,34 @@ class SecurityFilterIntegrationTest {
         userRepository.save(testUser);
 
         mockMvc.perform(get("/api/auth/profile")
-                        .header("Authorization", "Bearer " + staleToken))
+                        .cookie(new jakarta.servlet.http.Cookie("cms_auth_token", staleToken)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.error").value("Unauthorized"));
+    }
+
+    @Test
+    @DisplayName("Should return 403 Forbidden for mutating requests when CSRF token is missing")
+    void protectedMutatingEndpoint_MissingCsrf_Returns403() throws Exception {
+        String token = jwtTokenProvider.generateToken(testUser.getId(), 1L);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/auth/change-password")
+                        .cookie(new jakarta.servlet.http.Cookie("cms_auth_token", token))
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"encodedSecretPassword\",\"newPassword\":\"newSecret123\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    @DisplayName("Should permit mutating requests when valid CSRF token and auth cookie are provided")
+    void protectedMutatingEndpoint_ValidCsrf_PassesSecurity() throws Exception {
+        String token = jwtTokenProvider.generateToken(testUser.getId(), 1L);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/auth/logout")
+                        .cookie(new jakarta.servlet.http.Cookie("cms_auth_token", token))
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 }

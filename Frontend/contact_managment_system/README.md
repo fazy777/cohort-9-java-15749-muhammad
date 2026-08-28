@@ -9,7 +9,7 @@ A responsive, glassmorphic Single Page Application (SPA) built with React 19 and
 The Contact Management System frontend provides an intuitive, high-performance interface for managing user accounts, authentication, and contacts.
 
 ### Key Capabilities
-* **Authentication**: Self-registration with email or phone, secure login, in-memory/session-managed token persistence, and profile password updates.
+* **Authentication**: Self-registration with email or phone, secure login, HttpOnly/Secure cookie session management, CSRF protection, and profile password updates.
 * **Contact Directory**: Real-time search, server-side pagination, sorting, and full CRUD operations.
 * **Multi-Attribute Contacts**: Support for multiple email addresses and phone numbers with custom labels (*Work, Personal, Mobile, Home*).
 * **Import & Export**: RFC 4180-compliant CSV and JSON export and bulk import with spreadsheet formula injection protection.
@@ -66,6 +66,7 @@ VITE_API_URL=http://localhost:8080/api
 ## 🔐 Authentication & Session Flow
 
 1. **Login & Registration**: Submits user credentials to the Spring Boot backend API.
-2. **Session Storage**: JWT tokens are stored in browser session storage (`sessionStorage`) via client-side access utilities (`safeStorage`) for session persistence across page reloads within the current browser session.
-3. **Automatic Revalidation**: Upon initial load, the user session is verified and fresh profile data is retrieved from `/api/auth/profile`.
-4. **Token Invalidation**: Changing passwords immediately invalidates existing tokens across devices via backend token versioning.
+2. **HttpOnly Cookie Token Storage**: Authentication JWT tokens are issued and managed as `HttpOnly`, `Secure`, and `SameSite=Lax` cookies directly by the backend server. Tokens are never exposed in JSON response bodies or stored in `localStorage`/`sessionStorage`, eliminating XSS-based token exfiltration risks.
+3. **CSRF Protection**: All mutating HTTP requests (`POST`, `PUT`, `DELETE`, `PATCH`) are guarded by Spring Security's Double Submit Cookie CSRF defense (`XSRF-TOKEN` cookie validated against the `X-XSRF-TOKEN` request header).
+4. **Automatic Revalidation**: Upon initial load and page refresh, the user session is verified and fresh profile data is retrieved from `/api/auth/profile` with `credentials: 'include'`.
+5. **Token Invalidation & Logout**: Changing passwords immediately increments backend token versioning, revoking sessions across devices. The `/api/auth/logout` endpoint clears the HttpOnly authentication cookie and invalidates the session.

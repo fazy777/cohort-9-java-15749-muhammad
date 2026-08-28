@@ -4,10 +4,12 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,8 +22,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Servlet filter that intercepts incoming HTTP requests, extracts JWT bearer tokens, validates claims,
- * checks token version against user state, and populates the Spring SecurityContextHolder.
+ * Servlet filter that intercepts incoming HTTP requests, extracts JWT tokens from HttpOnly cookies
+ * (or Authorization header fallback), validates claims, checks token version against user state,
+ * and populates the Spring SecurityContextHolder.
  */
 @Component
 @RequiredArgsConstructor
@@ -30,6 +33,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
+
+    @Value("${jwt.cookie.name:cms_auth_token}")
+    private String cookieName = "cms_auth_token";
 
     /**
      * Filters incoming HTTP requests to extract and validate JWT tokens and authenticate the principal.
@@ -94,12 +100,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extracts the Bearer token string from the HTTP Authorization header.
+     * Extracts the JWT token string from the HttpOnly cookie or the HTTP Authorization header fallback.
      *
      * @param request current HTTP request
-     * @return raw JWT token string without "Bearer " prefix, or null if missing
+     * @return raw JWT token string, or null if missing
      */
     private String getJwtFromRequest(HttpServletRequest request) {
+        // 1. Extract from HttpOnly cookie
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookieName.equals(cookie.getName()) && StringUtils.hasText(cookie.getValue())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
+        // 2. Fallback to Authorization header
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);

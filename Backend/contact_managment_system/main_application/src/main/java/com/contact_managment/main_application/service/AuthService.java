@@ -36,12 +36,12 @@ public class AuthService {
      * Registers a new user with normalized email/phone and encoded password.
      *
      * @param request the registration details
-     * @return the authentication response containing a JWT token and user info
+     * @return the authentication result containing user info and generated JWT token for cookie attachment
      * @throws BadRequestException if neither email nor phone is provided
      * @throws UserAlreadyExistsException if email or phone is already registered
      */
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResult register(RegisterRequest request) {
         log.debug("Registration attempt received");
         if (request == null) {
             throw new BadRequestException("Registration request payload cannot be null");
@@ -85,14 +85,17 @@ public class AuthService {
 
         String token = tokenProvider.generateToken(savedUser.getId(), savedUser.getTokenVersion());
 
-        return AuthResponse.builder()
-                .token(token)
-                .tokenType("Bearer")
+        AuthResponse authResponse = AuthResponse.builder()
                 .id(savedUser.getId())
                 .firstName(savedUser.getFirstName())
                 .lastName(savedUser.getLastName())
                 .email(savedUser.getEmail())
                 .phone(savedUser.getPhone())
+                .build();
+
+        return AuthResult.builder()
+                .authResponse(authResponse)
+                .token(token)
                 .build();
     }
 
@@ -100,11 +103,11 @@ public class AuthService {
      * Authenticates user credentials and issues a JWT token.
      *
      * @param request login credentials (email or phone, and password)
-     * @return authentication response containing token and user profile
+     * @return authentication result containing user profile and generated JWT token for cookie attachment
      * @throws InvalidCredentialsException if credentials are invalid
      */
     @Transactional(readOnly = true)
-    public AuthResponse login(LoginRequest request) {
+    public AuthResult login(LoginRequest request) {
         log.debug("Login attempt received");
         if (request == null) {
             throw new BadRequestException("Login request payload cannot be null");
@@ -140,14 +143,17 @@ public class AuthService {
         String token = tokenProvider.generateToken(user.getId(), version);
         log.info("User logged in successfully with ID: {}", user.getId());
 
-        return AuthResponse.builder()
-                .token(token)
-                .tokenType("Bearer")
+        AuthResponse authResponse = AuthResponse.builder()
                 .id(user.getId())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
+                .build();
+
+        return AuthResult.builder()
+                .authResponse(authResponse)
+                .token(token)
                 .build();
     }
 

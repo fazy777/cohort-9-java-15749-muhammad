@@ -1,21 +1,28 @@
 /**
  * @file Safe browser session storage helper with memory fallback and exception handling.
+ * Note: Authentication tokens are stored exclusively in HttpOnly/SameSite cookies to protect
+ * against XSS token exfiltration, and are never stored in localStorage or sessionStorage.
  */
 
 const memoryStore = new Map();
 const tombstonedKeys = new Set();
 
 /**
- * Clean up legacy localStorage items that may contain sensitive data from previous versions.
+ * Clean up legacy storage items (including any legacy tokens) that may exist from previous versions.
  */
 export const cleanupLegacyStorage = () => {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem('cms_token');
-      window.localStorage.removeItem('cms_user');
+    if (typeof window !== 'undefined') {
+      if (window.localStorage) {
+        window.localStorage.removeItem('cms_token');
+        window.localStorage.removeItem('cms_user');
+      }
+      if (window.sessionStorage) {
+        window.sessionStorage.removeItem('cms_token');
+      }
     }
   } catch (e) {
-    console.warn('Failed to clean legacy localStorage:', e);
+    console.warn('Failed to clean legacy storage:', e);
   }
 };
 
