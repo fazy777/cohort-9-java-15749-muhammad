@@ -1,0 +1,95 @@
+name: SonarQube CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # =========================================================================
+  # JOB 1: Backend Build, Test, JaCoCo Coverage & SonarQube Scan
+  # =========================================================================
+  backend-analysis:
+    name: Backend Analysis (Java + Spring Boot)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Backend/contact_managment_system/main_application
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones disabled for accurate SonarQube blame and history
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Build, Test, and Analyze with JaCoCo & SonarQube
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          chmod +x ./mvnw
+          ./mvnw clean verify sonar:sonar \
+            -Dsonar.projectKey=contact-management-system-backend \
+            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
+            -Dsonar.token="${{ secrets.SONAR_TOKEN }}" \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+
+  # =========================================================================
+  # JOB 2: Frontend Lint, Test & SonarQube Scan
+  # =========================================================================
+  frontend-analysis:
+    name: Frontend Analysis (React.js)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Frontend/contact_managment_system
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: Frontend/contact_managment_system/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Frontend Tests
+        run: npm test
+
+      - name: SonarQube Scanner CLI Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        with:
+          projectBaseDir: Frontend/contact_managment_system
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
