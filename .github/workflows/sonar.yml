@@ -45,25 +45,14 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
         run: |
           chmod +x ./mvnw
-          # Build arguments for maven
-          SONAR_ARGS="-Dsonar.projectKey=contact-management-system-backend -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml"
-          
-          if [ -n "${{ secrets.SONAR_HOST_URL }}" ]; then
-            SONAR_ARGS="$SONAR_ARGS -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}"
-          fi
-          
-          if [ -n "${{ secrets.SONAR_TOKEN }}" ]; then
-            SONAR_ARGS="$SONAR_ARGS -Dsonar.token=${{ secrets.SONAR_TOKEN }}"
-          fi
-          
-          if [ -n "${{ secrets.SONAR_ORGANIZATION }}" ]; then
-            SONAR_ARGS="$SONAR_ARGS -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}"
-          fi
-
-          ./mvnw clean verify sonar:sonar $SONAR_ARGS
+          ./mvnw clean verify sonar:sonar \
+            -Dsonar.projectKey=contact-management-system-backend \
+            -Dsonar.organization=fazy777 \
+            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}" \
+            -Dsonar.token="${{ secrets.SONAR_TOKEN }}" \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
 
   # =========================================================================
   # JOB 2: Frontend Lint, Test & SonarQube / SonarCloud Scan
@@ -103,7 +92,8 @@ jobs:
         with:
           projectBaseDir: Frontend/contact_managment_system
           args: >
-            ${{ secrets.SONAR_ORGANIZATION != '' && format('-Dsonar.organization={0}', secrets.SONAR_ORGANIZATION) || '' }}
+            -Dsonar.projectKey=contact-management-system-frontend
+            -Dsonar.organization=fazy777
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}

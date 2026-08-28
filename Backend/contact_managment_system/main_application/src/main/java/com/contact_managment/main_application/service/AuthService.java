@@ -22,15 +22,20 @@ import java.nio.charset.StandardCharsets;
  * Service managing user authentication, account creation, token generation, profile retrieval, and password rotation.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class AuthService {
-
-    private static final String DUMMY_PASSWORD_HASH = "$2a$10$wT8f6sQ4dJg0K8V5W6jJCe9sM/tJ4/m9yvE.e/L3Hw4H4u2x7C7nS";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final String dummyPasswordHash;
+
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.tokenProvider = tokenProvider;
+        this.dummyPasswordHash = passwordEncoder.encode("dummy-verification-secret");
+    }
 
     /**
      * Registers a new user with normalized email/phone and encoded password.
@@ -123,7 +128,7 @@ public class AuthService {
         }
 
         if (users.isEmpty()) {
-            passwordEncoder.matches(request.getPassword(), DUMMY_PASSWORD_HASH);
+            passwordEncoder.matches(request.getPassword(), this.dummyPasswordHash);
             log.warn("Login failed: User not found");
             throw new InvalidCredentialsException("Invalid email/phone or password");
         }
