@@ -179,4 +179,125 @@ describe('Authentication Session-Generation Race Condition Protection', () => {
     handleUnauthorizedEvent({ detail: { generation: currentGeneration } });
     assert.equal(loggedOut, true);
   });
+
+  test('Scenario C: Delayed login response arriving after logout does NOT restore authenticated user', async () => {
+    // 1. Initial unauthenticated state
+    assert.equal(getSessionGeneration(), 0);
+
+    // 2. User starts Login A -> advances generation to 1
+    const loginRequestGen = incrementSessionGeneration();
+    assert.equal(loginRequestGen, 1);
+    assert.equal(getSessionGeneration(), 1);
+
+    // 3. User cancels / logs out before Login A completes -> advances generation to 2
+    incrementSessionGeneration();
+    safeStorage.removeItem('cms_user');
+    assert.equal(getSessionGeneration(), 2);
+    assert.equal(safeStorage.getItem('cms_user'), null);
+
+    // 4. Delayed Login A response arrives with user payload
+    const userA = { id: 1, firstName: 'Alice', email: 'alice@example.com' };
+    let activeUser = null;
+
+    // Simulate AuthContext login resolution check
+    if (loginRequestGen === getSessionGeneration()) {
+      activeUser = userA;
+      safeStorage.setItem('cms_user', JSON.stringify(userA));
+    }
+
+    // 5. Verify response was rejected/ignored and user remains unauthenticated
+    assert.equal(activeUser, null);
+    assert.equal(safeStorage.getItem('cms_user'), null);
+  });
+
+  test('Scenario D: Slower login A response arriving after newer login B does NOT overwrite login B', async () => {
+    // 1. User starts Login A -> generation 1
+    const loginAGen = incrementSessionGeneration();
+    assert.equal(loginAGen, 1);
+
+    // 2. User switches credentials and starts Login B -> generation 2
+    const loginBGen = incrementSessionGeneration();
+    assert.equal(loginBGen, 2);
+
+    // 3. Login B resolves first
+    const userB = { id: 2, firstName: 'Bob', email: 'bob@example.com' };
+    let activeUser = null;
+
+    if (loginBGen === getSessionGeneration()) {
+      activeUser = userB;
+      safeStorage.setItem('cms_user', JSON.stringify(userB));
+    }
+    assert.equal(activeUser.firstName, 'Bob');
+    assert.equal(JSON.parse(safeStorage.getItem('cms_user')).firstName, 'Bob');
+
+    // 4. Stale Login A resolves later
+    const userA = { id: 1, firstName: 'Alice', email: 'alice@example.com' };
+    if (loginAGen === getSessionGeneration()) {
+      activeUser = userA;
+      safeStorage.setItem('cms_user', JSON.stringify(userA));
+    }
+
+    // 5. Verify Login A was discarded and Bob remains the active user
+    assert.equal(activeUser.id, 2);
+    assert.equal(activeUser.firstName, 'Bob');
+    const stored = JSON.parse(safeStorage.getItem('cms_user'));
+    assert.equal(stored.id, 2);
+    assert.equal(stored.firstName, 'Bob');
+  });
+
+  test('Scenario E: Delayed register response arriving after logout does NOT restore user', async () => {
+    // 1. User starts Register -> generation 1
+    const registerRequestGen = incrementSessionGeneration();
+    assert.equal(registerRequestGen, 1);
+
+    // 2. User logs out or resets -> generation 2
+    incrementSessionGeneration();
+    safeStorage.removeItem('cms_user');
+    assert.equal(getSessionGeneration(), 2);
+
+    // 3. Delayed Register response arrives
+    const newUser = { id: 10, firstName: 'Charlie', email: 'charlie@example.com' };
+    let activeUser = null;
+
+    if (registerRequestGen === getSessionGeneration()) {
+      activeUser = newUser;
+      safeStorage.setItem('cms_user', JSON.stringify(newUser));
+    }
+
+    // 4. Verify Register response is discarded
+    assert.equal(activeUser, null);
+    assert.equal(safeStorage.getItem('cms_user'), null);
+  });
+
+  test('Scenario F: Slower register response arriving after newer register does NOT overwrite active user', async () => {
+    // 1. Register Attempt 1 -> generation 1
+    const reg1Gen = incrementSessionGeneration();
+    assert.equal(reg1Gen, 1);
+
+    // 2. Register Attempt 2 -> generation 2
+    const reg2Gen = incrementSessionGeneration();
+    assert.equal(reg2Gen, 2);
+
+    // 3. Register Attempt 2 completes first
+    const user2 = { id: 20, firstName: 'Diana', email: 'diana@example.com' };
+    let activeUser = null;
+    if (reg2Gen === getSessionGeneration()) {
+      activeUser = user2;
+      safeStorage.setItem('cms_user', JSON.stringify(user2));
+    }
+
+    // 4. Register Attempt 1 completes later
+    const user1 = { id: 10, firstName: 'David', email: 'david@example.com' };
+    if (reg1Gen === getSessionGeneration()) {
+      activeUser = user1;
+      safeStorage.setItem('cms_user', JSON.stringify(user1));
+    }
+
+    // 5. Verify user 2 remains active and stored
+    assert.equal(activeUser.id, 20);
+    assert.equal(activeUser.firstName, 'Diana');
+    const stored = JSON.parse(safeStorage.getItem('cms_user'));
+    assert.equal(stored.id, 20);
+    assert.equal(stored.firstName, 'Diana');
+  });
 });

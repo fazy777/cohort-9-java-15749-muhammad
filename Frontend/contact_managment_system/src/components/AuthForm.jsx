@@ -39,8 +39,10 @@ export const AuthForm = ({ showToast }) => {
         if (new TextEncoder().encode(password).length > 72) {
           throw new Error('Password cannot exceed 72 bytes');
         }
-        await login({ credential: loginCredential.trim(), password });
-        showToast?.('Successfully logged in!', 'success');
+        const loggedUser = await login({ credential: loginCredential.trim(), password });
+        if (loggedUser) {
+          showToast?.('Successfully logged in!', 'success');
+        }
       } else {
         if (!firstName || !lastName || !password) {
           throw new Error('Please fill in all required fields');
@@ -56,14 +58,16 @@ export const AuthForm = ({ showToast }) => {
           throw new Error('Please enter a valid phone number');
         }
 
-        await register({
+        const registeredUser = await register({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           email: regType === 'email' ? email.trim() : null,
           phone: regType === 'phone' ? phone.trim() : null,
           password
         });
-        showToast?.('Account created successfully!', 'success');
+        if (registeredUser) {
+          showToast?.('Account created successfully!', 'success');
+        }
       }
     } catch (err) {
       showToast?.(err?.message || 'Authentication error', 'error');

@@ -121,30 +121,36 @@ export const AuthProvider = ({ children }) => {
   /**
    * Logs in a user with credentials.
    * @param {{ credential: string, password: string }} credentials - user login credentials
-   * @returns {Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>} authenticated user object
+   * @returns {Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null } | null>} authenticated user object
    */
   const login = useCallback(async (credentials) => {
     if (!credentials) throw new Error('Credentials are required');
+    const requestGen = incrementSessionGeneration();
     const res = await api.login(credentials);
     const data = res?.data;
     if (!data) throw new Error('Invalid login response from server');
 
-    incrementSessionGeneration();
+    if (getSessionGeneration() !== requestGen) {
+      return null;
+    }
     return handleAuthSuccess(data);
   }, [handleAuthSuccess]);
 
   /**
    * Registers a new user account.
    * @param {{ firstName: string, lastName: string, email?: string|null, phone?: string|null, password: string }} registerData - registration form data
-   * @returns {Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>} newly registered user object
+   * @returns {Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null } | null>} newly registered user object
    */
   const register = useCallback(async (registerData) => {
     if (!registerData) throw new Error('Registration data is required');
+    const requestGen = incrementSessionGeneration();
     const res = await api.register(registerData);
     const data = res?.data;
     if (!data) throw new Error('Invalid register response from server');
 
-    incrementSessionGeneration();
+    if (getSessionGeneration() !== requestGen) {
+      return null;
+    }
     return handleAuthSuccess(data);
   }, [handleAuthSuccess]);
 
@@ -187,8 +193,8 @@ export const AuthProvider = ({ children }) => {
  * @returns {{
  *   user: { id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null } | null,
  *   loading: boolean,
- *   login: (credentials: { credential: string, password: string }) => Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>,
- *   register: (registerData: { firstName: string, lastName: string, email?: string|null, phone?: string|null, password: string }) => Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }>,
+ *   login: (credentials: { credential: string, password: string }) => Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null } | null>,
+ *   register: (registerData: { firstName: string, lastName: string, email?: string|null, phone?: string|null, password: string }) => Promise<{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null } | null>,
  *   logout: () => Promise<void>,
  *   refreshProfile: () => Promise<void>
  * }} auth context value

@@ -53,7 +53,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://localhost:4173}")
+    @Value("${cors.allowed-origins:}")
     private String allowedOrigins;
 
     @Value("${spring.h2.console.enabled:false}")
