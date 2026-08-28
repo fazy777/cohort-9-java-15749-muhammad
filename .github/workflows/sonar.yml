@@ -11,7 +11,7 @@ on:
 
 jobs:
   # =========================================================================
-  # JOB 1: Backend Build, Test, JaCoCo Coverage & SonarQube Scan
+  # JOB 1: Backend Build, Test, JaCoCo Coverage & SonarQube / SonarCloud Scan
   # =========================================================================
   backend-analysis:
     name: Backend Analysis (Java + Spring Boot)
@@ -25,7 +25,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Shallow clones disabled for accurate SonarQube blame and history
+          fetch-depth: 0 # Shallow clones disabled for accurate Sonar blame and history
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -45,16 +45,28 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
         run: |
           chmod +x ./mvnw
-          ./mvnw clean verify sonar:sonar \
-            -Dsonar.projectKey=contact-management-system-backend \
-            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
-            -Dsonar.token="${{ secrets.SONAR_TOKEN }}" \
-            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+          # Build arguments for maven
+          SONAR_ARGS="-Dsonar.projectKey=contact-management-system-backend -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml"
+          
+          if [ -n "${{ secrets.SONAR_HOST_URL }}" ]; then
+            SONAR_ARGS="$SONAR_ARGS -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}"
+          fi
+          
+          if [ -n "${{ secrets.SONAR_TOKEN }}" ]; then
+            SONAR_ARGS="$SONAR_ARGS -Dsonar.token=${{ secrets.SONAR_TOKEN }}"
+          fi
+          
+          if [ -n "${{ secrets.SONAR_ORGANIZATION }}" ]; then
+            SONAR_ARGS="$SONAR_ARGS -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}"
+          fi
+
+          ./mvnw clean verify sonar:sonar $SONAR_ARGS
 
   # =========================================================================
-  # JOB 2: Frontend Lint, Test & SonarQube Scan
+  # JOB 2: Frontend Lint, Test & SonarQube / SonarCloud Scan
   # =========================================================================
   frontend-analysis:
     name: Frontend Analysis (React.js)
@@ -86,10 +98,12 @@ jobs:
       - name: Run Frontend Tests
         run: npm test
 
-      - name: SonarQube Scanner CLI Scan
+      - name: SonarQube / SonarCloud Scanner CLI Scan
         uses: SonarSource/sonarqube-scan-action@v4
         with:
           projectBaseDir: Frontend/contact_managment_system
+          args: >
+            ${{ secrets.SONAR_ORGANIZATION != '' && format('-Dsonar.organization={0}', secrets.SONAR_ORGANIZATION) || '' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
