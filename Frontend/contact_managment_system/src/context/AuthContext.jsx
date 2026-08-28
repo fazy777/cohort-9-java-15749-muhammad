@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, useContext, useCallback, useMemo } from 'react';
-import { api } from '../services/api';
-import { safeStorage, cleanupLegacyStorage } from '../utils/storage';
+import { api, getSessionGeneration, incrementSessionGeneration } from '../services/api.js';
+import { safeStorage, cleanupLegacyStorage } from '../utils/storage.js';
 
 const AuthContext = createContext(null);
 
@@ -30,12 +30,14 @@ export const AuthProvider = ({ children }) => {
    * Logs out the user, clears backend HttpOnly session cookies, and purges client user state.
    */
   const logout = useCallback(async () => {
+    incrementSessionGeneration();
     try {
       await api.logout();
     } catch (err) {
       console.warn('Logout request failed:', err);
     } finally {
       setUser(null);
+      setLoading(false);
       safeStorage.removeItem('cms_user');
       cleanupLegacyStorage();
     }
@@ -46,10 +48,11 @@ export const AuthProvider = ({ children }) => {
     let isActive = true;
 
     const initAuth = async () => {
+      const requestGen = getSessionGeneration();
       try {
         // Validate active session with backend via HttpOnly cookies
         const freshUser = await api.getProfile();
-        if (isActive) {
+        if (isActive && getSessionGeneration() === requestGen) {
           if (freshUser) {
             setUser(freshUser);
             safeStorage.setItem('cms_user', JSON.stringify(freshUser));
@@ -59,13 +62,13 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } catch (err) {
-        if (isActive) {
+        if (isActive && getSessionGeneration() === requestGen) {
           setUser(null);
           safeStorage.removeItem('cms_user');
         }
         console.warn('Session verification failed:', err);
       } finally {
-        if (isActive) {
+        if (isActive && getSessionGeneration() === requestGen) {
           setLoading(false);
         }
       }
@@ -79,7 +82,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const handleUnauthorizedEvent = () => {
+    const handleUnauthorizedEvent = (event) => {
+      const eventGen = event?.detail?.generation;
+      if (typeof eventGen === 'number' && eventGen < getSessionGeneration()) {
+        return;
+      }
       void logout();
     };
     if (typeof window !== 'undefined') {
@@ -105,6 +112,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     setUser(userObj);
+    setLoading(false);
     safeStorage.setItem('cms_user', JSON.stringify(userObj));
     cleanupLegacyStorage();
     return userObj;
@@ -121,6 +129,7 @@ export const AuthProvider = ({ children }) => {
     const data = res?.data;
     if (!data) throw new Error('Invalid login response from server');
 
+    incrementSessionGeneration();
     return handleAuthSuccess(data);
   }, [handleAuthSuccess]);
 
@@ -135,6 +144,7 @@ export const AuthProvider = ({ children }) => {
     const data = res?.data;
     if (!data) throw new Error('Invalid register response from server');
 
+    incrementSessionGeneration();
     return handleAuthSuccess(data);
   }, [handleAuthSuccess]);
 
@@ -144,9 +154,10 @@ export const AuthProvider = ({ children }) => {
    */
   const refreshProfile = useCallback(async () => {
     if (!user) return;
+    const requestGen = getSessionGeneration();
     try {
       const profile = await api.getProfile();
-      if (profile) {
+      if (profile && getSessionGeneration() === requestGen) {
         setUser(profile);
         safeStorage.setItem('cms_user', JSON.stringify(profile));
       }

@@ -1,4 +1,4 @@
-import { safeStorage } from '../utils/storage';
+import { safeStorage } from '../utils/storage.js';
 
 const BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:8080/api';
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -98,24 +98,68 @@ const TRANSFER_TIMEOUT_MS = 60000;
  * @property {'asc'|'desc'} [sortDir]
  */
 
+let sessionGeneration = 0;
+
+/**
+ * Returns the current non-secret authentication session generation counter.
+ * @returns {number}
+ */
+export const getSessionGeneration = () => sessionGeneration;
+
+/**
+ * Increments and returns the session generation counter when auth state changes (login, register, logout).
+ * @returns {number}
+ */
+export const incrementSessionGeneration = () => {
+  sessionGeneration += 1;
+  return sessionGeneration;
+};
+
+/**
+ * Resets the session generation counter (primarily used for test cleanup).
+ * @param {number} [val=0]
+ * @returns {number}
+ */
+export const resetSessionGeneration = (val = 0) => {
+  sessionGeneration = val;
+  return sessionGeneration;
+};
+
 /**
  * Extracts CSRF token from the XSRF-TOKEN cookie if present.
+ * Safely handles malformed percent-encoding by returning null on URIError.
  * @returns {string | null}
  */
-const getCsrfToken = () => {
+export const getCsrfToken = () => {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch (err) {
+    if (err instanceof URIError) {
+      return null;
+    }
+    throw err;
+  }
 };
 
 /**
  * Handles HTTP 401 Unauthorized by clearing cached session credentials and dispatching an auth event.
+ * Discards stale 401 events that belong to older session generations.
+ * @param {number} [requestGeneration] - generation when the request was initiated
  * @returns {void}
  */
-const handleUnauthorized = () => {
+export const handleUnauthorized = (requestGeneration) => {
+  const currentGen = getSessionGeneration();
+  if (typeof requestGeneration === 'number' && requestGeneration < currentGen) {
+    return;
+  }
   safeStorage.removeItem('cms_user');
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    window.dispatchEvent(new CustomEvent('auth:unauthorized', {
+      detail: { generation: typeof requestGeneration === 'number' ? requestGeneration : currentGen }
+    }));
   }
 };
 
@@ -128,6 +172,7 @@ const handleUnauthorized = () => {
  * @returns {Promise<any>}
  */
 const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) => {
+  const requestGeneration = getSessionGeneration();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -174,7 +219,7 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
     }
 
     if (response.status === 401 && !isAuthEndpoint) {
-      handleUnauthorized();
+      handleUnauthorized(requestGeneration);
     }
 
     if (!response.ok) {
@@ -357,5 +402,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(contactsList)
     }, TRANSFER_TIMEOUT_MS);
-  }
+  },
+
+  getSessionGeneration,
+  incrementSessionGeneration,
+  resetSessionGeneration,
+  getCsrfToken,
+  handleUnauthorized
 };
+

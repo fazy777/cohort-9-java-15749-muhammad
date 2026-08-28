@@ -66,7 +66,7 @@ VITE_API_URL=http://localhost:8080/api
 ## 🔐 Authentication & Session Flow
 
 1. **Login & Registration**: Submits user credentials to the Spring Boot backend API.
-2. **HttpOnly Cookie Token Storage**: Authentication JWT tokens are issued and managed as `HttpOnly`, `Secure`, and `SameSite=Lax` cookies directly by the backend server. Tokens are never exposed in JSON response bodies or stored in `localStorage`/`sessionStorage`, eliminating XSS-based token exfiltration risks.
+2. **HttpOnly Cookie Token Storage**: Authentication JWT tokens are issued and managed as `HttpOnly`, `Secure`, and `SameSite=Lax` cookies directly by the backend server. Secure cookies are enabled by default (`jwt.cookie.secure=true`) in the base configuration. `Secure=false` is strictly an explicit development-only override for local HTTP testing (via `application-dev.properties` or `JWT_COOKIE_SECURE=false`), and production deployments must never disable `Secure`. Tokens are never exposed in JSON response bodies or stored in `localStorage`/`sessionStorage`, eliminating XSS-based token exfiltration risks.
 3. **CSRF Protection**: All mutating HTTP requests (`POST`, `PUT`, `DELETE`, `PATCH`) are guarded by Spring Security's Double Submit Cookie CSRF defense (`XSRF-TOKEN` cookie validated against the `X-XSRF-TOKEN` request header).
 4. **Automatic Revalidation**: Upon initial load and page refresh, the user session is verified and fresh profile data is retrieved from `/api/auth/profile` with `credentials: 'include'`.
 5. **Token Invalidation & Logout**: Changing passwords immediately increments backend token versioning, revoking sessions across devices. The `/api/auth/logout` endpoint clears the HttpOnly authentication cookie and invalidates the session.

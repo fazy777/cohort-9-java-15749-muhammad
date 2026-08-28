@@ -29,7 +29,7 @@ public class AuthController {
     @Value("${jwt.cookie.name:cms_auth_token}")
     private String cookieName;
 
-    @Value("${jwt.cookie.secure:false}")
+    @Value("${jwt.cookie.secure:true}")
     private boolean cookieSecure;
 
     @Value("${jwt.cookie.same-site:Lax}")
