@@ -20,16 +20,31 @@ GO
 -- Schema Version Tracking Table
 -- Tracks applied schema version migrations safely
 -- ============================================================================
-IF OBJECT_ID(N'dbo.schema_migrations', N'U') IS NULL
-BEGIN
-    CREATE TABLE dbo.schema_migrations (
-        version NVARCHAR(50) NOT NULL CONSTRAINT PK_schema_migrations PRIMARY KEY,
-        description NVARCHAR(255) NOT NULL,
-        installed_on DATETIME2 NOT NULL CONSTRAINT DF_schema_migrations_installed_on DEFAULT (SYSUTCDATETIME()),
-        execution_time_ms BIGINT NOT NULL,
-        success BIT NOT NULL
-    );
-END
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    IF OBJECT_ID(N'dbo.schema_migrations', N'U') IS NULL
+    BEGIN
+        CREATE TABLE dbo.schema_migrations (
+            version NVARCHAR(50) NOT NULL CONSTRAINT PK_schema_migrations PRIMARY KEY,
+            description NVARCHAR(255) NOT NULL,
+            installed_on DATETIME2 NOT NULL CONSTRAINT DF_schema_migrations_installed_on DEFAULT (SYSUTCDATETIME()),
+            execution_time_ms BIGINT NOT NULL,
+            success BIT NOT NULL
+        );
+    END
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0
+    BEGIN
+        ROLLBACK TRANSACTION;
+    END
+
+    -- Re-throw the original error to alert the deployment pipeline
+    THROW;
+END CATCH;
 GO
 
 -- ============================================================================
