@@ -7,10 +7,23 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 
 -- Ensure Database exists (if run at server level)
-IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = N'ContactDB')
-BEGIN
-    CREATE DATABASE ContactDB;
-END
+BEGIN TRY
+    IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = N'ContactDB')
+    BEGIN
+        CREATE DATABASE ContactDB;
+    END
+END TRY
+BEGIN CATCH
+    -- Error 1801: Database already exists (handles race condition if another session created it concurrently)
+    IF ERROR_NUMBER() = 1801 AND DB_ID(N'ContactDB') IS NOT NULL
+    BEGIN
+        PRINT N'Database ContactDB already exists.';
+    END
+    ELSE
+    BEGIN
+        THROW;
+    END
+END CATCH;
 GO
 
 USE ContactDB;
