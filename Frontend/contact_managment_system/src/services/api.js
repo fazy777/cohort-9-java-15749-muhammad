@@ -212,10 +212,11 @@ export const handleUnauthorized = (requestGeneration) => {
 /**
  * Performs an HTTP fetch request with timeout abort signal, credentials for HttpOnly cookies,
  * centralized CSRF headers, and error handling.
+ * @template [T=unknown]
  * @param {string} endpoint - API path relative to BASE_URL
  * @param {RequestInit} [options={}] - fetch options (method, body, headers)
  * @param {number} [timeoutMs=15000] - request timeout in milliseconds
- * @returns {Promise<any>}
+ * @returns {Promise<T>}
  */
 const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) => {
   const requestGeneration = getSessionGeneration();
@@ -278,11 +279,17 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
     }
 
     if (!response.ok) {
-      const errorMessage = result?.message || result?.error || `Request failed with status ${response.status}`;
+      const errorMessage = (result && typeof result === 'object' && ('message' in result || 'error' in result))
+        ? (result.message || result.error)
+        : `Request failed with status ${response.status}`;
       throw new Error(errorMessage);
     }
 
-    return result;
+    if (result != null && typeof result !== 'object') {
+      throw new Error('Invalid response shape from server');
+    }
+
+    return /** @type {T} */ (result);
   } catch (err) {
     if (callerSignal?.aborted) {
       const abortErr = new Error('Authentication request was superseded or aborted', { cause: err });

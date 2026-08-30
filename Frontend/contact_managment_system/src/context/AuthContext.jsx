@@ -27,21 +27,28 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   /**
+   * Helper that purges client user authentication state and storage.
+   */
+  const clearAuthState = useCallback(() => {
+    setUser(null);
+    setLoading(false);
+    safeStorage.removeItem('cms_user');
+    cleanupLegacyStorage();
+  }, []);
+
+  /**
    * Logs out the user, clears backend HttpOnly session cookies, and purges client user state.
    */
   const logout = useCallback(async () => {
     incrementSessionGeneration();
     try {
       await api.logout();
+      clearAuthState();
     } catch (err) {
       console.warn('Logout request failed:', err);
-    } finally {
-      setUser(null);
-      setLoading(false);
-      safeStorage.removeItem('cms_user');
-      cleanupLegacyStorage();
+      throw err;
     }
-  }, []);
+  }, [clearAuthState]);
 
   useEffect(() => {
     cleanupLegacyStorage();
@@ -87,7 +94,7 @@ export const AuthProvider = ({ children }) => {
       if (typeof eventGen === 'number' && eventGen < getSessionGeneration()) {
         return;
       }
-      void logout();
+      clearAuthState();
     };
     if (typeof window !== 'undefined') {
       window.addEventListener('auth:unauthorized', handleUnauthorizedEvent);
@@ -95,7 +102,7 @@ export const AuthProvider = ({ children }) => {
         window.removeEventListener('auth:unauthorized', handleUnauthorizedEvent);
       };
     }
-  }, [logout]);
+  }, [clearAuthState]);
 
   /**
    * Helper that updates authentication state upon login/register success.

@@ -276,10 +276,12 @@ const MainDashboard = () => {
         onClose={() => setIsDetailOpen(false)}
         contact={detailContact}
         onEdit={(c) => {
+          setIsDetailOpen(false);
           setEditingContact(c);
           setIsFormOpen(true);
         }}
         onDelete={(c) => {
+          setIsDetailOpen(false);
           setDeletingContact(c);
           setIsDeleteOpen(true);
         }}

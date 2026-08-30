@@ -30,12 +30,27 @@ USE ContactDB;
 GO
 
 -- ============================================================================
--- Schema Version Tracking Table
--- Tracks applied schema version migrations safely
+-- Schema Version Tracking Table & Migration V1.0.0 Execution
+-- Serialized via transaction-owned SQL Server application lock to prevent
+-- concurrent deployment race conditions.
 -- ============================================================================
 BEGIN TRY
     BEGIN TRANSACTION;
 
+    -- Acquire application lock to serialize concurrent migrations
+    DECLARE @LockResult INT;
+    EXEC @LockResult = sp_getapplock 
+        @Resource = N'ContactDB_SchemaMigration', 
+        @LockMode = N'Exclusive', 
+        @LockOwner = N'Transaction', 
+        @LockTimeout = 60000;
+
+    IF @LockResult < 0
+    BEGIN
+        THROW 50000, N'Unable to acquire exclusive schema migration lock.', 1;
+    END;
+
+    -- Schema Version Tracking Table
     IF OBJECT_ID(N'dbo.schema_migrations', N'U') IS NULL
     BEGIN
         CREATE TABLE dbo.schema_migrations (
@@ -45,28 +60,10 @@ BEGIN TRY
             execution_time_ms BIGINT NOT NULL,
             success BIT NOT NULL
         );
-    END
+    END;
 
-    COMMIT TRANSACTION;
-END TRY
-BEGIN CATCH
-    IF @@TRANCOUNT > 0
-    BEGIN
-        ROLLBACK TRANSACTION;
-    END
-
-    -- Re-throw the original error to alert the deployment pipeline
-    THROW;
-END CATCH;
-GO
-
--- ============================================================================
--- Migration V1.0.0: Initial Relational Schema
--- Preserves existing data, creates missing objects idempotently, handles errors safely.
--- ============================================================================
-BEGIN TRY
-    BEGIN TRANSACTION;
-
+    -- Migration V1.0.0: Initial Relational Schema
+    -- Preserves existing data, creates missing objects idempotently, handles errors safely.
     DECLARE @MigrationVersion NVARCHAR(50) = N'1.0.0';
     DECLARE @StartTime DATETIME2 = SYSUTCDATETIME();
 

@@ -12,8 +12,6 @@ import lombok.*;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class ContactPhone {
 
     @Id
@@ -31,4 +29,16 @@ public class ContactPhone {
     @JsonBackReference("contact-phones")
     @Setter(AccessLevel.PACKAGE)
     private Contact contact;
+
+    /**
+     * Constructor used by Lombok's builder.
+     * Excludes the contact reference so construction cannot bypass
+     * Contact relationship management methods (e.g. Contact.addPhone).
+     */
+    @Builder
+    public ContactPhone(Long id, String phoneNumber, String label) {
+        this.id = id;
+        this.phoneNumber = phoneNumber;
+        this.label = label;
+    }
 }

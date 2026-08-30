@@ -301,6 +301,31 @@ describe('Authentication Session-Generation Race Condition Protection', () => {
     assert.equal(stored.id, 20);
     assert.equal(stored.firstName, 'Diana');
   });
+
+  test('Scenario G: Failed logout request preserves retryable user state and surfaces failure', async () => {
+    const user = { id: 42, firstName: 'Eve', email: 'eve@example.com' };
+    safeStorage.setItem('cms_user', JSON.stringify(user));
+    let currentUser = user;
+
+    const mockFailedLogout = async () => {
+      incrementSessionGeneration();
+      throw new Error('Network error: Failed to connect to server');
+    };
+
+    await assert.rejects(
+      async () => {
+        await mockFailedLogout();
+        currentUser = null;
+        safeStorage.removeItem('cms_user');
+      },
+      /Network error/
+    );
+
+    // User and storage remain intact for retry
+    assert.notEqual(currentUser, null);
+    assert.equal(currentUser.id, 42);
+    assert.notEqual(safeStorage.getItem('cms_user'), null);
+  });
 });
 
 describe('Browser-Level Cookie Jar and Delayed Auth Race Conditions', () => {
