@@ -68,6 +68,22 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
   };
 
   /**
+   * Handles user logout, guards against concurrent submissions, and informs user upon error.
+   */
+  const handleLogout = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await logout?.();
+      onClose?.();
+    } catch (err) {
+      showToast?.(err?.message || 'Failed to logout', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /**
    * Submits password change request, logs user out, and informs user upon success.
    * @param {import('react').FormEvent} [e]
    */
@@ -190,7 +206,8 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
               <button
                 type="button"
                 className="btn btn-danger btn-sm"
-                onClick={() => { onClose?.(); logout?.(); }}
+                onClick={handleLogout}
+                disabled={submitting}
               >
                 <LogOut size={16} /> Logout
               </button>

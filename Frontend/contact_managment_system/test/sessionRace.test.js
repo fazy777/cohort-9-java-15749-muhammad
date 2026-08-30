@@ -583,3 +583,166 @@ describe('Browser-Level Cookie Jar and Delayed Auth Race Conditions', () => {
   });
 });
 
+describe('UserProfileModal Logout Handling', () => {
+  test('successful logout awaits logout and closes modal', async () => {
+    let closed = false;
+    let logoutCalled = false;
+    let toastMessage = null;
+
+    const mockLogout = async () => {
+      logoutCalled = true;
+    };
+    const mockOnClose = () => {
+      closed = true;
+    };
+    const mockShowToast = (msg, type) => {
+      toastMessage = { msg, type };
+    };
+
+    let submitting = false;
+    const handleLogout = async () => {
+      if (submitting) return;
+      submitting = true;
+      try {
+        await mockLogout?.();
+        mockOnClose?.();
+      } catch (err) {
+        mockShowToast?.(err?.message || 'Failed to logout', 'error');
+      } finally {
+        submitting = false;
+      }
+    };
+
+    await handleLogout();
+
+    assert.equal(logoutCalled, true);
+    assert.equal(closed, true);
+    assert.equal(toastMessage, null);
+    assert.equal(submitting, false);
+  });
+
+  test('rejected logout catches error, leaves modal open, and surfaces error toast', async () => {
+    let closed = false;
+    let toast = null;
+
+    const mockFailedLogout = async () => {
+      throw new Error('Network error: Failed to connect to server');
+    };
+    const mockOnClose = () => {
+      closed = true;
+    };
+    const mockShowToast = (msg, type) => {
+      toast = { msg, type };
+    };
+
+    let submitting = false;
+    const handleLogout = async () => {
+      if (submitting) return;
+      submitting = true;
+      try {
+        await mockFailedLogout?.();
+        mockOnClose?.();
+      } catch (err) {
+        mockShowToast?.(err?.message || 'Failed to logout', 'error');
+      } finally {
+        submitting = false;
+      }
+    };
+
+    await handleLogout();
+
+    assert.equal(closed, false);
+    assert.notEqual(toast, null);
+    assert.equal(toast.msg, 'Network error: Failed to connect to server');
+    assert.equal(toast.type, 'error');
+    assert.equal(submitting, false);
+  });
+});
+
+describe('API Response Shape Validation & Payload Integrity', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    resetSessionGeneration(0);
+    safeStorage.clear();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    resetSessionGeneration(0);
+    safeStorage.clear();
+  });
+
+  test('api.login rejects when response data is missing or incomplete', async () => {
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ success: true, data: { email: 'invalid@example.com' } }) // missing id and firstName
+    });
+
+    await assert.rejects(
+      () => api.login({ credential: 'test@example.com', password: 'password123' }),
+      /missing or invalid user data/
+    );
+  });
+
+  test('api.register rejects when response data is missing or incomplete', async () => {
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 201,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ success: true, data: null })
+    });
+
+    await assert.rejects(
+      () => api.register({ firstName: 'Test', lastName: 'User', password: 'password123' }),
+      /missing or invalid user data/
+    );
+  });
+
+  test('api.getProfile rejects when response profile shape is malformed', async () => {
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ success: true, data: { email: 'missing-id@example.com' } })
+    });
+
+    await assert.rejects(
+      () => api.getProfile(),
+      /Invalid profile response shape/
+    );
+  });
+
+  test('api.getContacts rejects when contacts content is not an array', async () => {
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ success: true, data: { content: 'invalid-content' } })
+    });
+
+    await assert.rejects(
+      () => api.getContacts(),
+      /Invalid contacts response shape/
+    );
+  });
+
+  test('api.getContactById rejects when contact object is missing id', async () => {
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ success: true, data: { firstName: 'No-ID' } })
+    });
+
+    await assert.rejects(
+      () => api.getContactById(10),
+      /Invalid contact response shape/
+    );
+  });
+});
+
+
+

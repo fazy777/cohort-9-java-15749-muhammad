@@ -210,13 +210,27 @@ export const handleUnauthorized = (requestGeneration) => {
 };
 
 /**
+ * Validates that an object contains required user fields (id and non-empty firstName).
+ * @param {any} user - candidate user object
+ * @returns {boolean}
+ */
+const isValidUserData = (user) => {
+  return (
+    user != null &&
+    typeof user === 'object' &&
+    (typeof user.id === 'number' || (typeof user.id === 'string' && user.id.trim().length > 0)) &&
+    typeof user.firstName === 'string' &&
+    user.firstName.trim().length > 0
+  );
+};
+
+/**
  * Performs an HTTP fetch request with timeout abort signal, credentials for HttpOnly cookies,
  * centralized CSRF headers, and error handling.
- * @template [T=unknown]
  * @param {string} endpoint - API path relative to BASE_URL
  * @param {RequestInit} [options={}] - fetch options (method, body, headers)
  * @param {number} [timeoutMs=15000] - request timeout in milliseconds
- * @returns {Promise<T>}
+ * @returns {Promise<unknown>}
  */
 const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) => {
   const requestGeneration = getSessionGeneration();
@@ -289,7 +303,7 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
       throw new Error('Invalid response shape from server');
     }
 
-    return /** @type {T} */ (result);
+    return result;
   } catch (err) {
     if (callerSignal?.aborted) {
       const abortErr = new Error('Authentication request was superseded or aborted', { cause: err });
@@ -327,13 +341,17 @@ export const api = {
    */
   async register(data) {
     if (!data) throw new Error('Registration data is required');
-    return serializeAuth((signal) =>
-      request('/auth/register', {
+    return serializeAuth(async (signal) => {
+      const result = await request('/auth/register', {
         method: 'POST',
         body: JSON.stringify(data),
         signal
-      })
-    );
+      });
+      if (!result || typeof result !== 'object' || !isValidUserData(result.data)) {
+        throw new Error('Invalid response shape from server: missing or invalid user data');
+      }
+      return result;
+    });
   },
 
   /**
@@ -344,13 +362,17 @@ export const api = {
    */
   async login(data) {
     if (!data) throw new Error('Login credentials are required');
-    return serializeAuth((signal) =>
-      request('/auth/login', {
+    return serializeAuth(async (signal) => {
+      const result = await request('/auth/login', {
         method: 'POST',
         body: JSON.stringify(data),
         signal
-      })
-    );
+      });
+      if (!result || typeof result !== 'object' || !isValidUserData(result.data)) {
+        throw new Error('Invalid response shape from server: missing or invalid user data');
+      }
+      return result;
+    });
   },
 
   /**
@@ -359,12 +381,16 @@ export const api = {
    * @returns {Promise<ApiResponse<void>>}
    */
   async logout() {
-    return serializeAuth((signal) =>
-      request('/auth/logout', {
+    return serializeAuth(async (signal) => {
+      const result = await request('/auth/logout', {
         method: 'POST',
         signal
-      })
-    );
+      });
+      if (!result || typeof result !== 'object') {
+        throw new Error('Invalid logout response shape from server');
+      }
+      return result;
+    });
   },
 
   /**
@@ -373,7 +399,13 @@ export const api = {
    */
   async getProfile() {
     const result = await request('/auth/profile');
-    return result?.data ?? null;
+    if (!result || typeof result !== 'object' || !result.data) {
+      return null;
+    }
+    if (!isValidUserData(result.data)) {
+      throw new Error('Invalid profile response shape from server');
+    }
+    return result.data;
   },
 
   /**
@@ -383,10 +415,14 @@ export const api = {
    */
   async changePassword(data) {
     if (!data) throw new Error('Change password data is required');
-    return request('/auth/change-password', {
+    const result = await request('/auth/change-password', {
       method: 'POST',
       body: JSON.stringify(data)
     });
+    if (!result || typeof result !== 'object') {
+      throw new Error('Invalid change password response shape from server');
+    }
+    return result;
   },
 
   /**
@@ -405,7 +441,13 @@ export const api = {
     });
 
     const result = await request(`/contacts?${queryParams.toString()}`);
-    return result?.data ?? null;
+    if (!result || typeof result !== 'object' || !result.data) {
+      return null;
+    }
+    if (typeof result.data !== 'object' || !Array.isArray(result.data.content)) {
+      throw new Error('Invalid contacts response shape from server');
+    }
+    return result.data;
   },
 
   /**
@@ -416,7 +458,13 @@ export const api = {
   async getContactById(id) {
     if (id == null) throw new Error('Contact ID is required');
     const result = await request(`/contacts/${id}`);
-    return result?.data ?? null;
+    if (!result || typeof result !== 'object' || !result.data) {
+      return null;
+    }
+    if (typeof result.data !== 'object' || result.data.id == null) {
+      throw new Error('Invalid contact response shape from server');
+    }
+    return result.data;
   },
 
   /**
@@ -430,7 +478,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data)
     });
-    return result?.data ?? null;
+    if (!result || typeof result !== 'object' || !result.data) {
+      return null;
+    }
+    if (typeof result.data !== 'object' || result.data.id == null) {
+      throw new Error('Invalid contact creation response shape from server');
+    }
+    return result.data;
   },
 
   /**
@@ -446,7 +500,13 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data)
     });
-    return result?.data ?? null;
+    if (!result || typeof result !== 'object' || !result.data) {
+      return null;
+    }
+    if (typeof result.data !== 'object' || result.data.id == null) {
+      throw new Error('Invalid contact update response shape from server');
+    }
+    return result.data;
   },
 
   /**
@@ -456,9 +516,13 @@ export const api = {
    */
   async deleteContact(id) {
     if (id == null) throw new Error('Contact ID is required');
-    return request(`/contacts/${id}`, {
+    const result = await request(`/contacts/${id}`, {
       method: 'DELETE'
     });
+    if (!result || typeof result !== 'object') {
+      throw new Error('Invalid delete contact response shape from server');
+    }
+    return result;
   },
 
   /**
@@ -467,7 +531,13 @@ export const api = {
    */
   async exportContacts() {
     const result = await request('/contacts/export', {}, TRANSFER_TIMEOUT_MS);
-    return result?.data ?? null;
+    if (!result || typeof result !== 'object' || !result.data) {
+      return null;
+    }
+    if (!Array.isArray(result.data)) {
+      throw new Error('Invalid contact export response shape from server');
+    }
+    return result.data;
   },
 
   /**
@@ -477,10 +547,14 @@ export const api = {
    */
   async importContacts(contactsList) {
     if (!Array.isArray(contactsList)) throw new Error('Contacts list must be an array');
-    return request('/contacts/import', {
+    const result = await request('/contacts/import', {
       method: 'POST',
       body: JSON.stringify(contactsList)
     }, TRANSFER_TIMEOUT_MS);
+    if (!result || typeof result !== 'object') {
+      throw new Error('Invalid contact import response shape from server');
+    }
+    return result;
   },
 
   getSessionGeneration,

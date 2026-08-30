@@ -110,12 +110,16 @@ export const AuthProvider = ({ children }) => {
    * @returns {{ id: number|string, firstName: string, lastName: string, email: string|null, phone: string|null }}
    */
   const handleAuthSuccess = useCallback((data) => {
+    if (!data || typeof data !== 'object' || data.id == null || !data.firstName) {
+      throw new Error('Invalid authentication response: missing required user properties');
+    }
+
     const userObj = {
       id: data.id,
       firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phone: data.phone
+      lastName: data.lastName || '',
+      email: data.email || null,
+      phone: data.phone || null
     };
 
     setUser(userObj);
