@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: contact-management-backend
+    env: docker
+    dockerfilePath: Backend/contact_managment_system/main_application/Dockerfile
+    dockerContext: Backend/contact_managment_system/main_application
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: CORS_ALLOWED_ORIGINS
+        value: http://localhost:5173
+      - key: JWT_SECRET
+        generateValue: true

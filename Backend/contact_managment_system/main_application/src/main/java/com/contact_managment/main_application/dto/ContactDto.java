@@ -1,0 +1,50 @@
+package com.contact_managment.main_application.dto;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Data transfer object for contact information including names, title, notes, and collections of emails/phones.
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ContactDto {
+
+    private Long id;
+
+    @NotBlank(message = "First name is required")
+    @Size(max = 100, message = "First name cannot exceed 100 characters")
+    private String firstName;
+
+    @NotBlank(message = "Last name is required")
+    @Size(max = 100, message = "Last name cannot exceed 100 characters")
+    private String lastName;
+
+    @Size(max = 100, message = "Title cannot exceed 100 characters")
+    private String title;
+
+    @Size(max = 500, message = "Notes cannot exceed 500 characters")
+    private String notes;
+
+    @Valid
+    @Size(max = 50, message = "Cannot exceed 50 email addresses")
+    @Builder.Default
+    private List<@NotNull(message = "Email entry cannot be null") @Valid ContactEmailDto> emails = new ArrayList<>();
+
+    @Valid
+    @Size(max = 50, message = "Cannot exceed 50 phone numbers")
+    @Builder.Default
+    private List<@NotNull(message = "Phone entry cannot be null") @Valid ContactPhoneDto> phones = new ArrayList<>();
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}

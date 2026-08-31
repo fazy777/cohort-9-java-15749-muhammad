@@ -1,0 +1,101 @@
+name: SonarQube CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # =========================================================================
+  # JOB 1: Backend Build, Test, JaCoCo Coverage & SonarQube / SonarCloud Scan
+  # =========================================================================
+  backend-analysis:
+    name: Backend Analysis (Java + Spring Boot)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Backend/contact_managment_system/main_application
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones disabled for accurate Sonar blame and history
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Build, Test, and Analyze with JaCoCo & SonarQube
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+        run: |
+          chmod +x ./mvnw
+          ./mvnw clean verify sonar:sonar \
+            -Dsonar.projectKey=contact-management-system-backend \
+            -Dsonar.organization=fazy777 \
+            -Dsonar.host.url="$SONAR_HOST_URL" \
+            -Dsonar.token="$SONAR_TOKEN" \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+
+  # =========================================================================
+  # JOB 2: Frontend Lint, Test & SonarQube / SonarCloud Scan
+  # =========================================================================
+  frontend-analysis:
+    name: Frontend Analysis (React.js)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Frontend/contact_managment_system
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: Frontend/contact_managment_system/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Frontend Tests
+        run: npm test
+
+      - name: SonarQube / SonarCloud Scanner CLI Scan
+        uses: SonarSource/sonarqube-scan-action@689fb39b34b9aa95ebc5f8f119343ddd51542402 # v4.2.2
+        with:
+          projectBaseDir: Frontend/contact_managment_system
+          args: >
+            -Dsonar.projectKey=contact-management-system-frontend
+            -Dsonar.organization=fazy777
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}

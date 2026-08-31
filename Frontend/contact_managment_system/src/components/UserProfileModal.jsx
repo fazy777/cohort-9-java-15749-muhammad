@@ -1,0 +1,312 @@
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
+import { User, Mail, Phone, LogOut, KeyRound, X, RotateCcw } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
+
+/**
+ * User profile modal dialog displaying account metadata and providing a password change form.
+ *
+ * @param {{
+ *   isOpen: boolean,
+ *   onClose: () => void,
+ *   showToast?: (msg: string, type: string) => void
+ * }} props
+ * @returns {JSX.Element|null}
+ */
+export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
+  const { user, logout } = useAuth();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const currentPasswordRef = useRef(null);
+  const changePasswordBtnRef = useRef(null);
+  const prevShowPasswordRef = useRef(showPasswordModal);
+
+  /**
+   * Guards modal dismissal while a password update operation is in progress.
+   */
+  const handleModalClose = () => {
+    if (submitting) return;
+    onClose?.();
+  };
+
+  const modalRef = useModalA11y(isOpen, handleModalClose);
+
+  useEffect(() => {
+    if (prevShowPasswordRef.current !== showPasswordModal) {
+      if (showPasswordModal) {
+        currentPasswordRef.current?.focus();
+      } else {
+        changePasswordBtnRef.current?.focus();
+      }
+      prevShowPasswordRef.current = showPasswordModal;
+    }
+  }, [showPasswordModal]);
+
+  useEffect(() => {
+    if (!isOpen || !user) {
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordModal(false);
+    }
+  }, [isOpen, user]);
+
+  if (!isOpen || !user) return null;
+
+  /**
+   * Resets password change input fields.
+   */
+  const handleResetPasswordForm = () => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  /**
+   * Handles user logout, guards against concurrent submissions, and informs user upon error.
+   */
+  const handleLogout = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await logout?.();
+      onClose?.();
+    } catch (err) {
+      showToast?.(err?.message || 'Failed to logout', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /**
+   * Submits password change request, logs user out, and informs user upon success.
+   * @param {import('react').FormEvent} [e]
+   */
+  const handleChangePassword = async (e) => {
+    e?.preventDefault();
+    if (newPassword !== confirmPassword) {
+      showToast?.('New passwords do not match', 'error');
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      showToast?.('Password must be at least 6 characters long', 'error');
+      return;
+    }
+
+    const currentPasswordBytes = new TextEncoder().encode(currentPassword || '').length;
+    if (currentPasswordBytes > 72) {
+      showToast?.('Current password cannot exceed 72 bytes', 'error');
+      return;
+    }
+
+    const newPasswordBytes = new TextEncoder().encode(newPassword).length;
+    if (newPasswordBytes > 72) {
+      showToast?.('Password cannot exceed 72 bytes', 'error');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.changePassword({ currentPassword, newPassword });
+      showToast?.('Password changed successfully! Please sign in again with your new password.', 'success');
+      handleResetPasswordForm();
+      setShowPasswordModal(false);
+      onClose?.();
+      logout?.();
+    } catch (err) {
+      showToast?.(err?.message || 'Failed to change password', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={handleModalClose}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-profile-modal-title"
+        className="modal-container"
+        onClick={(e) => e?.stopPropagation()}
+        style={{ maxWidth: '520px' }}
+      >
+        <div className="modal-header">
+          <h3 id="user-profile-modal-title" style={{ fontSize: '1.25rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <User size={22} color="var(--accent-primary)" /> User Profile
+          </h3>
+          <button
+            type="button"
+            aria-label="Close profile"
+            onClick={handleModalClose}
+            disabled={submitting}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: submitting ? 'not-allowed' : 'pointer' }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {!showPasswordModal ? (
+          <div>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '1rem',
+              marginBottom: '1.5rem',
+              background: 'rgba(15, 23, 42, 0.4)',
+              borderRadius: 'var(--radius-lg)'
+            }}>
+              <div style={{
+                width: '72px',
+                height: '72px',
+                borderRadius: '50%',
+                background: 'var(--accent-gradient)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontSize: '1.8rem',
+                fontWeight: '700',
+                marginBottom: '0.75rem',
+                boxShadow: 'var(--accent-glow)'
+              }}>
+                {user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <h4 style={{ fontSize: '1.3rem', fontWeight: '700' }}>
+                {user?.firstName} {user?.lastName}
+              </h4>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Account Owner</p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)' }}>
+                <Mail size={18} color="var(--accent-primary)" />
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Email Address</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '500' }}>{user?.email || 'Not provided'}</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)' }}>
+                <Phone size={18} color="var(--accent-primary)" />
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Phone Number</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '500' }}>{user?.phone || 'Not provided'}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={handleLogout}
+                disabled={submitting}
+              >
+                <LogOut size={16} /> Logout
+              </button>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  ref={changePasswordBtnRef}
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setShowPasswordModal(true)}
+                >
+                  <KeyRound size={16} /> Change Password
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Modal 4: Change Password Modal */
+          <form onSubmit={handleChangePassword}>
+            <div style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              Update your account password below.
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="current-password">Current Password *</label>
+              <input
+                ref={currentPasswordRef}
+                id="current-password"
+                type="password"
+                className="input-control"
+                placeholder="••••••••"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="new-password">New Password *</label>
+              <input
+                id="new-password"
+                type="password"
+                className="input-control"
+                placeholder="••••••••"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="confirm-password">Confirm New Password *</label>
+              <input
+                id="confirm-password"
+                type="password"
+                className="input-control"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleResetPasswordForm}
+                disabled={submitting}
+                title="Reset Form"
+              >
+                <RotateCcw size={14} /> Reset
+              </button>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    if (submitting) return;
+                    handleResetPasswordForm();
+                    setShowPasswordModal(false);
+                  }}
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Updating...' : 'Change Password'}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+};

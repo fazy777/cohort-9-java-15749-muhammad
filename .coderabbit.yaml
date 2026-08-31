@@ -2,10 +2,54 @@ reviews:
   high_level_summary: true
   review_status: true
   poem: false
+
   auto_review:
     base_branches:
       - main
       - develop
+
   path_instructions:
+    - path: "Backend/**/*"
+      instructions: >
+        Review Java backend code for bugs, security vulnerabilities, and architectural integrity.
+        Check specifically for:
+        - Missing exception handling (Flag as HIGH)
+        - Missing null checks (Flag as HIGH)
+        - Raw types usage (Flag as MEDIUM)
+        - Unchecked casts (Flag as MEDIUM)
+        - Appropriate OOP principles and clean architecture
+        - Dependency management and library usage
+        - Authentication and authorization correctness
+        - Secure logging (no PII, credentials, or raw search terms)
+        - Input validation and API boundary checks
+        - Database query safety and transaction management
+        Flag security and data-loss risks as HIGH. Flag bugs and reliability issues as MEDIUM.
+
+    - path: "Frontend/**/*"
+      instructions: >
+        Review React and JavaScript frontend code for quality, responsiveness, and frontend best practices.
+        Check specifically for:
+        - Comprehensive error handling and user feedback
+        - null and undefined safe handling
+        - Proper React hook usage (dependencies, lifecycle rules)
+        - Proper async/await error handling and unhandled promise rejections
+        - API failure resilience and timeout lifecycle management
+        - Accessibility (WCAG standards, ARIA roles, focus management, keyboard navigation)
+        - Frontend security (XSS prevention, safe storage, formula injection defense)
+        - Rendering performance, efficient state updates, and debouncing
+        - Maintainable functional React patterns
+        DO NOT apply Java-specific concepts such as raw types, unchecked casts, or traditional OOP class requirements to React code.
+        Flag security and data-loss risks as HIGH. Flag bugs and reliability issues as MEDIUM.
+
     - path: "**/*"
-      instructions: "Flag missing exception handling as HIGH. Flag raw types and unchecked casts as MEDIUM. Check for proper OOP principles."
+      instructions: >
+        Review JavaScript, React, and backend Java code for bugs, security issues,
+        missing exception/error handling (Flag as HIGH), missing null/undefined checks,
+        API boundary validation, improper async/await usage, unhandled promise
+        rejections, database query issues, authentication/authorization problems,
+        exposed secrets, inefficient React rendering, incorrect hook usage, and
+        unnecessary duplication. For Java code, specifically check for raw types
+        usage (Flag as MEDIUM), unchecked casts (Flag as MEDIUM), and proper OOP
+        principles and encapsulation. For React and frontend code, prefer simple,
+        maintainable functional React patterns over OOP abstractions.
+        Flag security and data-loss risks as HIGH. Flag bugs and reliability issues as MEDIUM.
