@@ -1,9 +1,6 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "$schema": "https://openapi.vercel.sh/vercel.json",
+      "buildCommand": "npm --prefix Frontend/contact_managment_system run build",
+      "outputDirectory": "Frontend/contact_managment_system/dist",
+      "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
     }
-  ]
-}
