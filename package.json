@@ -2,6 +2,9 @@
   "name": "contact-management-system",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "Frontend/contact_managment_system"
+  ],
   "scripts": {
     "dev": "npm --prefix Frontend/contact_managment_system run dev",
     "build": "npm --prefix Frontend/contact_managment_system run build",
