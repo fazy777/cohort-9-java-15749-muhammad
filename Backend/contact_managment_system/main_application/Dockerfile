@@ -16,8 +16,9 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# Create a non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Create a non-root user and prepare logs directory with permissions
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    mkdir -p /app/logs && chown -R appuser:appgroup /app
 USER appuser:appgroup
 
 # Copy executable jar from builder stage
