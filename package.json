@@ -1,0 +1,12 @@
+{
+  "name": "contact-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix Frontend/contact_managment_system run dev",
+    "build": "npm --prefix Frontend/contact_managment_system run build",
+    "lint": "npm --prefix Frontend/contact_managment_system run lint",
+    "test": "npm --prefix Frontend/contact_managment_system run test",
+    "preview": "npm --prefix Frontend/contact_managment_system run preview"
+  }
+}

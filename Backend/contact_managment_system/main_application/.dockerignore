@@ -1,0 +1,10 @@
+target/
+logs/
+.git
+.gitignore
+.gitattributes
+.idea/
+*.iml
+.vscode/
+*.log
+sonar-project.properties

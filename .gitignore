@@ -31,3 +31,6 @@ target/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Vercel
+.vercel/
