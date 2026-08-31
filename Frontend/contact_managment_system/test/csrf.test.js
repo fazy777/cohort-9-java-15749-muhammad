@@ -1,6 +1,47 @@
 import test, { describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { getCsrfToken } from '../src/services/api.js';
+import { getCsrfToken, normalizeApiUrl } from '../src/services/api.js';
+
+describe('normalizeApiUrl', () => {
+  test('handles null, undefined, empty string', () => {
+    assert.equal(normalizeApiUrl(null), 'http://localhost:8080/api');
+    assert.equal(normalizeApiUrl(undefined), 'http://localhost:8080/api');
+    assert.equal(normalizeApiUrl(''), 'http://localhost:8080/api');
+    assert.equal(normalizeApiUrl('   '), 'http://localhost:8080/api');
+  });
+
+  test('prepends https:// when domain is provided without protocol', () => {
+    assert.equal(
+      normalizeApiUrl('cohort-9-java-15749-muhammad-production.up.railway.app'),
+      'https://cohort-9-java-15749-muhammad-production.up.railway.app/api'
+    );
+  });
+
+  test('preserves existing https:// and appends /api', () => {
+    assert.equal(
+      normalizeApiUrl('https://cohort-9-java-15749-muhammad-production.up.railway.app'),
+      'https://cohort-9-java-15749-muhammad-production.up.railway.app/api'
+    );
+  });
+
+  test('handles trailing slashes correctly', () => {
+    assert.equal(
+      normalizeApiUrl('https://cohort-9-java-15749-muhammad-production.up.railway.app/'),
+      'https://cohort-9-java-15749-muhammad-production.up.railway.app/api'
+    );
+    assert.equal(
+      normalizeApiUrl('https://cohort-9-java-15749-muhammad-production.up.railway.app/api/'),
+      'https://cohort-9-java-15749-muhammad-production.up.railway.app/api'
+    );
+  });
+
+  test('does not duplicate /api when already present', () => {
+    assert.equal(
+      normalizeApiUrl('https://cohort-9-java-15749-muhammad-production.up.railway.app/api'),
+      'https://cohort-9-java-15749-muhammad-production.up.railway.app/api'
+    );
+  });
+});
 
 describe('CSRF Token Extraction (getCsrfToken)', () => {
   const originalDocument = globalThis.document;

@@ -1,10 +1,13 @@
 import { safeStorage } from '../utils/storage.js';
 
-const normalizeApiUrl = (url) => {
-  if (!url || typeof url !== 'string') {
+export const normalizeApiUrl = (url) => {
+  if (!url || typeof url !== 'string' || !url.trim()) {
     return 'http://localhost:8080/api';
   }
   let clean = url.trim().replace(/\/+$/, '');
+  if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('/')) {
+    clean = `https://${clean}`;
+  }
   if (!clean.endsWith('/api')) {
     clean += '/api';
   }
