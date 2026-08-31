@@ -1,6 +1,17 @@
 import { safeStorage } from '../utils/storage.js';
 
-const BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:8080/api';
+const normalizeApiUrl = (url) => {
+  if (!url || typeof url !== 'string') {
+    return 'http://localhost:8080/api';
+  }
+  let clean = url.trim().replace(/\/+$/, '');
+  if (!clean.endsWith('/api')) {
+    clean += '/api';
+  }
+  return clean;
+};
+
+const BASE_URL = normalizeApiUrl(import.meta.env?.VITE_API_URL);
 const DEFAULT_TIMEOUT_MS = 15000;
 const TRANSFER_TIMEOUT_MS = 60000;
 
