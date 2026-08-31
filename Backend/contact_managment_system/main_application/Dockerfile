@@ -1,18 +1,15 @@
 # Build Stage
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 
-# Copy maven executable and pom.xml
-COPY .mvn/ .mvn/
-COPY mvnw pom.xml ./
-
-# Download dependencies (caching layer)
-RUN ./mvnw dependency:go-offline -B
+# Cache dependencies
+COPY pom.xml .
+RUN mvn dependency:go-offline -B || true
 
 # Copy source code and build package
 COPY src ./src
-RUN ./mvnw clean package -DskipTests -B
+RUN mvn clean package -DskipTests -B
 
 # Run Stage
 FROM eclipse-temurin:21-jre-alpine
@@ -29,4 +26,4 @@ COPY --from=builder /app/target/*.jar app.jar
 ENV PORT=8080
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
