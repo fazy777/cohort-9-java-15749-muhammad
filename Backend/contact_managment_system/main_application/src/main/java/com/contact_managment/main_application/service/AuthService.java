@@ -96,6 +96,7 @@ public class AuthService {
                 .lastName(savedUser.getLastName())
                 .email(savedUser.getEmail())
                 .phone(savedUser.getPhone())
+                .token(token)
                 .build();
 
         return AuthResult.builder()
@@ -154,6 +155,7 @@ public class AuthService {
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
+                .token(token)
                 .build();
 
         return AuthResult.builder()

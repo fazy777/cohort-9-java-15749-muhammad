@@ -188,6 +188,10 @@ public class SecurityConfig {
                 .csrfTokenRepository(tokenRepository)
                 .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
                 .ignoringRequestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/csrf")
+                .ignoringRequestMatchers(request -> {
+                    String auth = request.getHeader("Authorization");
+                    return StringUtils.hasText(auth) && auth.startsWith("Bearer ");
+                })
             )
             .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
             .exceptionHandling(exceptions -> exceptions

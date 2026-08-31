@@ -216,6 +216,7 @@ export const handleUnauthorized = (requestGeneration) => {
     return;
   }
   safeStorage.removeItem('cms_user');
+  safeStorage.removeItem('cms_auth_token');
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('auth:unauthorized', {
       detail: { generation: typeof requestGeneration === 'number' ? requestGeneration : currentGen }
@@ -255,9 +256,11 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
   const method = (options.method || 'GET').toUpperCase();
   const isMutating = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
   const csrfToken = isMutating ? getCsrfToken() : null;
+  const authToken = safeStorage.getItem('cms_auth_token');
 
   const headers = {
     'Content-Type': 'application/json',
+    ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
     ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
     ...(options.headers || {})
   };
@@ -364,6 +367,9 @@ export const api = {
       if (!result || typeof result !== 'object' || !isValidUserData(result.data)) {
         throw new Error('Invalid response shape from server: missing or invalid user data');
       }
+      if (result.data?.token) {
+        safeStorage.setItem('cms_auth_token', result.data.token);
+      }
       return result;
     });
   },
@@ -385,6 +391,9 @@ export const api = {
       if (!result || typeof result !== 'object' || !isValidUserData(result.data)) {
         throw new Error('Invalid response shape from server: missing or invalid user data');
       }
+      if (result.data?.token) {
+        safeStorage.setItem('cms_auth_token', result.data.token);
+      }
       return result;
     });
   },
@@ -396,14 +405,18 @@ export const api = {
    */
   async logout() {
     return serializeAuth(async (signal) => {
-      const result = await request('/auth/logout', {
-        method: 'POST',
-        signal
-      });
-      if (!result || typeof result !== 'object') {
-        throw new Error('Invalid logout response shape from server');
+      try {
+        const result = await request('/auth/logout', {
+          method: 'POST',
+          signal
+        });
+        if (!result || typeof result !== 'object') {
+          throw new Error('Invalid logout response shape from server');
+        }
+        return result;
+      } finally {
+        safeStorage.removeItem('cms_auth_token');
       }
-      return result;
     });
   },
 
