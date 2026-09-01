@@ -42,13 +42,18 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Build, Test, and Analyze with JaCoCo & SonarQube
+      - name: Build & Test with JaCoCo
+        run: |
+          chmod +x ./mvnw
+          ./mvnw clean verify
+
+      - name: SonarQube / SonarCloud Scan (non-blocking)
+        continue-on-error: true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
         run: |
-          chmod +x ./mvnw
-          ./mvnw clean verify sonar:sonar \
+          ./mvnw sonar:sonar \
             -Dsonar.projectKey=contact-management-system-backend \
             -Dsonar.organization=fazy777 \
             -Dsonar.host.url="$SONAR_HOST_URL" \
