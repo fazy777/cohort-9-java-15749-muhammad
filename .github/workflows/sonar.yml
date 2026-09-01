@@ -42,13 +42,18 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Build, Test, and Analyze with JaCoCo & SonarQube
+      - name: Build and Test with JaCoCo Coverage
+        run: |
+          chmod +x ./mvnw
+          ./mvnw clean verify
+
+      - name: SonarQube / SonarCloud Scan
+        if: ${{ secrets.SONAR_TOKEN != '' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
         run: |
-          chmod +x ./mvnw
-          ./mvnw clean verify sonar:sonar \
+          ./mvnw sonar:sonar \
             -Dsonar.projectKey=contact-management-system-backend \
             -Dsonar.organization=fazy777 \
             -Dsonar.host.url="$SONAR_HOST_URL" \
@@ -90,6 +95,7 @@ jobs:
         run: npm test
 
       - name: SonarQube / SonarCloud Scanner CLI Scan
+        if: ${{ secrets.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-scan-action@689fb39b34b9aa95ebc5f8f119343ddd51542402 # v4.2.2
         with:
           projectBaseDir: Frontend/contact_managment_system
