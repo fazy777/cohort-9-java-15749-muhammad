@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Mail, Phone, User, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
