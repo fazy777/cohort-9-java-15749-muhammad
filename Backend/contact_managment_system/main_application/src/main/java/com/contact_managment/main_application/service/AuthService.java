@@ -256,7 +256,15 @@ public class AuthService {
             throw new BadRequestException("Phone number cannot exceed 30 characters");
         }
 
-        userRepository.findByPhone(phone).ifPresent(existing -> {
+        String canonicalPhone = normalizePhoneNumber(phone);
+        if (canonicalPhone.length() < 7) {
+            throw new BadRequestException("Phone number must be at least 7 characters");
+        }
+        if (canonicalPhone.length() > 30) {
+            throw new BadRequestException("Phone number cannot exceed 30 characters");
+        }
+
+        userRepository.findByPhone(canonicalPhone).ifPresent(existing -> {
             if (!existing.getId().equals(userId)) {
                 throw new UserAlreadyExistsException("Phone number is already associated with another account");
             }
@@ -268,19 +276,24 @@ public class AuthService {
         if (contactRepository != null) {
             List<String> contactPhones = contactRepository.findPhoneNumbersByUserExcludingContact(user, null);
             if (contactPhones != null && !contactPhones.isEmpty()) {
-                String normalizedTarget = normalizePhoneNumber(phone);
                 boolean conflict = contactPhones.stream()
                         .filter(StringUtils::hasText)
                         .map(this::normalizePhoneNumber)
-                        .anyMatch(p -> p.equals(normalizedTarget));
+                        .anyMatch(p -> p.equals(canonicalPhone));
                 if (conflict) {
                     throw new DuplicatePhoneNumberException("Duplicate phone number detected: " + phone + " already belongs to an existing contact.");
                 }
             }
         }
 
-        user.setPhone(phone);
-        User saved = userRepository.saveAndFlush(user);
+        user.setPhone(canonicalPhone);
+        User saved;
+        try {
+            saved = userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Database conflict updating phone for user ID {}: {}", userId, ex.getMessage());
+            throw new UserAlreadyExistsException("Phone number is already associated with another account");
+        }
         log.info("Phone number successfully updated for user ID: {}", userId);
 
         return UserProfileDto.builder()

@@ -274,8 +274,8 @@ cohort-9-java-15749-muhammad/
 > [!IMPORTANT]
 > ### 📌 Note for Teacher / Evaluator (Sir Saad)
 > **SonarQube Token & CI/CD Analysis Status:**
-> * **Reason for Incomplete CI Analysis:** The SonarQube analysis token (`SONAR_TOKEN`) was configured as an external repository secret in the original personal repository. By design, GitHub Actions security policies **do not export repository secrets across forks or during cross-repository pull requests/merges**.
-> * **Connection After Forking / Merging:** After forking or merging into the cohort repository, the `SONAR_TOKEN` secret is not connected or accessible to the GitHub Actions runner. Consequently, the automated SonarQube pipeline step cannot authenticate and does not complete its analysis on GitHub.
+> * **Reason for Incomplete CI Analysis on PRs:** The SonarQube analysis token (`SONAR_TOKEN`) is configured as a repository secret. By design, GitHub Actions security policies do not expose secrets to `pull_request` workflows originating from forked repositories. Consequently, fork-based pull requests skip SonarQube authentication.
+> * **Connection After Merging (Push Events):** Once a pull request is merged, subsequent `push` events to `main`, `master`, or `develop` can utilize a `SONAR_TOKEN` configured in the target repository's **Settings → Secrets and variables → Actions** to execute authenticated scans.
 > * **Local & Independent Verification:** The backend is fully tested with high coverage via JUnit 5, Mockito, and JaCoCo (`mvn clean verify`). You can execute the SonarQube analysis locally at any time using the instructions below.
 > * **To Enable in CI/CD:** If required, add `SONAR_TOKEN` (and optionally `SONAR_HOST_URL`) to the target repository's **Settings → Secrets and variables → Actions**.
 

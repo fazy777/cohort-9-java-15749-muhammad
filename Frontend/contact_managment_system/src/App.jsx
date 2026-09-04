@@ -121,8 +121,9 @@ const MainDashboard = () => {
         setContacts(Array.isArray(data.content) ? data.content : []);
         setTotalPages(returnedTotalPages);
         setTotalElements(typeof data.totalElements === 'number' ? data.totalElements : 0);
-        if (returnedTotalPages > 0 && page >= returnedTotalPages) {
-          setPage(returnedTotalPages - 1);
+        const maxPage = returnedTotalPages > 0 ? returnedTotalPages - 1 : 0;
+        if (page > maxPage) {
+          setPage(maxPage);
         }
       }
     } catch (err) {

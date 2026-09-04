@@ -491,6 +491,39 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Should canonicalize formatted phone number when updating phone")
+    void updatePhone_CanonicalizesPhone() {
+        UpdatePhoneRequest request = UpdatePhoneRequest.builder()
+                .phone("+1 (555) 234-5678")
+                .build();
+
+        when(userRepository.findByPhone("+15552345678")).thenReturn(Optional.empty());
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
+        when(userRepository.saveAndFlush(any(User.class))).thenReturn(sampleUser);
+
+        UserProfileDto result = authService.updatePhone(1L, request);
+
+        assertNotNull(result);
+        assertEquals("+15552345678", sampleUser.getPhone());
+        verify(userRepository).findByPhone("+15552345678");
+    }
+
+    @Test
+    @DisplayName("Should throw UserAlreadyExistsException when database unique constraint rejects phone update")
+    void updatePhone_DatabaseConflict_ThrowsUserAlreadyExists() {
+        UpdatePhoneRequest request = UpdatePhoneRequest.builder()
+                .phone("+9876543210")
+                .build();
+
+        when(userRepository.findByPhone("+9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
+        when(userRepository.saveAndFlush(any(User.class)))
+                .thenThrow(new org.springframework.dao.DataIntegrityViolationException("Duplicate entry"));
+
+        assertThrows(UserAlreadyExistsException.class, () -> authService.updatePhone(1L, request));
+    }
+
+    @Test
     @DisplayName("Should delete account and all contacts successfully")
     void deleteAccount_Success() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));

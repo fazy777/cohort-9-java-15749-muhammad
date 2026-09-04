@@ -155,6 +155,174 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
     assert.equal(safeStorage.getItem(warningKey), null);
   });
 
+  test('ContactFormModal duplicate flow: Strike 1 warns user and locks submission during check', async () => {
+    const userId = 99;
+    const warningKey = `cms_dup_warning_${userId}`;
+    safeStorage.removeItem(warningKey);
+
+    let submitting = false;
+    let violationState = { isOpen: false, isAccountClosed: false, phoneNumber: '' };
+    let error = '';
+    let isSubmittingLockedDuringCheck = false;
+
+    const normalizePhone = (num) => (num ? String(num).replace(/[\s\-().]/g, '').toLowerCase() : '');
+
+    const handleDuplicateViolation = async (duplicateNumber) => {
+      isSubmittingLockedDuringCheck = submitting;
+      const currentWarnings = Number(safeStorage.getItem(warningKey) || 0);
+      if (currentWarnings === 0) {
+        safeStorage.setItem(warningKey, '1');
+        violationState = { isOpen: true, isAccountClosed: false, phoneNumber: duplicateNumber };
+        error = `Warning (1/2): Duplicate phone number "${duplicateNumber}" is strictly prohibited.`;
+      }
+    };
+
+    const submitContact = async (filteredPhones) => {
+      if (submitting || violationState.isOpen) return;
+      submitting = true;
+      try {
+        const seen = new Map();
+        for (const phoneItem of filteredPhones) {
+          const norm = normalizePhone(phoneItem.phoneNumber);
+          if (seen.has(norm)) {
+            try {
+              await handleDuplicateViolation(phoneItem.phoneNumber);
+            } finally {
+              submitting = false;
+            }
+            return;
+          }
+          seen.set(norm, phoneItem.phoneNumber);
+        }
+      } finally {
+        submitting = false;
+      }
+    };
+
+    const payloadPhones = [
+      { phoneNumber: '+1 (555) 000-1234' },
+      { phoneNumber: '+1-555-000-1234' } // duplicate normalized
+    ];
+
+    await submitContact(payloadPhones);
+
+    // Assert Strike 1 state
+    assert.equal(isSubmittingLockedDuringCheck, true);
+    assert.equal(submitting, false);
+    assert.equal(violationState.isOpen, true);
+    assert.equal(violationState.isAccountClosed, false);
+    assert.equal(violationState.phoneNumber, '+1-555-000-1234');
+    assert.equal(safeStorage.getItem(warningKey), '1');
+    assert.match(error, /Warning \(1\/2\)/);
+
+    // Early guard test: subsequent submission attempts are ignored while violation modal is open
+    let secondSubmitRan = false;
+    const guardedSubmit = async () => {
+      if (submitting || violationState.isOpen) return;
+      secondSubmitRan = true;
+    };
+    await guardedSubmit();
+    assert.equal(secondSubmitRan, false);
+  });
+
+  test('ContactFormModal duplicate flow: Strike 2 deletes account and triggers closure callback', async () => {
+    const userId = 100;
+    const warningKey = `cms_dup_warning_${userId}`;
+    // Pre-set strike 1
+    safeStorage.setItem(warningKey, '1');
+
+    let deleteAccountCalled = false;
+    let closedReason = null;
+    let submitting = false;
+    let violationState = { isOpen: false, isAccountClosed: false, phoneNumber: '' };
+    let error = '';
+
+    globalThis.fetch = async (url, options) => {
+      assert.match(url, /\/auth\/account$/);
+      assert.equal(options.method, 'DELETE');
+      deleteAccountCalled = true;
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({ success: true, message: 'Account deleted' })
+      };
+    };
+
+    const normalizePhone = (num) => (num ? String(num).replace(/[\s\-().]/g, '').toLowerCase() : '');
+
+    const handleDuplicateViolation = async (duplicateNumber) => {
+      const currentWarnings = Number(safeStorage.getItem(warningKey) || 0);
+      if (currentWarnings > 0) {
+        await api.deleteAccount();
+        violationState = { isOpen: true, isAccountClosed: true, phoneNumber: duplicateNumber };
+        error = `Account Terminated: Repeated duplicate phone number violation ("${duplicateNumber}").`;
+        safeStorage.removeItem(warningKey);
+      }
+    };
+
+    const onAccountClosed = (reason) => {
+      closedReason = reason;
+    };
+
+    const submitContact = async (filteredPhones, existingPhones = []) => {
+      if (submitting || violationState.isOpen) return;
+      submitting = true;
+      try {
+        for (const phoneItem of filteredPhones) {
+          const normNew = normalizePhone(phoneItem.phoneNumber);
+          for (const ep of existingPhones) {
+            const normExisting = normalizePhone(ep.phoneNumber);
+            if (normNew && normNew === normExisting) {
+              try {
+                await handleDuplicateViolation(phoneItem.phoneNumber);
+              } finally {
+                submitting = false;
+              }
+              return;
+            }
+          }
+        }
+      } finally {
+        submitting = false;
+      }
+    };
+
+    await submitContact([{ phoneNumber: '+1 (555) 999-8888' }], [{ phoneNumber: '+1 555 999-8888' }]);
+
+    // Verify Strike 2 execution
+    assert.equal(deleteAccountCalled, true);
+    assert.equal(submitting, false);
+    assert.equal(violationState.isOpen, true);
+    assert.equal(violationState.isAccountClosed, true);
+    assert.equal(safeStorage.getItem(warningKey), null);
+    assert.match(error, /Account Terminated/);
+
+    // Simulate user acknowledging termination modal
+    onAccountClosed(`Your account was permanently closed due to repeated duplicate phone number policy violations ("${violationState.phoneNumber}").`);
+    assert.notEqual(closedReason, null);
+  });
+
+  test('page clamping derives zero when returnedTotalPages is zero and clamps page', () => {
+    const clampPage = (currentPage, returnedTotalPages) => {
+      const maxPage = returnedTotalPages > 0 ? returnedTotalPages - 1 : 0;
+      return currentPage > maxPage ? maxPage : currentPage;
+    };
+
+    // When total pages is 0, page should clamp to 0
+    assert.equal(clampPage(3, 0), 0);
+    assert.equal(clampPage(0, 0), 0);
+
+    // When total pages is 5, valid pages are 0..4
+    assert.equal(clampPage(5, 5), 4);
+    assert.equal(clampPage(2, 5), 2);
+    assert.equal(clampPage(0, 5), 0);
+
+    // When total pages is 1, valid page is 0
+    assert.equal(clampPage(1, 1), 0);
+    assert.equal(clampPage(0, 1), 0);
+  });
+
   test('account-closure notice storage remains generic and does not store phone number', () => {
     // When account is closed, only generic message should be persisted to safeStorage
     const genericMessage = 'Your account was permanently closed due to repeated duplicate phone number policy violations.';

@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, Mail, Phone, User, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
 import { safeStorage } from '../utils/storage.js';
@@ -175,6 +175,26 @@ export const ContactFormModal = ({
   };
 
   const modalRef = useModalA11y(isOpen, handleRequestClose);
+  const violationPrevFocusRef = useRef(null);
+  const warningAckRef = useRef(null);
+  const closureAckRef = useRef(null);
+
+  useEffect(() => {
+    if (violationState.isOpen) {
+      violationPrevFocusRef.current = document.activeElement;
+      const timer = setTimeout(() => {
+        if (violationState.isAccountClosed) {
+          closureAckRef.current?.focus();
+        } else {
+          warningAckRef.current?.focus();
+        }
+      }, 0);
+      return () => clearTimeout(timer);
+    } else if (violationPrevFocusRef.current) {
+      violationPrevFocusRef.current?.focus?.();
+      violationPrevFocusRef.current = null;
+    }
+  }, [violationState.isOpen, violationState.isAccountClosed]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -328,6 +348,9 @@ export const ContactFormModal = ({
    */
   const handleSubmit = async (e) => {
     e?.preventDefault();
+    if (submitting || violationState.isOpen) {
+      return;
+    }
     setSubmitting(true);
     setError('');
 
@@ -444,14 +467,15 @@ export const ContactFormModal = ({
             type="button"
             aria-label="Close contact form"
             onClick={handleRequestClose}
-            disabled={submitting}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: submitting ? 'not-allowed' : 'pointer' }}
+            disabled={submitting || violationState.isOpen}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: (submitting || violationState.isOpen) ? 'not-allowed' : 'pointer' }}
           >
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
+          <fieldset disabled={submitting || violationState.isOpen} style={{ border: 'none', margin: 0, padding: 0, minWidth: 0 }}>
           {error && (
             <div
               role="alert"
@@ -591,12 +615,13 @@ export const ContactFormModal = ({
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
+          </fieldset>
 
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" disabled={submitting} onClick={handleRequestClose}>
+            <button type="button" className="btn btn-secondary" disabled={submitting || violationState.isOpen} onClick={handleRequestClose}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={submitting}>
+            <button type="submit" className="btn btn-primary" disabled={submitting || violationState.isOpen}>
               {submitting ? 'Saving...' : 'Save Contact'}
             </button>
           </div>
@@ -665,6 +690,7 @@ export const ContactFormModal = ({
               </div>
 
               <button
+                ref={warningAckRef}
                 type="button"
                 className="btn btn-primary"
                 style={{ width: '100%', padding: '0.65rem' }}
@@ -729,6 +755,7 @@ export const ContactFormModal = ({
               </p>
 
               <button
+                ref={closureAckRef}
                 type="button"
                 className="btn btn-danger"
                 style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem' }}
