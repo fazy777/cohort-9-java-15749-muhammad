@@ -415,6 +415,7 @@ export const api = {
         }
         return result;
       } finally {
+        safeStorage.removeItem('cms_user');
         safeStorage.removeItem('cms_auth_token');
       }
     });

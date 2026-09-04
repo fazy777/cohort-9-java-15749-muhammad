@@ -104,33 +104,23 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
     assert.notEqual(safeStorage.getItem('cms_auth_token'), null);
   });
 
-  test('logout clears local auth state even when api.logout rejects', async () => {
+  test('api.logout clears session storage even when request rejects', async () => {
     safeStorage.setItem('cms_user', JSON.stringify({ id: 1, firstName: 'John' }));
-    let userState = { id: 1, firstName: 'John' };
-    const clearAuthState = () => {
-      userState = null;
-      safeStorage.removeItem('cms_user');
-    };
+    safeStorage.setItem('cms_auth_token', 'mock-token-xyz');
 
-    const mockLogout = async () => {
-      try {
-        await (async () => {
-          throw new Error('Network error during logout');
-        })();
-      } finally {
-        clearAuthState();
-      }
+    globalThis.fetch = async () => {
+      throw new Error('Network error during logout');
     };
 
     await assert.rejects(
       async () => {
-        await mockLogout();
+        await api.logout();
       },
       /Network error during logout/
     );
 
-    assert.equal(userState, null);
     assert.equal(safeStorage.getItem('cms_user'), null);
+    assert.equal(safeStorage.getItem('cms_auth_token'), null);
   });
 
   test('phone normalizer strips formatting correctly for duplicate comparisons', () => {
