@@ -6,6 +6,7 @@ import com.contact_managment.main_application.entity.ContactEmail;
 import com.contact_managment.main_application.entity.ContactPhone;
 import com.contact_managment.main_application.entity.User;
 import com.contact_managment.main_application.exception.BadRequestException;
+import com.contact_managment.main_application.exception.DuplicatePhoneNumberException;
 import com.contact_managment.main_application.exception.ResourceNotFoundException;
 import com.contact_managment.main_application.repository.ContactRepository;
 import com.contact_managment.main_application.repository.UserRepository;
@@ -147,6 +148,8 @@ public class ContactService {
      * @return saved contact DTO
      */
     private ContactDto createContactInternal(User user, ContactDto contactDto) {
+        validatePhoneNumbers(user, contactDto.getPhones(), null);
+
         Contact contact = Contact.builder()
                 .user(user)
                 .firstName(contactDto.getFirstName())
@@ -205,6 +208,8 @@ public class ContactService {
 
         Contact contact = contactRepository.findByIdAndUser(contactId, user)
                 .orElseThrow(() -> new ResourceNotFoundException("Contact not found with ID: " + contactId));
+
+        validatePhoneNumbers(user, contactDto.getPhones(), contactId);
 
         contact.setFirstName(contactDto.getFirstName());
         contact.setLastName(contactDto.getLastName());
@@ -357,5 +362,50 @@ public class ContactService {
                 .createdAt(contact.getCreatedAt())
                 .updatedAt(contact.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * Validates that phone numbers in the contact payload do not contain duplicates within the payload,
+     * and do not duplicate any phone number belonging to existing contacts of the same user.
+     *
+     * @param user owning user
+     * @param phones list of phone DTOs
+     * @param excludeContactId contact ID to exclude from existing lookup (null for create)
+     */
+    private void validatePhoneNumbers(User user, List<ContactPhoneDto> phones, Long excludeContactId) {
+        if (phones == null || phones.isEmpty()) {
+            return;
+        }
+
+        Set<String> seenInPayload = new java.util.HashSet<>();
+        List<String> existingPhones = contactRepository.findPhoneNumbersByUserExcludingContact(user, excludeContactId);
+        Set<String> normalizedExisting = existingPhones.stream()
+                .filter(StringUtils::hasText)
+                .map(this::normalizePhoneNumber)
+                .collect(java.util.stream.Collectors.toSet());
+
+        for (ContactPhoneDto phoneDto : phones) {
+            if (phoneDto == null || !StringUtils.hasText(phoneDto.getPhoneNumber())) {
+                continue;
+            }
+            String rawPhone = phoneDto.getPhoneNumber().trim();
+            String normalized = normalizePhoneNumber(rawPhone);
+            if (normalized.isEmpty()) {
+                continue;
+            }
+
+            if (!seenInPayload.add(normalized)) {
+                throw new DuplicatePhoneNumberException("Duplicate phone number entered within contact: " + rawPhone);
+            }
+
+            if (normalizedExisting.contains(normalized)) {
+                throw new DuplicatePhoneNumberException("Duplicate phone number detected: " + rawPhone + " already belongs to an existing contact.");
+            }
+        }
+    }
+
+    private String normalizePhoneNumber(String phone) {
+        if (phone == null) return "";
+        return phone.replaceAll("[\\s\\-\\(\\)\\.]", "").toLowerCase(java.util.Locale.ROOT);
     }
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Phone, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { safeStorage } from '../utils/storage';
+import { Mail, Phone, ArrowRight, Eye, EyeOff, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 /**
  * Authentication form component handling user login and account registration with email/phone toggle.
@@ -13,6 +14,9 @@ export const AuthForm = ({ showToast }) => {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [closedNotice, setClosedNotice] = useState(() => {
+    return safeStorage.getItem('cms_account_closed_notice') || '';
+  });
 
   // Form Fields
   const [regType, setRegType] = useState('email'); // 'email' or 'phone'
@@ -77,25 +81,25 @@ export const AuthForm = ({ showToast }) => {
   };
 
   return (
-    <div style={{
-      maxWidth: '480px',
-      margin: '3rem auto',
-      width: '100%'
-    }}>
-      <div className="glass-card" style={{ padding: '2.5rem' }}>
+    <div className="auth-page-container">
+      <div className="auth-bg-backdrop" aria-hidden="true" />
+      <div className="auth-bg-overlay" aria-hidden="true" />
+      <div className="auth-card-wrapper">
+        <div className="glass-card auth-glass-card">
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{
             width: '60px',
             height: '60px',
             borderRadius: '20px',
             background: 'var(--accent-gradient)',
+            border: '1.5px solid rgba(255, 255, 255, 0.4)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: '1rem',
-            boxShadow: 'var(--accent-glow)'
+            boxShadow: '0 0 20px rgba(185, 28, 28, 0.6), 0 0 10px rgba(255, 255, 255, 0.3)'
           }}>
-            <ShieldCheck size={32} color="#fff" />
+            <ShieldCheck size={32} color="#ffffff" />
           </div>
           <h2 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '0.5rem' }}>
             {isLoginMode ? 'Welcome Back' : 'Create Your Account'}
@@ -106,6 +110,50 @@ export const AuthForm = ({ showToast }) => {
               : 'Register using your Email or Phone Number'}
           </p>
         </div>
+
+        {closedNotice && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.45)',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.85rem 1rem',
+            marginBottom: '1.5rem',
+            color: '#fca5a5',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.75rem',
+            fontSize: '0.86rem',
+            lineHeight: '1.45',
+            boxShadow: '0 0 16px rgba(239, 68, 68, 0.15)'
+          }}>
+            <AlertTriangle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div style={{ flex: 1 }}>
+              <strong style={{ color: '#fff', display: 'block', marginBottom: '0.2rem' }}>
+                Account Permanently Closed
+              </strong>
+              {closedNotice}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                safeStorage.removeItem('cms_account_closed_notice');
+                setClosedNotice('');
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '0 0.25rem',
+                fontSize: '1.1rem',
+                lineHeight: '1'
+              }}
+              aria-label="Dismiss notice"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           {!isLoginMode && (
@@ -150,7 +198,8 @@ export const AuthForm = ({ showToast }) => {
                   style={{
                     display: 'flex',
                     gap: '0.5rem',
-                    background: 'rgba(15, 23, 42, 0.5)',
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border-color)',
                     padding: '4px',
                     borderRadius: 'var(--radius-md)'
                   }}
@@ -162,16 +211,18 @@ export const AuthForm = ({ showToast }) => {
                       flex: 1,
                       padding: '0.5rem',
                       borderRadius: 'var(--radius-sm)',
-                      border: 'none',
-                      background: regType === 'email' ? 'var(--accent-primary)' : 'transparent',
-                      color: '#fff',
+                      border: regType === 'email' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid transparent',
+                      background: regType === 'email' ? 'var(--accent-gradient)' : 'transparent',
+                      boxShadow: regType === 'email' ? '0 2px 10px rgba(185, 28, 28, 0.55), 0 0 8px rgba(255, 255, 255, 0.2)' : 'none',
+                      color: '#ffffff',
                       cursor: 'pointer',
-                      fontWeight: '600',
+                      fontWeight: '700',
                       fontSize: '0.85rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '0.4rem'
+                      gap: '0.4rem',
+                      transition: 'var(--transition-fast)'
                     }}
                     onClick={() => setRegType('email')}
                   >
@@ -184,16 +235,18 @@ export const AuthForm = ({ showToast }) => {
                       flex: 1,
                       padding: '0.5rem',
                       borderRadius: 'var(--radius-sm)',
-                      border: 'none',
-                      background: regType === 'phone' ? 'var(--accent-primary)' : 'transparent',
-                      color: '#fff',
+                      border: regType === 'phone' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid transparent',
+                      background: regType === 'phone' ? 'var(--accent-gradient)' : 'transparent',
+                      boxShadow: regType === 'phone' ? '0 2px 10px rgba(185, 28, 28, 0.55), 0 0 8px rgba(255, 255, 255, 0.2)' : 'none',
+                      color: '#ffffff',
                       cursor: 'pointer',
-                      fontWeight: '600',
+                      fontWeight: '700',
                       fontSize: '0.85rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '0.4rem'
+                      gap: '0.4rem',
+                      transition: 'var(--transition-fast)'
                     }}
                     onClick={() => setRegType('phone')}
                   >
@@ -324,5 +377,6 @@ export const AuthForm = ({ showToast }) => {
         </div>
       </div>
     </div>
+  </div>
   );
 };

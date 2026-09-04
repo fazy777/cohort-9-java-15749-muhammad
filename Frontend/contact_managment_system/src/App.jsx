@@ -10,6 +10,7 @@ import { UserProfileModal } from './components/UserProfileModal';
 import { ImportExportModal } from './components/ImportExportModal';
 import { Toast } from './components/Toast';
 import { api } from './services/api';
+import { safeStorage } from './utils/storage';
 
 /**
  * Primary dashboard view displaying contact lists, search filters, and coordinating CRUD modal flows.
@@ -17,7 +18,7 @@ import { api } from './services/api';
  * @returns {JSX.Element}
  */
 const MainDashboard = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
 
   // Contacts State
   const [contacts, setContacts] = useState([]);
@@ -206,16 +207,44 @@ const MainDashboard = () => {
     }
   };
 
+  /**
+   * Handles immediate account closure upon repeated duplicate phone violations.
+   * @param {string} [reason] - explanation for account closure
+   */
+  const handleAccountClosed = useCallback(async (reason) => {
+    safeStorage.setItem(
+      'cms_account_closed_notice',
+      reason || 'Your account was permanently closed due to repeated duplicate phone number policy violations.'
+    );
+    setIsFormOpen(false);
+    setIsProfileOpen(false);
+    setIsDetailOpen(false);
+    setIsDeleteOpen(false);
+    setIsImportExportOpen(false);
+    try {
+      await logout();
+    } catch {
+      // ignore
+    }
+    showToast('Account permanently closed due to policy violations.', 'error');
+  }, [logout, showToast]);
+
   if (authLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-        <h2>Loading ContactSphere...</h2>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)', background: 'var(--bg-dark)' }}>
+        <h2 style={{ background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: '800', fontFamily: 'var(--font-heading)' }}>
+          Loading ContactSphere...
+        </h2>
       </div>
     );
   }
 
   return (
     <div className="app-container">
+      {/* Global Dark Red & White Blurred Background Image */}
+      <div className="global-bg-backdrop" aria-hidden="true" />
+      <div className="global-bg-overlay" aria-hidden="true" />
+
       <Navbar onOpenProfile={() => setIsProfileOpen(true)} />
 
       <main className="main-content">
@@ -260,6 +289,10 @@ const MainDashboard = () => {
         onClose={() => setIsFormOpen(false)}
         onSave={handleSaveContact}
         contact={editingContact}
+        existingContacts={contacts}
+        user={user}
+        onAccountClosed={handleAccountClosed}
+        showToast={showToast}
       />
 
       {/* Modal 2: Delete Confirmation Modal */}

@@ -79,4 +79,15 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
      * @return stream of contacts
      */
     java.util.stream.Stream<Contact> streamByUser(User user);
+
+    /**
+     * Retrieves all phone numbers for contacts belonging to a user, optionally excluding a specific contact ID.
+     * Used for duplicate phone number detection.
+     *
+     * @param user owning user
+     * @param excludeContactId contact ID to exclude (null for new contacts)
+     * @return list of existing phone number strings
+     */
+    @Query("SELECT p.phoneNumber FROM ContactPhone p WHERE p.contact.user = :user AND (:excludeContactId IS NULL OR p.contact.id != :excludeContactId)")
+    List<String> findPhoneNumbersByUserExcludingContact(@Param("user") User user, @Param("excludeContactId") Long excludeContactId);
 }

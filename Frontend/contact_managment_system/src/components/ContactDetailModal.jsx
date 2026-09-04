@@ -108,7 +108,7 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
           alignItems: 'center',
           gap: '1.25rem',
           padding: '1.25rem',
-          background: 'rgba(15, 23, 42, 0.5)',
+          background: 'var(--bg-elevated)',
           borderRadius: 'var(--radius-lg)',
           marginBottom: '1.5rem',
           border: '1px solid var(--border-color)'
@@ -118,23 +118,24 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
             height: '64px',
             borderRadius: '50%',
             background: 'var(--accent-gradient)',
+            border: '2px solid rgba(255, 255, 255, 0.55)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#fff',
+            color: '#ffffff',
             fontSize: '1.5rem',
             fontWeight: '700',
-            boxShadow: 'var(--accent-glow)'
+            boxShadow: '0 0 16px rgba(185, 28, 28, 0.6), 0 0 8px rgba(255, 255, 255, 0.3)'
           }}>
             {contact?.firstName ? contact.firstName.charAt(0).toUpperCase() : 'C'}
           </div>
           <div>
-            <h4 style={{ fontSize: '1.35rem', fontWeight: '700' }}>
+            <h4 style={{ fontSize: '1.35rem', fontWeight: '700', color: '#ffffff' }}>
               {contact?.firstName} {contact?.lastName}
             </h4>
             {contact?.title && (
-              <p style={{ color: 'var(--accent-primary)', fontWeight: '500', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
-                <Briefcase size={14} /> {contact.title}
+              <p style={{ color: '#ffffff', fontWeight: '500', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
+                <Briefcase size={14} color="#ffffff" /> {contact.title}
               </p>
             )}
           </div>
@@ -152,11 +153,12 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid var(--border-color)',
                   padding: '0.65rem 0.9rem',
                   borderRadius: 'var(--radius-md)'
                 }}>
-                  <a href={formatMailtoLink(e?.email)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
+                  <a href={formatMailtoLink(e?.email)} style={{ color: '#ffffff', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
                     {e?.email}
                   </a>
                   <span className={`badge ${getLabelClass(e?.label || 'WORK')}`}>{e?.label || 'WORK'}</span>
@@ -180,11 +182,12 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid var(--border-color)',
                   padding: '0.65rem 0.9rem',
                   borderRadius: 'var(--radius-md)'
                 }}>
-                  <a href={formatTelLink(p?.phoneNumber)} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
+                  <a href={formatTelLink(p?.phoneNumber)} style={{ color: '#ffffff', textDecoration: 'none', fontWeight: '500', fontSize: '0.92rem' }}>
                     {p?.phoneNumber}
                   </a>
                   <span className={`badge ${getLabelClass(p?.label || 'WORK')}`}>{p?.label || 'WORK'}</span>
@@ -203,11 +206,12 @@ export const ContactDetailModal = ({ isOpen, onClose, contact, onEdit, onDelete 
               <FileText size={16} /> Notes
             </h5>
             <p style={{
-              background: 'rgba(255, 255, 255, 0.03)',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid var(--border-color)',
               padding: '0.75rem 0.9rem',
               borderRadius: 'var(--radius-md)',
               fontSize: '0.9rem',
-              color: 'var(--text-main)',
+              color: '#ffffff',
               lineHeight: '1.5'
             }}>
               {contact.notes}

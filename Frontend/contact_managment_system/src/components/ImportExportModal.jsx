@@ -426,14 +426,14 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
 
         {/* Export Section */}
         <div style={{
-          background: 'rgba(15, 23, 42, 0.4)',
+          background: 'var(--bg-elevated)',
           padding: '1.25rem',
           borderRadius: 'var(--radius-lg)',
           marginBottom: '1.5rem',
           border: '1px solid var(--border-color)'
         }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Download size={18} color="var(--success-color)" /> Export Your Contacts
+          <h4 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Download size={18} color="var(--accent-flame)" /> Export Your Contacts
           </h4>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
             Download all your contacts to backup or use in external applications.
@@ -450,13 +450,13 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
 
         {/* Import Section */}
         <div style={{
-          background: 'rgba(15, 23, 42, 0.4)',
+          background: 'var(--bg-elevated)',
           padding: '1.25rem',
           borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border-color)'
         }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Upload size={18} color="var(--accent-primary)" /> Import Contacts
+          <h4 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Upload size={18} color="var(--accent-flame)" /> Import Contacts
           </h4>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
             Upload a .json or .csv file containing contact information.
@@ -479,15 +479,15 @@ export const ImportExportModal = ({ isOpen, onClose, showToast, onImportSuccess 
               alignItems: 'center',
               justifyContent: 'center',
               padding: '1.5rem',
-              border: '2px dashed var(--border-color)',
+              border: '2px dashed var(--border-hover)',
               borderRadius: 'var(--radius-md)',
               cursor: importing ? 'not-allowed' : 'pointer',
-              background: 'rgba(255, 255, 255, 0.02)',
+              background: 'rgba(255, 255, 255, 0.04)',
               transition: 'var(--transition-fast)'
             }}
           >
-            <Upload size={28} color="var(--accent-primary)" style={{ marginBottom: '0.5rem' }} />
-            <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>Click to Choose File</span>
+            <Upload size={28} color="#ffffff" style={{ marginBottom: '0.5rem' }} />
+            <span style={{ fontWeight: '600', fontSize: '0.9rem', color: '#ffffff' }}>Click to Choose File</span>
             <span style={{ color: 'var(--text-dim)', fontSize: '0.78rem', marginTop: '0.2rem' }}>Supports .CSV and .JSON formats</span>
           </label>
 

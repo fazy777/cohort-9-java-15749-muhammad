@@ -16,12 +16,15 @@ import { useModalA11y } from '../hooks/useModalA11y';
  * @returns {JSX.Element|null}
  */
 export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser, refreshProfile } = useAuth();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [newPhone, setNewPhone] = useState('');
+  const [phoneSubmitting, setPhoneSubmitting] = useState(false);
   const currentPasswordRef = useRef(null);
   const changePasswordBtnRef = useRef(null);
   const prevShowPasswordRef = useRef(showPasswordModal);
@@ -30,7 +33,7 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
    * Guards modal dismissal while a password update operation is in progress.
    */
   const handleModalClose = () => {
-    if (submitting) return;
+    if (submitting || phoneSubmitting) return;
     onClose?.();
   };
 
@@ -53,8 +56,40 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
       setNewPassword('');
       setConfirmPassword('');
       setShowPasswordModal(false);
+      setIsEditingPhone(false);
+      setNewPhone('');
     }
   }, [isOpen, user]);
+
+  /**
+   * Submits phone number update to the API.
+   * @param {import('react').FormEvent} [e]
+   */
+  const handleSavePhone = async (e) => {
+    e?.preventDefault();
+    if (!newPhone || !newPhone.trim()) {
+      showToast?.('Please enter a valid phone number', 'error');
+      return;
+    }
+    const trimmed = newPhone.trim();
+    if (trimmed.length < 7 || trimmed.length > 30) {
+      showToast?.('Phone number must be between 7 and 30 characters', 'error');
+      return;
+    }
+
+    setPhoneSubmitting(true);
+    try {
+      const updatedProfile = await api.updatePhone({ phone: trimmed });
+      updateUser?.({ phone: updatedProfile?.phone || trimmed });
+      await refreshProfile?.();
+      showToast?.('Phone number added to account successfully!', 'success');
+      setIsEditingPhone(false);
+    } catch (err) {
+      showToast?.(err?.message || 'Failed to update phone number', 'error');
+    } finally {
+      setPhoneSubmitting(false);
+    }
+  };
 
   if (!isOpen || !user) return null;
 
@@ -157,9 +192,10 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              padding: '1rem',
+              padding: '1.25rem',
               marginBottom: '1.5rem',
-              background: 'rgba(15, 23, 42, 0.4)',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-color)',
               borderRadius: 'var(--radius-lg)'
             }}>
               <div style={{
@@ -167,39 +203,110 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
                 height: '72px',
                 borderRadius: '50%',
                 background: 'var(--accent-gradient)',
+                border: '2px solid rgba(255, 255, 255, 0.6)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#fff',
+                color: '#ffffff',
                 fontSize: '1.8rem',
-                fontWeight: '700',
+                fontWeight: '800',
                 marginBottom: '0.75rem',
-                boxShadow: 'var(--accent-glow)'
+                boxShadow: '0 0 20px rgba(185, 28, 28, 0.6), 0 0 10px rgba(255, 255, 255, 0.3)'
               }}>
                 {user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
               </div>
-              <h4 style={{ fontSize: '1.3rem', fontWeight: '700' }}>
+              <h4 style={{ fontSize: '1.3rem', fontWeight: '700', color: '#ffffff' }}>
                 {user?.firstName} {user?.lastName}
               </h4>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Account Owner</p>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)' }}>
-                <Mail size={18} color="var(--accent-primary)" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255, 255, 255, 0.06)', border: '1px solid var(--border-color)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)' }}>
+                <Mail size={18} color="#ffffff" />
                 <div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Email Address</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: '500' }}>{user?.email || 'Not provided'}</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '500', color: '#ffffff' }}>{user?.email || 'Not provided'}</div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)' }}>
-                <Phone size={18} color="var(--accent-primary)" />
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Phone Number</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: '500' }}>{user?.phone || 'Not provided'}</div>
+              {isEditingPhone ? (
+                <form
+                  onSubmit={handleSavePhone}
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(185, 28, 28, 0.22) 0%, rgba(255, 255, 255, 0.05) 100%)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    padding: '0.85rem 1rem',
+                    borderRadius: 'var(--radius-md)'
+                  }}
+                >
+                  <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Phone size={15} color="#ffffff" />
+                    {user?.phone ? 'Update Account Phone Number' : 'Add Phone Number to Account'}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="tel"
+                      className="input-control"
+                      placeholder="+1 (555) 000-0000"
+                      value={newPhone}
+                      onChange={(e) => setNewPhone(e.target.value)}
+                      required
+                      autoFocus
+                      disabled={phoneSubmitting}
+                      style={{ flex: 1, padding: '0.4rem 0.65rem', fontSize: '0.9rem' }}
+                    />
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-sm"
+                      disabled={phoneSubmitting}
+                      style={{ padding: '0.4rem 0.85rem', whiteSpace: 'nowrap' }}
+                    >
+                      {phoneSubmitting ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={phoneSubmitting}
+                      onClick={() => setIsEditingPhone(false)}
+                      style={{ padding: '0.4rem 0.65rem' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid var(--border-color)',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-md)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Phone size={18} color="#ffffff" />
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Phone Number</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: user?.phone ? 'var(--text-main)' : 'var(--text-muted)', fontStyle: user?.phone ? 'normal' : 'italic' }}>
+                        {user?.phone || 'Not provided'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      setNewPhone(user?.phone || '');
+                      setIsEditingPhone(true);
+                    }}
+                    style={{ fontSize: '0.8rem', padding: '0.25rem 0.65rem' }}
+                  >
+                    {user?.phone ? 'Edit' : '+ Add Phone'}
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="modal-footer" style={{ justifyContent: 'space-between' }}>

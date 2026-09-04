@@ -163,6 +163,39 @@ public class AuthController {
     }
 
     /**
+     * Updates or adds a phone number to the currently authenticated user's profile.
+     *
+     * @param userPrincipal the authenticated user principal
+     * @param request the update phone request payload
+     * @return response entity containing updated user profile
+     */
+    @PutMapping("/phone")
+    public ResponseEntity<ApiResponse<UserProfileDto>> updatePhone(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @Valid @RequestBody UpdatePhoneRequest request) {
+        UserProfileDto updatedProfile = authService.updatePhone(requireUserId(userPrincipal), request);
+        return ResponseEntity.ok(ApiResponse.success("Phone number updated successfully", updatedProfile));
+    }
+
+    /**
+     * Permanently closes the user's account, deletes all their contacts, and clears authentication cookies.
+     *
+     * @param userPrincipal the authenticated user principal
+     * @param response the HTTP response for cookie clearing
+     * @return response entity indicating account closure
+     */
+    @DeleteMapping("/account")
+    public ResponseEntity<ApiResponse<Void>> deleteAccount(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            HttpServletResponse response) {
+        Long userId = requireUserId(userPrincipal);
+        authService.deleteAccount(userId);
+        clearAuthCookie(response);
+        SecurityContextHolder.clearContext();
+        return ResponseEntity.ok(ApiResponse.success("Account permanently closed"));
+    }
+
+    /**
      * Endpoint to initialize or refresh the CSRF token cookie for single-page applications.
      *
      * @return response entity with success status

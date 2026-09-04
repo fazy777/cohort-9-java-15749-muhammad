@@ -1,7 +1,8 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Mail, Phone, User } from 'lucide-react';
+import { X, Plus, Trash2, Mail, Phone, User, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
+import { safeStorage } from '../utils/storage.js';
+import { api } from '../services/api.js';
 
 /**
  * Generates a unique stable row ID for dynamic form rows.
@@ -121,6 +122,8 @@ const ContactValueRow = ({
  * @typedef {Omit<import('../services/api').ContactDto, 'id' | 'createdAt' | 'updatedAt'>} ContactFormPayload
  */
 
+const normalizePhone = (num) => (num ? String(num).replace(/[\s\-().]/g, '').toLowerCase() : '');
+
 /**
  * Modal form component for creating and updating contacts with dynamic email and phone rows.
  *
@@ -128,11 +131,24 @@ const ContactValueRow = ({
  *   isOpen: boolean,
  *   onClose: () => void,
  *   onSave: (payload: ContactFormPayload) => Promise<void>,
- *   contact?: import('../services/api').ContactDto | null
+ *   contact?: import('../services/api').ContactDto | null,
+ *   existingContacts?: Array<import('../services/api').ContactDto>,
+ *   user?: import('../services/api').UserProfile | null,
+ *   onAccountClosed?: (reason?: string) => void,
+ *   showToast?: (msg: string, type: string) => void
  * }} props
  * @returns {JSX.Element|null}
  */
-export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) => {
+export const ContactFormModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  contact = null,
+  existingContacts = [],
+  user = null,
+  onAccountClosed = null,
+  showToast = null
+}) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [title, setTitle] = useState('');
@@ -141,12 +157,17 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   const [phones, setPhones] = useState(() => [{ rowId: generateRowId(), phoneNumber: '', label: 'WORK' }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [violationState, setViolationState] = useState({
+    isOpen: false,
+    isAccountClosed: false,
+    phoneNumber: ''
+  });
 
   /**
    * Guards against modal dismissal while form submission is active.
    */
   const handleRequestClose = () => {
-    if (submitting) return;
+    if (submitting || violationState.isOpen) return;
     if (typeof onClose === 'function') {
       onClose();
     }
@@ -155,7 +176,10 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   const modalRef = useModalA11y(isOpen, handleRequestClose);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setViolationState({ isOpen: false, isAccountClosed: false, phoneNumber: '' });
+      return;
+    }
     setError('');
 
     if (contact) {
@@ -258,6 +282,43 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
   };
 
   /**
+   * Handles policy enforcement for duplicate phone numbers.
+   * Strike 1: Displays warning dialog informing user of strict policy.
+   * Strike 2: Permanently deletes user account, clears session, and enforces termination.
+   * @param {string} duplicateNumber
+   */
+  const handleDuplicateViolation = async (duplicateNumber) => {
+    const warningKey = `cms_dup_warning_${user?.id || 'default'}`;
+    const currentWarnings = Number(safeStorage.getItem(warningKey) || 0);
+
+    if (currentWarnings === 0) {
+      // Strike 1: First warning
+      safeStorage.setItem(warningKey, '1');
+      setViolationState({
+        isOpen: true,
+        isAccountClosed: false,
+        phoneNumber: duplicateNumber
+      });
+      setError(`Warning (1/2): Duplicate phone number "${duplicateNumber}" is strictly prohibited.`);
+      showToast?.(`⚠️ First Warning: Duplicate phone number detected. Next violation terminates account!`, 'error');
+    } else {
+      // Strike 2: Account closure
+      setViolationState({
+        isOpen: true,
+        isAccountClosed: true,
+        phoneNumber: duplicateNumber
+      });
+      setError(`Account Terminated: Repeated duplicate phone number violation ("${duplicateNumber}").`);
+      try {
+        await api.deleteAccount();
+      } catch (err) {
+        console.warn('Backend account deletion error:', err);
+      }
+      safeStorage.removeItem(warningKey);
+    }
+  };
+
+  /**
    * Validates and submits contact form data.
    * @param {import('react').FormEvent} [e]
    */
@@ -272,6 +333,53 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
     const filteredPhones = (phones || [])
       .filter((item) => item?.phoneNumber && item.phoneNumber.trim() !== '')
       .map(({ rowId: _rowId, ...rest }) => rest);
+
+    // Check 1: Duplicate phone numbers within the current form
+    const seenFormPhones = new Map();
+    for (const phoneItem of filteredPhones) {
+      const norm = normalizePhone(phoneItem.phoneNumber);
+      if (!norm) continue;
+      if (seenFormPhones.has(norm)) {
+        setSubmitting(false);
+        await handleDuplicateViolation(phoneItem.phoneNumber);
+        return;
+      }
+      seenFormPhones.set(norm, phoneItem.phoneNumber);
+    }
+
+    // Check 2: Duplicate phone numbers against existing contacts
+    if (Array.isArray(existingContacts)) {
+      for (const ec of existingContacts) {
+        if (contact && String(ec.id) === String(contact.id)) continue;
+        if (Array.isArray(ec.phones)) {
+          for (const ep of ec.phones) {
+            const normExisting = normalizePhone(ep.phoneNumber);
+            if (!normExisting) continue;
+            for (const phoneItem of filteredPhones) {
+              const normNew = normalizePhone(phoneItem.phoneNumber);
+              if (normNew && normNew === normExisting) {
+                setSubmitting(false);
+                await handleDuplicateViolation(phoneItem.phoneNumber);
+                return;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Check 3: Duplicate phone number against user's own profile phone
+    if (user?.phone) {
+      const normUserPhone = normalizePhone(user.phone);
+      for (const phoneItem of filteredPhones) {
+        const normNew = normalizePhone(phoneItem.phoneNumber);
+        if (normNew && normNew === normUserPhone) {
+          setSubmitting(false);
+          await handleDuplicateViolation(phoneItem.phoneNumber);
+          return;
+        }
+      }
+    }
 
     const payload = {
       firstName: firstName?.trim() || '',
@@ -291,7 +399,13 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
       }
     } catch (err) {
       console.error('Failed to submit contact form:', err);
-      setError(err?.message || 'Failed to save contact. Please try again.');
+      const errMsg = err?.message || '';
+      if (errMsg.toLowerCase().includes('duplicate phone') || errMsg.toLowerCase().includes('already belongs')) {
+        const dupNum = filteredPhones[0]?.phoneNumber || 'number';
+        await handleDuplicateViolation(dupNum);
+      } else {
+        setError(errMsg || 'Failed to save contact. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -475,6 +589,147 @@ export const ContactFormModal = ({ isOpen, onClose, onSave, contact = null }) =>
           </div>
         </form>
       </div>
+
+      {/* Policy Violation 1: Warning Modal */}
+      {violationState.isOpen && !violationState.isAccountClosed && (
+        <div className="modal-overlay" style={{ zIndex: 1100, background: 'rgba(0, 0, 0, 0.75)' }}>
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="warning-modal-title"
+            className="modal-container"
+            style={{ maxWidth: '480px', border: '1px solid rgba(245, 158, 11, 0.5)', background: '#1c1316', textAlign: 'center', boxShadow: '0 0 30px rgba(245, 158, 11, 0.2)' }}
+          >
+            <div style={{ padding: '1.75rem 1.25rem 1.25rem' }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: 'rgba(245, 158, 11, 0.15)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.25rem'
+              }}>
+                <AlertTriangle size={32} color="#f59e0b" />
+              </div>
+
+              <div style={{
+                display: 'inline-block',
+                background: 'rgba(245, 158, 11, 0.2)',
+                color: '#fbbf24',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                padding: '0.2rem 0.75rem',
+                marginBottom: '0.75rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                ⚠️ Warning (1 of 2)
+              </div>
+
+              <h3 id="warning-modal-title" style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.75rem', color: '#fff' }}>
+                Duplicate Phone Number Detected
+              </h3>
+
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '1.25rem' }}>
+                The phone number <strong style={{ color: '#ff6b81' }}>"{violationState.phoneNumber}"</strong> is already in use. ContactSphere strictly prohibits duplicate phone numbers.
+              </p>
+
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.75rem 1rem',
+                marginBottom: '1.5rem',
+                fontSize: '0.82rem',
+                color: '#fca5a5'
+              }}>
+                <strong>Notice:</strong> If you attempt to enter a duplicate number again, your account will be <strong>permanently closed</strong> and terminated.
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '0.65rem' }}
+                onClick={() => setViolationState({ isOpen: false, isAccountClosed: false, phoneNumber: '' })}
+              >
+                I Understand — Remove Duplicate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Policy Violation 2: Account Closed / Terminated Modal */}
+      {violationState.isOpen && violationState.isAccountClosed && (
+        <div className="modal-overlay" style={{ zIndex: 1200, background: 'rgba(10, 5, 8, 0.88)', backdropFilter: 'blur(16px)' }}>
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="closure-modal-title"
+            className="modal-container"
+            style={{ maxWidth: '480px', border: '2px solid rgba(239, 68, 68, 0.65)', background: '#190d10', textAlign: 'center', boxShadow: '0 0 40px rgba(239, 68, 68, 0.45)' }}
+          >
+            <div style={{ padding: '2rem 1.25rem 1.5rem' }}>
+              <div style={{
+                width: '72px',
+                height: '72px',
+                borderRadius: '50%',
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '1px solid rgba(239, 68, 68, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.25rem',
+                boxShadow: '0 0 24px rgba(239, 68, 68, 0.4)'
+              }}>
+                <ShieldAlert size={38} color="#ef4444" />
+              </div>
+
+              <div style={{
+                display: 'inline-block',
+                background: 'rgba(239, 68, 68, 0.25)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.5)',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: '800',
+                padding: '0.2rem 0.75rem',
+                marginBottom: '0.75rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                🚨 Account Closed — Strike 2
+              </div>
+
+              <h3 id="closure-modal-title" style={{ fontSize: '1.3rem', fontWeight: '800', marginBottom: '0.75rem', color: '#fff' }}>
+                Account Terminated
+              </h3>
+
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
+                You have attempted to enter duplicate phone number <strong style={{ color: '#ef4444' }}>"{violationState.phoneNumber}"</strong> a second time.
+                In accordance with ContactSphere policy, your account and all associated contacts have been permanently closed.
+              </p>
+
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem' }}
+                onClick={() => {
+                  setViolationState({ isOpen: false, isAccountClosed: false, phoneNumber: '' });
+                  onAccountClosed?.(`Your account was permanently closed due to repeated duplicate phone number policy violations ("${violationState.phoneNumber}").`);
+                }}
+              >
+                Acknowledge & Exit to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

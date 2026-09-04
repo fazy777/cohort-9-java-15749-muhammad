@@ -453,6 +453,45 @@ export const api = {
   },
 
   /**
+   * Updates or adds the authenticated user's phone number.
+   * @param {{ phone: string }} data - phone update payload
+   * @returns {Promise<UserProfile | null>}
+   */
+  async updatePhone(data) {
+    if (!data || !data.phone) throw new Error('Phone number is required');
+    const result = await request('/auth/phone', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+    if (!result || typeof result !== 'object' || !result.data) {
+      throw new Error('Invalid update phone response shape from server');
+    }
+    return result.data;
+  },
+
+  /**
+   * Permanently closes and deletes the authenticated user's account and all contacts.
+   * @returns {Promise<ApiResponse<void>>}
+   */
+  async deleteAccount() {
+    return serializeAuth(async (signal) => {
+      try {
+        const result = await request('/auth/account', {
+          method: 'DELETE',
+          signal
+        });
+        if (!result || typeof result !== 'object') {
+          throw new Error('Invalid delete account response shape from server');
+        }
+        return result;
+      } finally {
+        safeStorage.removeItem('cms_user');
+        safeStorage.removeItem('cms_auth_token');
+      }
+    });
+  },
+
+  /**
    * Fetches a paginated, filtered list of contacts.
    * @param {ContactQueryParams} [params] - query parameters
    * @returns {Promise<PagedContacts | null>}

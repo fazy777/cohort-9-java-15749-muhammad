@@ -6,6 +6,7 @@ import com.contact_managment.main_application.exception.BadRequestException;
 import com.contact_managment.main_application.exception.InvalidCredentialsException;
 import com.contact_managment.main_application.exception.ResourceNotFoundException;
 import com.contact_managment.main_application.exception.UserAlreadyExistsException;
+import com.contact_managment.main_application.repository.ContactRepository;
 import com.contact_managment.main_application.repository.UserRepository;
 import com.contact_managment.main_application.security.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,9 @@ class AuthServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private ContactRepository contactRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -413,6 +417,48 @@ class AuthServiceTest {
     @DisplayName("Should throw BadRequestException when changePassword receives null request")
     void changePassword_NullRequest_ThrowsBadRequest() {
         assertThrows(BadRequestException.class, () -> authService.changePassword(1L, null));
+    }
+
+    @Test
+    @DisplayName("Should update phone number successfully")
+    void updatePhone_Success() {
+        UpdatePhoneRequest request = UpdatePhoneRequest.builder()
+                .phone("+9876543210")
+                .build();
+
+        when(userRepository.findByPhone("+9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
+        when(userRepository.saveAndFlush(any(User.class))).thenReturn(sampleUser);
+
+        UserProfileDto result = authService.updatePhone(1L, request);
+
+        assertNotNull(result);
+        assertEquals("+9876543210", sampleUser.getPhone());
+        verify(userRepository).saveAndFlush(sampleUser);
+    }
+
+    @Test
+    @DisplayName("Should throw UserAlreadyExistsException when phone number is taken by another user")
+    void updatePhone_AlreadyExists() {
+        UpdatePhoneRequest request = UpdatePhoneRequest.builder()
+                .phone("+9876543210")
+                .build();
+
+        User existingOther = User.builder().id(2L).phone("+9876543210").build();
+        when(userRepository.findByPhone("+9876543210")).thenReturn(Optional.of(existingOther));
+
+        assertThrows(UserAlreadyExistsException.class, () -> authService.updatePhone(1L, request));
+    }
+
+    @Test
+    @DisplayName("Should delete account and all contacts successfully")
+    void deleteAccount_Success() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+
+        authService.deleteAccount(1L);
+
+        verify(userRepository).delete(sampleUser);
+        verify(userRepository).flush();
     }
 }
 

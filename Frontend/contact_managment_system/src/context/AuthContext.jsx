@@ -197,14 +197,29 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
+  /**
+   * Directly updates user profile fields in memory and persistent storage.
+   * @param {Partial<import('../services/api').UserProfile>} updatedFields
+   */
+  const updateUser = useCallback((updatedFields) => {
+    if (!updatedFields || typeof updatedFields !== 'object') return;
+    setUser((prev) => {
+      if (!prev) return prev;
+      const merged = { ...prev, ...updatedFields };
+      safeStorage.setItem('cms_user', JSON.stringify(merged));
+      return merged;
+    });
+  }, []);
+
   const contextValue = useMemo(() => ({
     user,
     loading,
     login,
     register,
     logout,
-    refreshProfile
-  }), [user, loading, login, register, logout, refreshProfile]);
+    refreshProfile,
+    updateUser
+  }), [user, loading, login, register, logout, refreshProfile, updateUser]);
 
   return (
     <AuthContext.Provider value={contextValue}>

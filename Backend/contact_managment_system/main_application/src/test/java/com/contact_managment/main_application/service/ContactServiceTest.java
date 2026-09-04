@@ -5,6 +5,7 @@ import com.contact_managment.main_application.entity.Contact;
 import com.contact_managment.main_application.entity.ContactEmail;
 import com.contact_managment.main_application.entity.ContactPhone;
 import com.contact_managment.main_application.entity.User;
+import com.contact_managment.main_application.exception.DuplicatePhoneNumberException;
 import com.contact_managment.main_application.exception.ResourceNotFoundException;
 import com.contact_managment.main_application.repository.ContactRepository;
 import com.contact_managment.main_application.repository.UserRepository;
@@ -223,5 +224,40 @@ class ContactServiceTest {
     void updateContact_NullDto_ThrowsBadRequest() {
         assertThrows(com.contact_managment.main_application.exception.BadRequestException.class,
                 () -> contactService.updateContact(1L, 10L, null));
+    }
+
+    @Test
+    @DisplayName("Should throw DuplicatePhoneNumberException when phone number is duplicated within payload")
+    void createContact_DuplicatePhoneInPayload_ThrowsException() {
+        ContactDto dto = ContactDto.builder()
+                .firstName("Test")
+                .lastName("User")
+                .phones(List.of(
+                        ContactPhoneDto.builder().phoneNumber("+1234567890").label("WORK").build(),
+                        ContactPhoneDto.builder().phoneNumber("+1234567890").label("MOBILE").build()
+                ))
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+
+        assertThrows(DuplicatePhoneNumberException.class, () -> contactService.createContact(1L, dto));
+    }
+
+    @Test
+    @DisplayName("Should throw DuplicatePhoneNumberException when phone number exists in another contact")
+    void createContact_DuplicatePhoneAcrossContacts_ThrowsException() {
+        ContactDto dto = ContactDto.builder()
+                .firstName("Test")
+                .lastName("User")
+                .phones(List.of(
+                        ContactPhoneDto.builder().phoneNumber("+1234567890").label("WORK").build()
+                ))
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null))
+                .thenReturn(List.of("+1234567890"));
+
+        assertThrows(DuplicatePhoneNumberException.class, () -> contactService.createContact(1L, dto));
     }
 }

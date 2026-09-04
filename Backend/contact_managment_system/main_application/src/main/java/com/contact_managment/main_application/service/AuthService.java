@@ -1,11 +1,13 @@
 package com.contact_managment.main_application.service;
 
 import com.contact_managment.main_application.dto.*;
+import com.contact_managment.main_application.entity.Contact;
 import com.contact_managment.main_application.entity.User;
 import com.contact_managment.main_application.exception.BadRequestException;
 import com.contact_managment.main_application.exception.InvalidCredentialsException;
 import com.contact_managment.main_application.exception.ResourceNotFoundException;
 import com.contact_managment.main_application.exception.UserAlreadyExistsException;
+import com.contact_managment.main_application.repository.ContactRepository;
 import com.contact_managment.main_application.repository.UserRepository;
 import com.contact_managment.main_application.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * Service managing user authentication, account creation, token generation, profile retrieval, and password rotation.
@@ -28,13 +31,20 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final ContactRepository contactRepository;
     private final String dummyPasswordHash;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider, ContactRepository contactRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
+        this.contactRepository = contactRepository;
         this.dummyPasswordHash = passwordEncoder.encode("dummy-verification-secret");
+    }
+
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider) {
+        this(userRepository, passwordEncoder, tokenProvider, null);
     }
 
     /**
@@ -218,6 +228,77 @@ public class AuthService {
         user.setTokenVersion((user.getTokenVersion() != null ? user.getTokenVersion() : 1L) + 1L);
         userRepository.save(user);
         log.info("Password updated and existing tokens invalidated successfully for user ID: {}", userId);
+    }
+
+    /**
+     * Adds or updates the phone number for an authenticated user.
+     *
+     * @param userId the user ID
+     * @param request the update phone payload
+     * @return updated user profile DTO
+     * @throws BadRequestException if payload is invalid
+     * @throws UserAlreadyExistsException if phone number is already registered to another account
+     * @throws ResourceNotFoundException if user is not found
+     */
+    @Transactional
+    public UserProfileDto updatePhone(Long userId, UpdatePhoneRequest request) {
+        log.info("Updating phone number for user ID: {}", userId);
+        if (request == null || !StringUtils.hasText(request.getPhone())) {
+            throw new BadRequestException("Phone number cannot be empty");
+        }
+
+        String phone = request.getPhone().trim();
+        if (phone.length() > 30) {
+            throw new BadRequestException("Phone number cannot exceed 30 characters");
+        }
+
+        userRepository.findByPhone(phone).ifPresent(existing -> {
+            if (!existing.getId().equals(userId)) {
+                throw new UserAlreadyExistsException("Phone number is already associated with another account");
+            }
+        });
+
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        user.setPhone(phone);
+        User saved = userRepository.saveAndFlush(user);
+        log.info("Phone number successfully updated for user ID: {}", userId);
+
+        return UserProfileDto.builder()
+                .id(saved.getId())
+                .firstName(saved.getFirstName())
+                .lastName(saved.getLastName())
+                .email(saved.getEmail())
+                .phone(saved.getPhone())
+                .createdAt(saved.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * Permanently closes and deletes a user account and all associated contacts.
+     *
+     * @param userId the user ID to close
+     * @throws ResourceNotFoundException if user is not found
+     */
+    @Transactional
+    public void deleteAccount(Long userId) {
+        log.warn("Permanent account closure initiated for user ID: {}", userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        if (contactRepository != null) {
+            List<Contact> contacts = contactRepository.findByUser(user);
+            if (!contacts.isEmpty()) {
+                contactRepository.deleteAll(contacts);
+                contactRepository.flush();
+                log.info("Deleted {} contacts for user ID: {}", contacts.size(), userId);
+            }
+        }
+
+        userRepository.delete(user);
+        userRepository.flush();
+        log.info("User account ID: {} permanently closed and purged.", userId);
     }
 
     /**

@@ -14,7 +14,7 @@ export const Navbar = ({ onOpenProfile }) => {
     <nav className="navbar">
       <div className="navbar-inner">
         <div className="nav-brand">
-          <BookOpen size={28} style={{ color: '#6366f1' }} />
+          <BookOpen size={28} style={{ color: '#ffffff', filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.5))' }} />
           <span>ContactSphere</span>
         </div>
 
@@ -31,17 +31,19 @@ export const Navbar = ({ onOpenProfile }) => {
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                background: 'var(--accent-gradient)',
+                border: '1.5px solid rgba(255, 255, 255, 0.6)',
+                boxShadow: '0 0 8px rgba(255, 255, 255, 0.3), 0 2px 8px rgba(185, 28, 28, 0.5)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#fff',
+                color: '#ffffff',
                 fontWeight: 'bold',
                 fontSize: '0.9rem'
               }}>
                 {user.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
               </div>
-              <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>
+              <span style={{ fontWeight: '600', fontSize: '0.9rem', color: '#ffffff' }}>
                 {user.firstName} {user.lastName}
               </span>
             </button>

@@ -1,5 +1,37 @@
-import { Search, Plus, Edit, Trash2, Eye, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Eye, FileText, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { getLabelClass } from '../utils/labels';
+
+/**
+ * Calculates page numbers array with ellipsis for pagination navigation.
+ * @param {number} current - 0-indexed current page
+ * @param {number} total - total number of pages
+ * @returns {Array<number|string>}
+ */
+const getPagePills = (current, total) => {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i);
+  }
+  const pills = [];
+  pills.push(0);
+
+  const start = Math.max(1, current - 1);
+  const end = Math.min(total - 2, current + 1);
+
+  if (start > 1) {
+    pills.push('ellipsis-start');
+  }
+
+  for (let i = start; i <= end; i++) {
+    pills.push(i);
+  }
+
+  if (end < total - 2) {
+    pills.push('ellipsis-end');
+  }
+
+  pills.push(total - 1);
+  return pills;
+};
 
 /**
  * Data table component rendering contact listings, search filter, action buttons, and pagination controls.
@@ -41,6 +73,9 @@ export const ContactTable = ({
   loading = false
 }) => {
   const safeContacts = Array.isArray(contacts) ? contacts.filter(Boolean) : [];
+  const startItem = totalElements > 0 ? currentPage * pageSize + 1 : 0;
+  const endItem = Math.min((currentPage + 1) * pageSize, totalElements);
+  const pagePills = getPagePills(currentPage, totalPages || 1);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -127,10 +162,12 @@ export const ContactTable = ({
                             height: '38px',
                             borderRadius: '50%',
                             background: 'var(--accent-gradient)',
+                            border: '1.5px solid rgba(255, 255, 255, 0.45)',
+                            boxShadow: '0 2px 10px rgba(185, 28, 28, 0.5), 0 0 8px rgba(255, 255, 255, 0.25)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: '#fff',
+                            color: '#ffffff',
                             fontWeight: 'bold',
                             fontSize: '0.95rem'
                           }}>
@@ -213,45 +250,106 @@ export const ContactTable = ({
 
         {/* Paginated Navigation Controls */}
         {totalElements > 0 && (
-          <div className="pagination-container" style={{ margin: '1rem' }}>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-              Showing Page <strong style={{ color: 'var(--text-main)' }}>{currentPage + 1}</strong> of <strong style={{ color: 'var(--text-main)' }}>{totalPages || 1}</strong> ({totalElements} total contacts)
+          <div className="pagination-bar">
+            {/* Left section: Record Count and Per Page dropdown */}
+            <div className="pagination-info-group">
+              <span className="pagination-range-badge">
+                Showing <strong className="pagination-num">{startItem}–{endItem}</strong> of{' '}
+                <strong className="pagination-num">{totalElements}</strong> contacts
+              </span>
+
+              <div className="pagination-per-page-wrapper">
+                <label htmlFor="contacts-per-page-select" className="pagination-per-page-label">
+                  Per page:
+                </label>
+                <select
+                  id="contacts-per-page-select"
+                  aria-label="Contacts per page"
+                  className="pagination-select"
+                  value={pageSize}
+                  onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <select
-                aria-label="Contacts per page"
-                className="input-control"
-                value={pageSize}
-                onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
-                style={{ width: '80px', padding: '0.35rem 0.5rem', fontSize: '0.85rem' }}
-              >
-                <option value={5}>5 / page</option>
-                <option value={10}>10 / page</option>
-                <option value={20}>20 / page</option>
-                <option value={50}>50 / page</option>
-              </select>
+            {/* Right section: Navigation buttons & Page number pills */}
+            {totalPages > 1 && (
+              <nav aria-label="Contacts pagination" className="pagination-nav-group">
+                <button
+                  type="button"
+                  className="pagination-btn pagination-icon-btn"
+                  onClick={() => onPageChange?.(0)}
+                  disabled={currentPage === 0}
+                  title="First Page"
+                  aria-label="Go to first page"
+                >
+                  <ChevronsLeft size={16} />
+                </button>
 
-              {totalPages > 1 && (
-                <>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => onPageChange?.(currentPage - 1)}
-                    disabled={currentPage === 0}
-                  >
-                    <ChevronLeft size={16} /> Prev
-                  </button>
+                <button
+                  type="button"
+                  className="pagination-btn pagination-step-btn"
+                  onClick={() => onPageChange?.(currentPage - 1)}
+                  disabled={currentPage === 0}
+                  aria-label="Go to previous page"
+                >
+                  <ChevronLeft size={16} />
+                  <span className="pagination-btn-text">Prev</span>
+                </button>
 
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => onPageChange?.(currentPage + 1)}
-                    disabled={currentPage >= totalPages - 1}
-                  >
-                    Next <ChevronRight size={16} />
-                  </button>
-                </>
-              )}
-            </div>
+                <div className="pagination-pills-list">
+                  {pagePills.map((pill, idx) => {
+                    if (typeof pill === 'string') {
+                      return (
+                        <span key={`ellipsis-${idx}`} className="pagination-ellipsis" aria-hidden="true">
+                          …
+                        </span>
+                      );
+                    }
+                    const isCurrent = pill === currentPage;
+                    return (
+                      <button
+                        key={pill}
+                        type="button"
+                        className={`pagination-btn pagination-page-pill ${isCurrent ? 'active' : ''}`}
+                        onClick={() => onPageChange?.(pill)}
+                        aria-current={isCurrent ? 'page' : undefined}
+                        aria-label={`Page ${pill + 1}`}
+                      >
+                        {pill + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  className="pagination-btn pagination-step-btn"
+                  onClick={() => onPageChange?.(currentPage + 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  aria-label="Go to next page"
+                >
+                  <span className="pagination-btn-text">Next</span>
+                  <ChevronRight size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  className="pagination-btn pagination-icon-btn"
+                  onClick={() => onPageChange?.(totalPages - 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  title="Last Page"
+                  aria-label="Go to last page"
+                >
+                  <ChevronsRight size={16} />
+                </button>
+              </nav>
+            )}
           </div>
         )}
       </div>
