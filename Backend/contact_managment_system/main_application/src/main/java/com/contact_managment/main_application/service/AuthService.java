@@ -249,6 +249,9 @@ public class AuthService {
         }
 
         String phone = request.getPhone().trim();
+        if (phone.length() < 7) {
+            throw new BadRequestException("Phone number must be at least 7 characters");
+        }
         if (phone.length() > 30) {
             throw new BadRequestException("Phone number cannot exceed 30 characters");
         }

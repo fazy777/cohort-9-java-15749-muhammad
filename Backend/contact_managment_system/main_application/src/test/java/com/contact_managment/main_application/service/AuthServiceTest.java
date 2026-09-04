@@ -442,6 +442,28 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw BadRequestException when updatePhone receives phone shorter than 7 characters")
+    void updatePhone_TooShort_ThrowsBadRequest() {
+        UpdatePhoneRequest request = UpdatePhoneRequest.builder()
+                .phone("  12345  ")
+                .build();
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> authService.updatePhone(1L, request));
+        assertEquals("Phone number must be at least 7 characters", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException when updatePhone receives phone exceeding 30 characters")
+    void updatePhone_TooLong_ThrowsBadRequest() {
+        UpdatePhoneRequest request = UpdatePhoneRequest.builder()
+                .phone("+1234567890123456789012345678901")
+                .build();
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> authService.updatePhone(1L, request));
+        assertEquals("Phone number cannot exceed 30 characters", ex.getMessage());
+    }
+
+    @Test
     @DisplayName("Should throw UserAlreadyExistsException when phone number is taken by another user")
     void updatePhone_AlreadyExists() {
         UpdatePhoneRequest request = UpdatePhoneRequest.builder()

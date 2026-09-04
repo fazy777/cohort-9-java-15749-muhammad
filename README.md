@@ -281,14 +281,14 @@ cohort-9-java-15749-muhammad/
 
 To run code quality scans locally using SonarQube and Maven:
 
-1. Start your local SonarQube server (typically at `http://localhost:9000`).
+1. Start your local SonarQube server with HTTPS enabled (e.g., `https://localhost:9000` via a local TLS reverse proxy or certificate).
 2. Export your token and run the Maven goal:
    ```bash
    cd Backend/contact_managment_system/main_application
    export SONAR_TOKEN="YOUR_SONAR_TOKEN"
    ./mvnw clean verify sonar:sonar \
      -Dsonar.projectKey=contact-management-system-backend \
-     -Dsonar.host.url=http://localhost:9000
+     -Dsonar.host.url=https://localhost:9000
    ```
 
 To run SonarQube scanner for the Frontend (React):
@@ -298,7 +298,7 @@ export SONAR_TOKEN="YOUR_SONAR_TOKEN"
 sonar-scanner \
   -Dsonar.projectKey=contact-management-system-frontend \
   -Dsonar.sources=src \
-  -Dsonar.host.url=http://localhost:9000
+  -Dsonar.host.url=https://localhost:9000
 ```
 
 ---

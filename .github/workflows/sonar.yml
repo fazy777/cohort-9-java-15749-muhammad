@@ -51,7 +51,7 @@ jobs:
           ./mvnw clean verify
 
       - name: SonarQube / SonarCloud Scan
-        if: env.SONAR_AVAILABLE == 'true'
+        if: env.SONAR_AVAILABLE == 'true' && startsWith(secrets.SONAR_HOST_URL || 'https://sonarcloud.io', 'https://')
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
@@ -60,7 +60,6 @@ jobs:
             -Dsonar.projectKey=contact-management-system-backend \
             -Dsonar.organization=fazy777 \
             -Dsonar.host.url="$SONAR_HOST_URL" \
-            -Dsonar.token="$SONAR_TOKEN" \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
 
   # =========================================================================
@@ -101,7 +100,7 @@ jobs:
         run: npm test
 
       - name: SonarQube / SonarCloud Scanner CLI Scan
-        if: env.SONAR_AVAILABLE == 'true'
+        if: env.SONAR_AVAILABLE == 'true' && startsWith(secrets.SONAR_HOST_URL || 'https://sonarcloud.io', 'https://')
         uses: SonarSource/sonarqube-scan-action@689fb39b34b9aa95ebc5f8f119343ddd51542402 # v4.2.2
         with:
           projectBaseDir: Frontend/contact_managment_system

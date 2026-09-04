@@ -344,8 +344,11 @@ export const ContactFormModal = ({
       const norm = normalizePhone(phoneItem.phoneNumber);
       if (!norm) continue;
       if (seenFormPhones.has(norm)) {
-        setSubmitting(false);
-        await handleDuplicateViolation(phoneItem.phoneNumber);
+        try {
+          await handleDuplicateViolation(phoneItem.phoneNumber);
+        } finally {
+          setSubmitting(false);
+        }
         return;
       }
       seenFormPhones.set(norm, phoneItem.phoneNumber);
@@ -362,8 +365,11 @@ export const ContactFormModal = ({
             for (const phoneItem of filteredPhones) {
               const normNew = normalizePhone(phoneItem.phoneNumber);
               if (normNew && normNew === normExisting) {
-                setSubmitting(false);
-                await handleDuplicateViolation(phoneItem.phoneNumber);
+                try {
+                  await handleDuplicateViolation(phoneItem.phoneNumber);
+                } finally {
+                  setSubmitting(false);
+                }
                 return;
               }
             }
@@ -378,8 +384,11 @@ export const ContactFormModal = ({
       for (const phoneItem of filteredPhones) {
         const normNew = normalizePhone(phoneItem.phoneNumber);
         if (normNew && normNew === normUserPhone) {
-          setSubmitting(false);
-          await handleDuplicateViolation(phoneItem.phoneNumber);
+          try {
+            await handleDuplicateViolation(phoneItem.phoneNumber);
+          } finally {
+            setSubmitting(false);
+          }
           return;
         }
       }

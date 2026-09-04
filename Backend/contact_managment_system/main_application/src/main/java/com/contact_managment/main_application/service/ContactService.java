@@ -384,6 +384,10 @@ public class ContactService {
                 .map(this::normalizePhoneNumber)
                 .collect(java.util.stream.Collectors.toSet());
 
+        if (user != null && StringUtils.hasText(user.getPhone())) {
+            normalizedExisting.add(normalizePhoneNumber(user.getPhone()));
+        }
+
         for (ContactPhoneDto phoneDto : phones) {
             if (phoneDto == null || !StringUtils.hasText(phoneDto.getPhoneNumber())) {
                 continue;

@@ -215,10 +215,10 @@ const MainDashboard = () => {
    * Handles immediate account closure upon repeated duplicate phone violations.
    * @param {string} [reason] - explanation for account closure
    */
-  const handleAccountClosed = useCallback(async (reason) => {
+  const handleAccountClosed = useCallback(async (_reason) => {
     safeStorage.setItem(
       'cms_account_closed_notice',
-      reason || 'Your account was permanently closed due to repeated duplicate phone number policy violations.'
+      'Your account was permanently closed due to repeated duplicate phone number policy violations.'
     );
     setIsFormOpen(false);
     setIsProfileOpen(false);

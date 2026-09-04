@@ -260,4 +260,43 @@ class ContactServiceTest {
 
         assertThrows(DuplicatePhoneNumberException.class, () -> contactService.createContact(1L, dto));
     }
+
+    @Test
+    @DisplayName("Should throw DuplicatePhoneNumberException when phone number matches user's profile phone on create")
+    void createContact_DuplicateProfilePhone_ThrowsException() {
+        sampleUser.setPhone("+1 (555) 234-5678");
+        ContactDto dto = ContactDto.builder()
+                .firstName("Test")
+                .lastName("User")
+                .phones(List.of(
+                        ContactPhoneDto.builder().phoneNumber("+15552345678").label("WORK").build()
+                ))
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null))
+                .thenReturn(List.of());
+
+        assertThrows(DuplicatePhoneNumberException.class, () -> contactService.createContact(1L, dto));
+    }
+
+    @Test
+    @DisplayName("Should throw DuplicatePhoneNumberException when phone number matches user's profile phone on update")
+    void updateContact_DuplicateProfilePhone_ThrowsException() {
+        sampleUser.setPhone("+1 (555) 234-5678");
+        ContactDto dto = ContactDto.builder()
+                .firstName("Test")
+                .lastName("User")
+                .phones(List.of(
+                        ContactPhoneDto.builder().phoneNumber("+15552345678").label("WORK").build()
+                ))
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        when(contactRepository.findByIdAndUser(10L, sampleUser)).thenReturn(Optional.of(sampleContact));
+        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, 10L))
+                .thenReturn(List.of());
+
+        assertThrows(DuplicatePhoneNumberException.class, () -> contactService.updateContact(1L, 10L, dto));
+    }
 }

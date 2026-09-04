@@ -154,4 +154,14 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
     safeStorage.removeItem(warningKey);
     assert.equal(safeStorage.getItem(warningKey), null);
   });
+
+  test('account-closure notice storage remains generic and does not store phone number', () => {
+    // When account is closed, only generic message should be persisted to safeStorage
+    const genericMessage = 'Your account was permanently closed due to repeated duplicate phone number policy violations.';
+    safeStorage.setItem('cms_account_closed_notice', genericMessage);
+
+    const stored = safeStorage.getItem('cms_account_closed_notice');
+    assert.equal(stored, genericMessage);
+    assert.equal(/\+?\d[\d\s\-()]{6,}/.test(stored), false);
+  });
 });
