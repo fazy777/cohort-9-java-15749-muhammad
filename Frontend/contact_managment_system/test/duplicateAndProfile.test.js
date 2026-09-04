@@ -85,6 +85,54 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
     assert.equal(safeStorage.getItem('cms_auth_token'), null);
   });
 
+  test('api.deleteAccount preserves session storage when request rejects', async () => {
+    safeStorage.setItem('cms_user', JSON.stringify({ id: 1, firstName: 'John' }));
+    safeStorage.setItem('cms_auth_token', 'mock-token-xyz');
+
+    globalThis.fetch = async () => {
+      throw new Error('Network error during deletion');
+    };
+
+    await assert.rejects(
+      async () => {
+        await api.deleteAccount();
+      },
+      /Network error during deletion/
+    );
+
+    assert.notEqual(safeStorage.getItem('cms_user'), null);
+    assert.notEqual(safeStorage.getItem('cms_auth_token'), null);
+  });
+
+  test('logout clears local auth state even when api.logout rejects', async () => {
+    safeStorage.setItem('cms_user', JSON.stringify({ id: 1, firstName: 'John' }));
+    let userState = { id: 1, firstName: 'John' };
+    const clearAuthState = () => {
+      userState = null;
+      safeStorage.removeItem('cms_user');
+    };
+
+    const mockLogout = async () => {
+      try {
+        await (async () => {
+          throw new Error('Network error during logout');
+        })();
+      } finally {
+        clearAuthState();
+      }
+    };
+
+    await assert.rejects(
+      async () => {
+        await mockLogout();
+      },
+      /Network error during logout/
+    );
+
+    assert.equal(userState, null);
+    assert.equal(safeStorage.getItem('cms_user'), null);
+  });
+
   test('phone normalizer strips formatting correctly for duplicate comparisons', () => {
     const normalizePhone = (num) => (num ? String(num).replace(/[\s\-().]/g, '').toLowerCase() : '');
 

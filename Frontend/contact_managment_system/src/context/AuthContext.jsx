@@ -43,10 +43,11 @@ export const AuthProvider = ({ children }) => {
     incrementSessionGeneration();
     try {
       await api.logout();
-      clearAuthState();
     } catch (err) {
       console.warn('Logout request failed:', err);
       throw err;
+    } finally {
+      clearAuthState();
     }
   }, [clearAuthState]);
 

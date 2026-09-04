@@ -304,18 +304,21 @@ export const ContactFormModal = ({
       showToast?.(`⚠️ First Warning: Duplicate phone number detected. Next violation terminates account!`, 'error');
     } else {
       // Strike 2: Account closure
-      setViolationState({
-        isOpen: true,
-        isAccountClosed: true,
-        phoneNumber: duplicateNumber
-      });
-      setError(`Account Terminated: Repeated duplicate phone number violation ("${duplicateNumber}").`);
       try {
         await api.deleteAccount();
+        setViolationState({
+          isOpen: true,
+          isAccountClosed: true,
+          phoneNumber: duplicateNumber
+        });
+        setError(`Account Terminated: Repeated duplicate phone number violation ("${duplicateNumber}").`);
+        safeStorage.removeItem(warningKey);
       } catch (err) {
-        console.warn('Backend account deletion error:', err);
+        console.error('Backend account deletion error:', err);
+        setViolationState({ isOpen: false, isAccountClosed: false, phoneNumber: '' });
+        setError(err?.message || 'Failed to process account closure policy. Please contact support.');
+        showToast?.(err?.message || 'Failed to process account closure. Please try again.', 'error');
       }
-      safeStorage.removeItem(warningKey);
     }
   };
 

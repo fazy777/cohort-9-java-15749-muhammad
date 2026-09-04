@@ -73,9 +73,10 @@ export const ContactTable = ({
   loading = false
 }) => {
   const safeContacts = Array.isArray(contacts) ? contacts.filter(Boolean) : [];
-  const startItem = totalElements > 0 ? currentPage * pageSize + 1 : 0;
-  const endItem = Math.min((currentPage + 1) * pageSize, totalElements);
-  const pagePills = getPagePills(currentPage, totalPages || 1);
+  const effectivePage = totalPages > 0 ? Math.min(Math.max(0, currentPage), totalPages - 1) : 0;
+  const startItem = totalElements > 0 ? effectivePage * pageSize + 1 : 0;
+  const endItem = Math.min((effectivePage + 1) * pageSize, totalElements);
+  const pagePills = getPagePills(effectivePage, totalPages || 1);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -294,8 +295,8 @@ export const ContactTable = ({
                 <button
                   type="button"
                   className="pagination-btn pagination-step-btn"
-                  onClick={() => onPageChange?.(currentPage - 1)}
-                  disabled={currentPage === 0}
+                  onClick={() => onPageChange?.(effectivePage - 1)}
+                  disabled={effectivePage === 0}
                   aria-label="Go to previous page"
                 >
                   <ChevronLeft size={16} />
@@ -311,7 +312,7 @@ export const ContactTable = ({
                         </span>
                       );
                     }
-                    const isCurrent = pill === currentPage;
+                    const isCurrent = pill === effectivePage;
                     return (
                       <button
                         key={pill}
@@ -330,8 +331,8 @@ export const ContactTable = ({
                 <button
                   type="button"
                   className="pagination-btn pagination-step-btn"
-                  onClick={() => onPageChange?.(currentPage + 1)}
-                  disabled={currentPage >= totalPages - 1}
+                  onClick={() => onPageChange?.(effectivePage + 1)}
+                  disabled={effectivePage >= totalPages - 1}
                   aria-label="Go to next page"
                 >
                   <span className="pagination-btn-text">Next</span>
@@ -342,7 +343,7 @@ export const ContactTable = ({
                   type="button"
                   className="pagination-btn pagination-icon-btn"
                   onClick={() => onPageChange?.(totalPages - 1)}
-                  disabled={currentPage >= totalPages - 1}
+                  disabled={effectivePage >= totalPages - 1}
                   title="Last Page"
                   aria-label="Go to last page"
                 >

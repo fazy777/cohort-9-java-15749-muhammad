@@ -19,6 +19,6 @@ public class UpdatePhoneRequest {
 
     @NotBlank(message = "Phone number is required")
     @Size(min = 7, max = 30, message = "Phone number must be between 7 and 30 characters")
-    @Pattern(regexp = "^[+0-9\\s\\-\\(\\)\\.]{7,30}$", message = "Phone number contains invalid characters")
+    @Pattern(regexp = "^(?=.*[0-9])[+0-9\\s\\-\\(\\)\\.]{7,30}$", message = "Phone number contains invalid characters")
     private String phone;
 }

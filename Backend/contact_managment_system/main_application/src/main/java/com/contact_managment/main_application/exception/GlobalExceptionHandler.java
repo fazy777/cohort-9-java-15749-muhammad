@@ -85,7 +85,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(DuplicatePhoneNumberException.class)
     public ResponseEntity<ErrorResponse> handleDuplicatePhoneNumberException(DuplicatePhoneNumberException ex, HttpServletRequest request) {
-        log.warn("Duplicate phone number exception at {}: {}", sanitizeForLog(request.getRequestURI()), sanitizeForLog(ex.getMessage()));
+        log.warn("Duplicate phone number exception at {}", sanitizeForLog(request.getRequestURI()));
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.CONFLICT.value())

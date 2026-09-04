@@ -117,9 +117,13 @@ const MainDashboard = () => {
         sortDir: 'asc'
       });
       if (requestId === latestRequestIdRef.current && data) {
+        const returnedTotalPages = typeof data.totalPages === 'number' ? data.totalPages : 0;
         setContacts(Array.isArray(data.content) ? data.content : []);
-        setTotalPages(typeof data.totalPages === 'number' ? data.totalPages : 0);
+        setTotalPages(returnedTotalPages);
         setTotalElements(typeof data.totalElements === 'number' ? data.totalElements : 0);
+        if (returnedTotalPages > 0 && page >= returnedTotalPages) {
+          setPage(returnedTotalPages - 1);
+        }
       }
     } catch (err) {
       if (requestId === latestRequestIdRef.current) {

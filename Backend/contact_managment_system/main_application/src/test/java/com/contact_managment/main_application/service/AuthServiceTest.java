@@ -1,8 +1,10 @@
 package com.contact_managment.main_application.service;
 
 import com.contact_managment.main_application.dto.*;
+import com.contact_managment.main_application.entity.Contact;
 import com.contact_managment.main_application.entity.User;
 import com.contact_managment.main_application.exception.BadRequestException;
+import com.contact_managment.main_application.exception.DuplicatePhoneNumberException;
 import com.contact_managment.main_application.exception.InvalidCredentialsException;
 import com.contact_managment.main_application.exception.ResourceNotFoundException;
 import com.contact_managment.main_application.exception.UserAlreadyExistsException;
@@ -13,12 +15,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -451,14 +455,34 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw DuplicatePhoneNumberException when phone number already exists in user's contacts")
+    void updatePhone_DuplicateInContacts() {
+        UpdatePhoneRequest request = UpdatePhoneRequest.builder()
+                .phone("+1 (555) 234-5678")
+                .build();
+
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
+        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null))
+                .thenReturn(List.of("+15552345678"));
+
+        assertThrows(DuplicatePhoneNumberException.class, () -> authService.updatePhone(1L, request));
+    }
+
+    @Test
     @DisplayName("Should delete account and all contacts successfully")
     void deleteAccount_Success() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        Contact contact = Contact.builder().id(101L).build();
+        List<Contact> contacts = List.of(contact);
+        when(contactRepository.findByUser(sampleUser)).thenReturn(contacts);
 
         authService.deleteAccount(1L);
 
-        verify(userRepository).delete(sampleUser);
-        verify(userRepository).flush();
+        InOrder inOrder = inOrder(contactRepository, userRepository);
+        inOrder.verify(contactRepository).deleteAll(contacts);
+        inOrder.verify(contactRepository).flush();
+        inOrder.verify(userRepository).delete(sampleUser);
+        inOrder.verify(userRepository).flush();
     }
 }
 

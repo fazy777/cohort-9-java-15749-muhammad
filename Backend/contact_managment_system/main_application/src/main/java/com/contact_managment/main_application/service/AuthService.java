@@ -4,6 +4,7 @@ import com.contact_managment.main_application.dto.*;
 import com.contact_managment.main_application.entity.Contact;
 import com.contact_managment.main_application.entity.User;
 import com.contact_managment.main_application.exception.BadRequestException;
+import com.contact_managment.main_application.exception.DuplicatePhoneNumberException;
 import com.contact_managment.main_application.exception.InvalidCredentialsException;
 import com.contact_managment.main_application.exception.ResourceNotFoundException;
 import com.contact_managment.main_application.exception.UserAlreadyExistsException;
@@ -261,6 +262,20 @@ public class AuthService {
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
+        if (contactRepository != null) {
+            List<String> contactPhones = contactRepository.findPhoneNumbersByUserExcludingContact(user, null);
+            if (contactPhones != null && !contactPhones.isEmpty()) {
+                String normalizedTarget = normalizePhoneNumber(phone);
+                boolean conflict = contactPhones.stream()
+                        .filter(StringUtils::hasText)
+                        .map(this::normalizePhoneNumber)
+                        .anyMatch(p -> p.equals(normalizedTarget));
+                if (conflict) {
+                    throw new DuplicatePhoneNumberException("Duplicate phone number detected: " + phone + " already belongs to an existing contact.");
+                }
+            }
+        }
+
         user.setPhone(phone);
         User saved = userRepository.saveAndFlush(user);
         log.info("Phone number successfully updated for user ID: {}", userId);
@@ -315,6 +330,11 @@ public class AuthService {
         if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
             throw new BadRequestException(fieldName + " cannot exceed 72 bytes");
         }
+    }
+
+    private String normalizePhoneNumber(String phone) {
+        if (phone == null) return "";
+        return phone.replaceAll("[\\s\\-\\(\\)\\.]", "").toLowerCase(java.util.Locale.ROOT);
     }
 }
 

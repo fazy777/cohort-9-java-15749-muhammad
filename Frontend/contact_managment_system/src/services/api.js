@@ -475,19 +475,16 @@ export const api = {
    */
   async deleteAccount() {
     return serializeAuth(async (signal) => {
-      try {
-        const result = await request('/auth/account', {
-          method: 'DELETE',
-          signal
-        });
-        if (!result || typeof result !== 'object') {
-          throw new Error('Invalid delete account response shape from server');
-        }
-        return result;
-      } finally {
-        safeStorage.removeItem('cms_user');
-        safeStorage.removeItem('cms_auth_token');
+      const result = await request('/auth/account', {
+        method: 'DELETE',
+        signal
+      });
+      if (!result || typeof result !== 'object') {
+        throw new Error('Invalid delete account response shape from server');
       }
+      safeStorage.removeItem('cms_user');
+      safeStorage.removeItem('cms_auth_token');
+      return result;
     });
   },
 

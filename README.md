@@ -294,11 +294,11 @@ To run code quality scans locally using SonarQube and Maven:
 To run SonarQube scanner for the Frontend (React):
 ```bash
 cd Frontend/contact_managment_system
+export SONAR_TOKEN="YOUR_SONAR_TOKEN"
 sonar-scanner \
   -Dsonar.projectKey=contact-management-system-frontend \
   -Dsonar.sources=src \
-  -Dsonar.host.url=http://localhost:9000 \
-  -Dsonar.login="YOUR_SONAR_TOKEN"
+  -Dsonar.host.url=http://localhost:9000
 ```
 
 ---
