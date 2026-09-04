@@ -271,6 +271,14 @@ cohort-9-java-15749-muhammad/
 
 ## Code Quality & SonarQube Integration
 
+> [!IMPORTANT]
+> ### 📌 Note for Teacher / Evaluator (Sir Saad)
+> **SonarQube Token & CI/CD Analysis Status:**
+> * **Reason for Incomplete CI Analysis:** The SonarQube analysis token (`SONAR_TOKEN`) was configured as an external repository secret in the original personal repository. By design, GitHub Actions security policies **do not export repository secrets across forks or during cross-repository pull requests/merges**.
+> * **Connection After Forking / Merging:** After forking or merging into the cohort repository, the `SONAR_TOKEN` secret is not connected or accessible to the GitHub Actions runner. Consequently, the automated SonarQube pipeline step cannot authenticate and does not complete its analysis on GitHub.
+> * **Local & Independent Verification:** The backend is fully tested with high coverage via JUnit 5, Mockito, and JaCoCo (`mvn clean verify`). You can execute the SonarQube analysis locally at any time using the instructions below.
+> * **To Enable in CI/CD:** If required, add `SONAR_TOKEN` (and optionally `SONAR_HOST_URL`) to the target repository's **Settings → Secrets and variables → Actions**.
+
 To run code quality scans locally using SonarQube and Maven:
 
 1. Start your local SonarQube server (typically at `http://localhost:9000`).
@@ -282,6 +290,16 @@ To run code quality scans locally using SonarQube and Maven:
      -Dsonar.projectKey=contact-management-system-backend \
      -Dsonar.host.url=http://localhost:9000
    ```
+
+To run SonarQube scanner for the Frontend (React):
+```bash
+cd Frontend/contact_managment_system
+sonar-scanner \
+  -Dsonar.projectKey=contact-management-system-frontend \
+  -Dsonar.sources=src \
+  -Dsonar.host.url=http://localhost:9000 \
+  -Dsonar.login="YOUR_SONAR_TOKEN"
+```
 
 ---
 
