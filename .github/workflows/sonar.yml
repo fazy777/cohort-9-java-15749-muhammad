@@ -17,6 +17,9 @@ jobs:
     name: Backend Analysis (Java + Spring Boot)
     runs-on: ubuntu-latest
 
+    env:
+      SONAR_AVAILABLE: ${{ secrets.SONAR_TOKEN != '' }}
+
     defaults:
       run:
         working-directory: Backend/contact_managment_system/main_application
@@ -48,7 +51,7 @@ jobs:
           ./mvnw clean verify
 
       - name: SonarQube / SonarCloud Scan
-        if: ${{ secrets.SONAR_TOKEN != '' }}
+        if: env.SONAR_AVAILABLE == 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
@@ -66,6 +69,9 @@ jobs:
   frontend-analysis:
     name: Frontend Analysis (React.js)
     runs-on: ubuntu-latest
+
+    env:
+      SONAR_AVAILABLE: ${{ secrets.SONAR_TOKEN != '' }}
 
     defaults:
       run:
@@ -95,7 +101,7 @@ jobs:
         run: npm test
 
       - name: SonarQube / SonarCloud Scanner CLI Scan
-        if: ${{ secrets.SONAR_TOKEN != '' }}
+        if: env.SONAR_AVAILABLE == 'true'
         uses: SonarSource/sonarqube-scan-action@689fb39b34b9aa95ebc5f8f119343ddd51542402 # v4.2.2
         with:
           projectBaseDir: Frontend/contact_managment_system
