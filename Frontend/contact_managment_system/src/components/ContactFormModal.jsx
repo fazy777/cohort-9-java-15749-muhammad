@@ -172,7 +172,7 @@ export const ContactFormModal = ({
     }
   };
 
-  const modalRef = useModalA11y(isOpen, handleRequestClose);
+  const modalRef = useModalA11y(isOpen && !violationState.isOpen, handleRequestClose);
   const violationPrevFocusRef = useRef(null);
   const warningAckRef = useRef(null);
   const closureAckRef = useRef(null);
@@ -649,6 +649,12 @@ export const ContactFormModal = ({
                 type="button"
                 className="btn btn-primary"
                 style={{ width: '100%', padding: '0.65rem' }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Tab') {
+                    e.preventDefault();
+                    warningAckRef.current?.focus();
+                  }
+                }}
                 onClick={() => setViolationState({ isOpen: false, isAccountClosed: false, phoneNumber: '' })}
               >
                 I Understand — Remove Duplicate
@@ -714,6 +720,12 @@ export const ContactFormModal = ({
                 type="button"
                 className="btn btn-danger"
                 style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem' }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Tab') {
+                    e.preventDefault();
+                    closureAckRef.current?.focus();
+                  }
+                }}
                 onClick={() => {
                   setViolationState({ isOpen: false, isAccountClosed: false, phoneNumber: '' });
                   onAccountClosed?.(`Your account was permanently closed due to repeated duplicate phone number policy violations ("${violationState.phoneNumber}").`);

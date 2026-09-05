@@ -1,6 +1,10 @@
 import { safeStorage } from './storage.js';
 import { api } from '../services/api.js';
 
+export const ACCOUNT_CLOSED_NOTICE_KEY = 'cms_account_closed_notice';
+export const DEFAULT_ACCOUNT_CLOSED_MESSAGE =
+  'Your account was permanently closed due to repeated duplicate phone number policy violations.';
+
 /**
  * Normalizes a phone number by stripping whitespace, hyphens, parentheses, and dots,
  * and converting to lower case.

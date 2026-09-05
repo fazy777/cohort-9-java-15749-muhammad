@@ -386,7 +386,9 @@ public class ContactService {
         }
 
         Set<String> seenInPayload = new java.util.HashSet<>();
-        List<String> existingPhones = contactRepository.findPhoneNumbersByUserExcludingContact(user, excludeContactId);
+        List<String> existingPhones = (excludeContactId == null)
+                ? contactRepository.findPhoneNumbersByUser(user)
+                : contactRepository.findPhoneNumbersByUserAndContactIdNot(user, excludeContactId);
         Set<String> normalizedExisting = existingPhones.stream()
                 .filter(StringUtils::hasText)
                 .map(this::normalizePhoneNumber)

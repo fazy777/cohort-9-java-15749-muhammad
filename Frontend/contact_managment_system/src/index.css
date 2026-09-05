@@ -1,7 +1,7 @@
 /* Typography & Design Tokens - Dark Red & White Gradient Aesthetic with Blur Backgrounds */
 :root {
-  --font-primary: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-primary: 'Plus Jakarta Sans', -apple-system, blinkmacsystemfont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-heading: 'Outfit', -apple-system, blinkmacsystemfont, 'Segoe UI', 'Roboto', sans-serif;
 
   /* Deep Dark Red & Wine Surfaces */
   --bg-dark: #0e0104;

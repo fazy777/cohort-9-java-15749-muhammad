@@ -11,6 +11,7 @@ import { ImportExportModal } from './components/ImportExportModal';
 import { Toast } from './components/Toast';
 import { api } from './services/api';
 import { safeStorage } from './utils/storage';
+import { ACCOUNT_CLOSED_NOTICE_KEY, DEFAULT_ACCOUNT_CLOSED_MESSAGE } from './utils/duplicatePolicy';
 
 /**
  * Primary dashboard view displaying contact lists, search filters, and coordinating CRUD modal flows.
@@ -218,8 +219,8 @@ const MainDashboard = () => {
    */
   const handleAccountClosed = useCallback(async (_reason) => {
     safeStorage.setItem(
-      'cms_account_closed_notice',
-      'Your account was permanently closed due to repeated duplicate phone number policy violations.'
+      ACCOUNT_CLOSED_NOTICE_KEY,
+      DEFAULT_ACCOUNT_CLOSED_MESSAGE
     );
     setIsFormOpen(false);
     setIsProfileOpen(false);

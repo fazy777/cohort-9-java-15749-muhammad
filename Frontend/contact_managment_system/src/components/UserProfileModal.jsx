@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { safeStorage } from '../utils/storage';
+import { ACCOUNT_CLOSED_NOTICE_KEY, DEFAULT_ACCOUNT_CLOSED_MESSAGE } from '../utils/duplicatePolicy';
 import { User, Mail, Phone, LogOut, KeyRound, X, RotateCcw } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
 
@@ -94,8 +95,8 @@ export const UserProfileModal = ({ isOpen, onClose, showToast, onAccountClosed }
           await onAccountClosed(err?.message);
         } else {
           safeStorage.setItem(
-            'cms_account_closed_notice',
-            'Your account was permanently closed due to repeated duplicate phone number policy violations.'
+            ACCOUNT_CLOSED_NOTICE_KEY,
+            DEFAULT_ACCOUNT_CLOSED_MESSAGE
           );
           onClose?.();
           try {

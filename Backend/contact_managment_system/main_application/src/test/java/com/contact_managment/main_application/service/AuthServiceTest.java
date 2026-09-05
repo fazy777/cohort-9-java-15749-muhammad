@@ -451,7 +451,7 @@ class AuthServiceTest {
 
         when(userRepository.findByPhone("+9876543210")).thenReturn(Optional.empty());
         when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
-        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null)).thenReturn(List.of());
+        when(contactRepository.findPhoneNumbersByUser(sampleUser)).thenReturn(List.of());
         when(userRepository.saveAndFlush(any(User.class))).thenReturn(sampleUser);
 
         UserProfileDto result = authService.updatePhone(1L, request);
@@ -505,7 +505,7 @@ class AuthServiceTest {
                 .build();
 
         when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
-        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null))
+        when(contactRepository.findPhoneNumbersByUser(sampleUser))
                 .thenReturn(List.of("+15552345678"));
 
         DuplicatePhoneNumberException ex = assertThrows(DuplicatePhoneNumberException.class,
@@ -525,7 +525,7 @@ class AuthServiceTest {
                 .build();
 
         when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
-        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null))
+        when(contactRepository.findPhoneNumbersByUser(sampleUser))
                 .thenReturn(List.of("+15552345678"));
 
         DuplicatePhoneNumberException ex = assertThrows(DuplicatePhoneNumberException.class,

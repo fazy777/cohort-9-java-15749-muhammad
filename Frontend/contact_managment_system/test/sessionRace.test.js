@@ -747,8 +747,17 @@ describe('API Response Shape Validation & Payload Integrity', () => {
 describe('AuthContext updateUser Cross-Session Protection', () => {
   test('updateUser discards changes if expectedUserId does not match current user', () => {
     let currentUser = { id: 2, firstName: 'UserB', phone: '+1111111111' };
+    const syncUserToStorage = (user) => {
+      if (user) {
+        safeStorage.setItem('cms_user', JSON.stringify(user));
+      }
+    };
     const setUser = (updater) => {
-      currentUser = updater(currentUser);
+      const nextUser = updater(currentUser);
+      if (nextUser !== currentUser) {
+        currentUser = nextUser;
+        syncUserToStorage(currentUser);
+      }
     };
 
     const updateUser = (updatedFields, expectedUserId) => {
@@ -758,9 +767,7 @@ describe('AuthContext updateUser Cross-Session Protection', () => {
         if (expectedUserId !== undefined && expectedUserId !== null && String(prev.id) !== String(expectedUserId)) {
           return prev;
         }
-        const merged = { ...prev, ...updatedFields };
-        safeStorage.setItem('cms_user', JSON.stringify(merged));
-        return merged;
+        return { ...prev, ...updatedFields };
       });
     };
 
@@ -775,3 +782,4 @@ describe('AuthContext updateUser Cross-Session Protection', () => {
     assert.deepEqual(JSON.parse(safeStorage.getItem('cms_user')), { id: 2, firstName: 'UserB', phone: '+2222222222' });
   });
 });
+

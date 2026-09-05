@@ -81,13 +81,37 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
     java.util.stream.Stream<Contact> streamByUser(User user);
 
     /**
-     * Retrieves all phone numbers for contacts belonging to a user, optionally excluding a specific contact ID.
-     * Used for duplicate phone number detection.
+     * Retrieves all phone numbers for contacts belonging to a user.
+     * Used for duplicate phone number detection during contact creation.
+     *
+     * @param user owning user
+     * @return list of existing phone number strings
+     */
+    @Query("SELECT p.phoneNumber FROM ContactPhone p WHERE p.contact.user = :user")
+    List<String> findPhoneNumbersByUser(@Param("user") User user);
+
+    /**
+     * Retrieves all phone numbers for contacts belonging to a user, excluding a specific contact ID.
+     * Used for duplicate phone number detection during contact updates.
+     *
+     * @param user owning user
+     * @param excludeContactId contact ID to exclude
+     * @return list of existing phone number strings
+     */
+    @Query("SELECT p.phoneNumber FROM ContactPhone p WHERE p.contact.user = :user AND p.contact.id != :excludeContactId")
+    List<String> findPhoneNumbersByUserAndContactIdNot(@Param("user") User user, @Param("excludeContactId") Long excludeContactId);
+
+    /**
+     * Convenience method that delegates to the appropriate query method based on whether excludeContactId is present.
      *
      * @param user owning user
      * @param excludeContactId contact ID to exclude (null for new contacts)
      * @return list of existing phone number strings
      */
-    @Query("SELECT p.phoneNumber FROM ContactPhone p WHERE p.contact.user = :user AND (:excludeContactId IS NULL OR p.contact.id != :excludeContactId)")
-    List<String> findPhoneNumbersByUserExcludingContact(@Param("user") User user, @Param("excludeContactId") Long excludeContactId);
+    default List<String> findPhoneNumbersByUserExcludingContact(User user, Long excludeContactId) {
+        if (excludeContactId == null) {
+            return findPhoneNumbersByUser(user);
+        }
+        return findPhoneNumbersByUserAndContactIdNot(user, excludeContactId);
+    }
 }

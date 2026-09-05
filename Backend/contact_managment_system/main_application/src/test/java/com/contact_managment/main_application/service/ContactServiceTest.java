@@ -101,7 +101,7 @@ class ContactServiceTest {
                 .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
-        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null)).thenReturn(List.of());
+        when(contactRepository.findPhoneNumbersByUser(sampleUser)).thenReturn(List.of());
         when(contactRepository.save(any(Contact.class))).thenAnswer(invocation -> {
             Contact c = invocation.getArgument(0);
             c.setId(10L);
@@ -280,7 +280,7 @@ class ContactServiceTest {
                 .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
-        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null))
+        when(contactRepository.findPhoneNumbersByUser(sampleUser))
                 .thenReturn(List.of("+1234567890"));
 
         assertThrows(DuplicatePhoneNumberException.class, () -> contactService.createContact(1L, dto));
@@ -299,7 +299,7 @@ class ContactServiceTest {
                 .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
-        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null))
+        when(contactRepository.findPhoneNumbersByUser(sampleUser))
                 .thenReturn(List.of());
 
         assertThrows(DuplicatePhoneNumberException.class, () -> contactService.createContact(1L, dto));
@@ -319,7 +319,7 @@ class ContactServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
         when(contactRepository.findByIdAndUser(10L, sampleUser)).thenReturn(Optional.of(sampleContact));
-        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, 10L))
+        when(contactRepository.findPhoneNumbersByUserAndContactIdNot(sampleUser, 10L))
                 .thenReturn(List.of());
 
         assertThrows(DuplicatePhoneNumberException.class, () -> contactService.updateContact(1L, 10L, dto));
@@ -426,7 +426,7 @@ class ContactServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
         when(contactRepository.save(any(Contact.class))).thenReturn(sampleContact);
-        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null))
+        when(contactRepository.findPhoneNumbersByUser(sampleUser))
                 .thenReturn(List.of())
                 .thenReturn(List.of("+15559998888"));
 

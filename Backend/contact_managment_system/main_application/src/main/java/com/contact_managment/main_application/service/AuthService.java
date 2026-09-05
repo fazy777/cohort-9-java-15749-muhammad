@@ -259,7 +259,7 @@ public class AuthService {
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
-        List<String> contactPhones = contactRepository.findPhoneNumbersByUserExcludingContact(user, null);
+        List<String> contactPhones = contactRepository.findPhoneNumbersByUser(user);
         if (contactPhones != null && !contactPhones.isEmpty()) {
             boolean conflict = contactPhones.stream()
                     .filter(StringUtils::hasText)

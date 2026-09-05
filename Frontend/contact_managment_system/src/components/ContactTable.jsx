@@ -285,7 +285,7 @@ export const ContactTable = ({
                   type="button"
                   className="pagination-btn pagination-icon-btn"
                   onClick={() => onPageChange?.(0)}
-                  disabled={currentPage === 0}
+                  disabled={effectivePage === 0}
                   title="First Page"
                   aria-label="Go to first page"
                 >

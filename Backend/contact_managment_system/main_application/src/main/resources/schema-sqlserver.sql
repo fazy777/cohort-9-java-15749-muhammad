@@ -207,7 +207,39 @@ BEGIN TRY
             SET duplicate_strike_count = 0
             WHERE duplicate_strike_count IS NULL;
 
-            -- 2. Canonicalize existing users.phone values (strip all whitespace [\s], hyphens, parentheses, and dots)
+            -- 2. Guard against duplicate non-NULL phone collisions before canonicalization UPDATE executes
+            IF EXISTS (
+                SELECT 1
+                FROM dbo.users
+                WHERE phone IS NOT NULL
+                GROUP BY LOWER(
+                    REPLACE(
+                    REPLACE(
+                    REPLACE(
+                    REPLACE(
+                    REPLACE(
+                    REPLACE(
+                    REPLACE(
+                    REPLACE(
+                    REPLACE(
+                    REPLACE(phone, CHAR(9), N''),
+                    CHAR(10), N''),
+                    CHAR(11), N''),
+                    CHAR(12), N''),
+                    CHAR(13), N''),
+                    N' ', N''),
+                    N'-', N''),
+                    N'(', N''),
+                    N')', N''),
+                    N'.', N'')
+                )
+                HAVING COUNT(*) > 1
+            )
+            BEGIN
+                THROW 50001, N'Cannot create unique index UQ_users_phone: Duplicate non-NULL phone numbers detected in dbo.users after canonicalization.', 1;
+            END;
+
+            -- 3. Canonicalize existing users.phone values (strip all whitespace [\s], hyphens, parentheses, and dots)
             UPDATE dbo.users
             SET phone = LOWER(
                 REPLACE(
@@ -232,7 +264,7 @@ BEGIN TRY
             )
             WHERE phone IS NOT NULL;
 
-            -- 3. Guard against duplicate non-NULL phone collisions before creating unique index
+            -- 4. Guard against duplicate non-NULL phone collisions after update (safety confirmation)
             IF EXISTS (
                 SELECT phone 
                 FROM dbo.users 
@@ -244,7 +276,7 @@ BEGIN TRY
                 THROW 50001, N'Cannot create unique index UQ_users_phone: Duplicate non-NULL phone numbers detected in dbo.users after canonicalization.', 1;
             END;
 
-            -- 4. Ensure filtered unique index on users.phone exists
+            -- 5. Ensure filtered unique index on users.phone exists
             IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UQ_users_phone' AND object_id = OBJECT_ID(N'dbo.users'))
             BEGIN
                 CREATE UNIQUE NONCLUSTERED INDEX UQ_users_phone

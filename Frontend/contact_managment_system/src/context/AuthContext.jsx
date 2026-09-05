@@ -199,7 +199,7 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   /**
-   * Directly updates user profile fields in memory and persistent storage.
+   * Directly updates user profile fields in memory and triggers persistent storage synchronization.
    * @param {Partial<import('../services/api').UserProfile>} updatedFields
    * @param {number|string} [expectedUserId] - optional user ID to guard against stale updates across sessions
    */
@@ -210,11 +210,15 @@ export const AuthProvider = ({ children }) => {
       if (expectedUserId !== undefined && expectedUserId !== null && String(prev.id) !== String(expectedUserId)) {
         return prev;
       }
-      const merged = { ...prev, ...updatedFields };
-      safeStorage.setItem('cms_user', JSON.stringify(merged));
-      return merged;
+      return { ...prev, ...updatedFields };
     });
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      safeStorage.setItem('cms_user', JSON.stringify(user));
+    }
+  }, [user]);
 
   const contextValue = useMemo(() => ({
     user,

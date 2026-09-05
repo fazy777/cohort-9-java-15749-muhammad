@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { safeStorage } from '../utils/storage';
+import { ACCOUNT_CLOSED_NOTICE_KEY } from '../utils/duplicatePolicy';
 import { Mail, Phone, ArrowRight, Eye, EyeOff, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 /**
@@ -15,7 +16,7 @@ export const AuthForm = ({ showToast }) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [closedNotice, setClosedNotice] = useState(() => {
-    return safeStorage.getItem('cms_account_closed_notice') || '';
+    return safeStorage.getItem(ACCOUNT_CLOSED_NOTICE_KEY) || '';
   });
 
   // Form Fields
@@ -45,6 +46,8 @@ export const AuthForm = ({ showToast }) => {
         }
         const loggedUser = await login({ credential: loginCredential.trim(), password });
         if (loggedUser) {
+          safeStorage.removeItem(ACCOUNT_CLOSED_NOTICE_KEY);
+          setClosedNotice('');
           showToast?.('Successfully logged in!', 'success');
         }
       } else {
@@ -70,6 +73,8 @@ export const AuthForm = ({ showToast }) => {
           password
         });
         if (registeredUser) {
+          safeStorage.removeItem(ACCOUNT_CLOSED_NOTICE_KEY);
+          setClosedNotice('');
           showToast?.('Account created successfully!', 'success');
         }
       }
@@ -136,7 +141,7 @@ export const AuthForm = ({ showToast }) => {
             <button
               type="button"
               onClick={() => {
-                safeStorage.removeItem('cms_account_closed_notice');
+                safeStorage.removeItem(ACCOUNT_CLOSED_NOTICE_KEY);
                 setClosedNotice('');
               }}
               style={{
