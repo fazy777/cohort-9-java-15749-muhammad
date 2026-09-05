@@ -261,17 +261,22 @@ export const UserProfileModal = ({ isOpen, onClose, showToast, onAccountClosed }
                     borderRadius: 'var(--radius-md)'
                   }}
                 >
-                  <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <label
+                    htmlFor="user-profile-phone-input"
+                    style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-main)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
+                  >
                     <Phone size={15} color="#ffffff" />
                     {user?.phone ? 'Update Account Phone Number' : 'Add Phone Number to Account'}
-                  </div>
+                  </label>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <input
+                      id="user-profile-phone-input"
                       type="tel"
                       className="input-control"
                       placeholder="+1 (555) 000-0000"
                       value={newPhone}
                       onChange={(e) => setNewPhone(e.target.value)}
+                      aria-label={user?.phone ? 'Update Account Phone Number' : 'Add Phone Number to Account'}
                       required
                       autoFocus
                       disabled={phoneSubmitting}

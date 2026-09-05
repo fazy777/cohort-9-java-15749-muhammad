@@ -287,7 +287,7 @@ To run code quality scans locally using SonarQube and Maven:
    > ```bash
    > keytool -importcert -alias sonarqube -keystore "$JAVA_HOME/lib/security/cacerts" -file /path/to/server.crt -storepass changeit -noprompt
    > ```
-   > or pass the truststore parameters directly via Maven JVM properties (`-Djavax.net.ssl.trustStore=/path/to/truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit`) and scanner properties (`-Dsonar.scanner.truststorePath=/path/to/truststore.p12 -Dsonar.scanner.truststorePassword=changeit`).
+   > or pass the truststore parameters directly via Maven JVM properties (`-Djavax.net.ssl.trustStore=/path/to/truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit`).
 
 2. Export your token and run the Maven goal:
    ```bash

@@ -207,17 +207,27 @@ BEGIN TRY
             SET duplicate_strike_count = 0
             WHERE duplicate_strike_count IS NULL;
 
-            -- 2. Canonicalize existing users.phone values (strip whitespace, hyphens, parentheses, and dots)
+            -- 2. Canonicalize existing users.phone values (strip all whitespace [\s], hyphens, parentheses, and dots)
             UPDATE dbo.users
             SET phone = LOWER(
                 REPLACE(
-                    REPLACE(
-                        REPLACE(
-                            REPLACE(
-                                REPLACE(phone, N' ', N''),
-                            N'-', N''),
-                        N'(', N''),
-                    N')', N''),
+                REPLACE(
+                REPLACE(
+                REPLACE(
+                REPLACE(
+                REPLACE(
+                REPLACE(
+                REPLACE(
+                REPLACE(
+                REPLACE(phone, CHAR(9), N''),
+                CHAR(10), N''),
+                CHAR(11), N''),
+                CHAR(12), N''),
+                CHAR(13), N''),
+                N' ', N''),
+                N'-', N''),
+                N'(', N''),
+                N')', N''),
                 N'.', N'')
             )
             WHERE phone IS NOT NULL;

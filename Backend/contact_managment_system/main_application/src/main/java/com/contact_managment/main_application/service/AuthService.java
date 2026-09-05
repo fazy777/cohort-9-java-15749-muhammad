@@ -44,10 +44,6 @@ public class AuthService {
         this.dummyPasswordHash = passwordEncoder.encode("dummy-verification-secret");
     }
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider) {
-        this(userRepository, passwordEncoder, tokenProvider, null);
-    }
-
     /**
      * Registers a new user with normalized email/phone and encoded password.
      *
@@ -289,16 +285,14 @@ public class AuthService {
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
-        if (contactRepository != null) {
-            List<String> contactPhones = contactRepository.findPhoneNumbersByUserExcludingContact(user, null);
-            if (contactPhones != null && !contactPhones.isEmpty()) {
-                boolean conflict = contactPhones.stream()
-                        .filter(StringUtils::hasText)
-                        .map(this::normalizePhoneNumber)
-                        .anyMatch(p -> p.equals(canonicalPhone));
-                if (conflict) {
-                    handleDuplicateStrikeAndThrow(user, phone);
-                }
+        List<String> contactPhones = contactRepository.findPhoneNumbersByUserExcludingContact(user, null);
+        if (contactPhones != null && !contactPhones.isEmpty()) {
+            boolean conflict = contactPhones.stream()
+                    .filter(StringUtils::hasText)
+                    .map(this::normalizePhoneNumber)
+                    .anyMatch(p -> p.equals(canonicalPhone));
+            if (conflict) {
+                handleDuplicateStrikeAndThrow(user, phone);
             }
         }
 
@@ -334,13 +328,11 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
-        if (contactRepository != null) {
-            List<Contact> contacts = contactRepository.findByUser(user);
-            if (!contacts.isEmpty()) {
-                contactRepository.deleteAll(contacts);
-                contactRepository.flush();
-                log.info("Deleted {} contacts for user ID: {}", contacts.size(), userId);
-            }
+        List<Contact> contacts = contactRepository.findByUser(user);
+        if (!contacts.isEmpty()) {
+            contactRepository.deleteAll(contacts);
+            contactRepository.flush();
+            log.info("Deleted {} contacts for user ID: {}", contacts.size(), userId);
         }
 
         userRepository.delete(user);
@@ -381,12 +373,10 @@ public class AuthService {
         user.setDuplicateStrikeCount(nextStrike);
 
         if (nextStrike >= 2) {
-            if (contactRepository != null) {
-                List<Contact> contacts = contactRepository.findByUser(user);
-                if (contacts != null && !contacts.isEmpty()) {
-                    contactRepository.deleteAll(contacts);
-                    contactRepository.flush();
-                }
+            List<Contact> contacts = contactRepository.findByUser(user);
+            if (contacts != null && !contacts.isEmpty()) {
+                contactRepository.deleteAll(contacts);
+                contactRepository.flush();
             }
             userRepository.delete(user);
             userRepository.flush();
