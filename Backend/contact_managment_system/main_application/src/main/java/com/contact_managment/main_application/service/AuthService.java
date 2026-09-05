@@ -33,14 +33,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
     private final ContactRepository contactRepository;
+    private final DuplicatePhonePolicyService duplicatePhonePolicyService;
     private final String dummyPasswordHash;
 
-    @org.springframework.beans.factory.annotation.Autowired
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider, ContactRepository contactRepository) {
+        this(userRepository, passwordEncoder, tokenProvider, contactRepository, new DuplicatePhonePolicyService(userRepository, contactRepository));
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider, ContactRepository contactRepository, DuplicatePhonePolicyService duplicatePhonePolicyService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
         this.contactRepository = contactRepository;
+        this.duplicatePhonePolicyService = duplicatePhonePolicyService;
         this.dummyPasswordHash = passwordEncoder.encode("dummy-verification-secret");
     }
 
@@ -341,39 +347,7 @@ public class AuthService {
      * @param rawPhone duplicate phone number
      */
     private void handleDuplicateStrikeAndThrow(User user, String rawPhone) {
-        if (user == null) {
-            throw new DuplicatePhoneNumberException("Duplicate phone number detected: " + rawPhone);
-        }
-
-        int currentStrikes = user.getDuplicateStrikeCount();
-        int nextStrike = currentStrikes + 1;
-        user.setDuplicateStrikeCount(nextStrike);
-
-        if (nextStrike >= 2) {
-            List<Contact> contacts = contactRepository.findByUser(user);
-            if (contacts != null && !contacts.isEmpty()) {
-                contactRepository.deleteAll(contacts);
-                contactRepository.flush();
-            }
-            userRepository.delete(user);
-            userRepository.flush();
-            log.warn("User ID: {} permanently closed and deleted due to repeat duplicate phone violation", user.getId());
-            throw new DuplicatePhoneNumberException(
-                    "Account Terminated: Repeated duplicate phone number violation (\"" + rawPhone + "\").",
-                    2,
-                    true,
-                    rawPhone
-            );
-        } else {
-            userRepository.saveAndFlush(user);
-            log.warn("User ID: {} received duplicate phone strike {}", user.getId(), nextStrike);
-            throw new DuplicatePhoneNumberException(
-                    "Warning (1/2): Duplicate phone number \"" + rawPhone + "\" is strictly prohibited.",
-                    1,
-                    false,
-                    rawPhone
-            );
-        }
+        duplicatePhonePolicyService.handleDuplicateStrikeAndThrow(user, rawPhone);
     }
 
     private String validateAndNormalizePhone(String rawInput) {
@@ -395,8 +369,7 @@ public class AuthService {
     }
 
     private String normalizePhoneNumber(String phone) {
-        if (phone == null) return "";
-        return phone.replaceAll("[\\s\\-\\(\\)\\.]", "").toLowerCase(java.util.Locale.ROOT);
+        return duplicatePhonePolicyService.normalizePhoneNumber(phone);
     }
 }
 

@@ -34,7 +34,6 @@ class ContactServiceTest {
     @Mock
     private UserRepository userRepository;
 
-    @InjectMocks
     private ContactService contactService;
 
     private User sampleUser;
@@ -42,6 +41,9 @@ class ContactServiceTest {
 
     @BeforeEach
     void setUp() {
+        DuplicatePhonePolicyService duplicatePhonePolicyService = new DuplicatePhonePolicyService(userRepository, contactRepository);
+        contactService = new ContactService(contactRepository, userRepository, duplicatePhonePolicyService);
+
         sampleUser = User.builder()
                 .id(1L)
                 .firstName("Jane")
@@ -421,14 +423,12 @@ class ContactServiceTest {
         ContactDto duplicateDto = ContactDto.builder()
                 .firstName("Duplicate")
                 .lastName("Contact")
-                .phones(List.of(ContactPhoneDto.builder().phoneNumber("+15559998888").label("WORK").build()))
+                .phones(List.of(ContactPhoneDto.builder().phoneNumber("+15551112222").label("WORK").build()))
                 .build();
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
         when(contactRepository.save(any(Contact.class))).thenReturn(sampleContact);
-        when(contactRepository.findPhoneNumbersByUser(sampleUser))
-                .thenReturn(List.of())
-                .thenReturn(List.of("+15559998888"));
+        when(contactRepository.findPhoneNumbersByUser(sampleUser)).thenReturn(List.of());
 
         DuplicatePhoneNumberException ex = assertThrows(DuplicatePhoneNumberException.class,
                 () -> contactService.importContacts(1L, List.of(validDto, duplicateDto)));

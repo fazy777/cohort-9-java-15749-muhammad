@@ -328,7 +328,8 @@ export const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOU
   const method = (options.method || 'GET').toUpperCase();
   const isMutating = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
   const csrfToken = isMutating ? getCsrfToken() : null;
-  const authToken = safeStorage.getItem('cms_auth_token');
+  const isHttpProtocol = /^http:\/\//i.test(targetUrl);
+  const authToken = isHttpProtocol ? null : safeStorage.getItem('cms_auth_token');
 
   const headers = {
     'Content-Type': 'application/json',

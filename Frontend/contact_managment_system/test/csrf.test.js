@@ -211,7 +211,7 @@ describe('Authenticated Request Security (request)', () => {
     assert.equal(fetchCalled, false, 'Fetch must not be called when destination is an insecure non-local HTTP URL');
   });
 
-  test('permits local HTTP origins and attaches cms_auth_token', async () => {
+  test('permits local HTTP origins and omits cms_auth_token over plaintext HTTP', async () => {
     safeStorage.setItem('cms_auth_token', 'local-secret-token');
     let capturedHeaders = null;
     let capturedUrl = null;
@@ -233,7 +233,7 @@ describe('Authenticated Request Security (request)', () => {
     });
 
     assert.equal(capturedUrl, 'http://localhost:8080/api/auth/phone');
-    assert.equal(capturedHeaders?.Authorization, 'Bearer local-secret-token');
+    assert.equal(capturedHeaders?.Authorization, undefined);
   });
 
   test('permits HTTPS origins and attaches cms_auth_token', async () => {

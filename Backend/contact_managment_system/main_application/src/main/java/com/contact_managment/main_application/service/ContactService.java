@@ -29,12 +29,23 @@ import java.util.stream.Stream;
  * Service providing contact CRUD operations, filtered search, pagination, bulk import/export, and user association.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ContactService {
 
     private final ContactRepository contactRepository;
     private final UserRepository userRepository;
+    private final DuplicatePhonePolicyService duplicatePhonePolicyService;
+
+    public ContactService(ContactRepository contactRepository, UserRepository userRepository) {
+        this(contactRepository, userRepository, new DuplicatePhonePolicyService(userRepository, contactRepository));
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public ContactService(ContactRepository contactRepository, UserRepository userRepository, DuplicatePhonePolicyService duplicatePhonePolicyService) {
+        this.contactRepository = contactRepository;
+        this.userRepository = userRepository;
+        this.duplicatePhonePolicyService = duplicatePhonePolicyService;
+    }
 
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("id", "firstName", "lastName", "title", "createdAt", "updatedAt");
     private static final int MAX_PAGE_SIZE = 100;
@@ -148,7 +159,11 @@ public class ContactService {
      * @return saved contact DTO
      */
     private ContactDto createContactInternal(User user, ContactDto contactDto) {
-        validatePhoneNumbers(user, contactDto.getPhones(), null);
+        return createContactInternal(user, contactDto, null);
+    }
+
+    private ContactDto createContactInternal(User user, ContactDto contactDto, Set<String> knownPhones) {
+        validatePhoneNumbers(user, contactDto.getPhones(), null, knownPhones);
 
         Contact contact = Contact.builder()
                 .user(user)
@@ -309,6 +324,16 @@ public class ContactService {
         }
         log.info("Importing {} contacts for user ID: {}", contactDtos.size(), userId);
         User user = getUserById(userId);
+
+        List<String> existing = contactRepository.findPhoneNumbersByUser(user);
+        Set<String> knownPhones = existing.stream()
+                .filter(StringUtils::hasText)
+                .map(this::normalizePhoneNumber)
+                .collect(java.util.stream.Collectors.toSet());
+        if (user != null && StringUtils.hasText(user.getPhone())) {
+            knownPhones.add(normalizePhoneNumber(user.getPhone()));
+        }
+
         int count = 0;
         for (ContactDto dto : contactDtos) {
             if (dto == null) {
@@ -317,7 +342,7 @@ public class ContactService {
             if (!StringUtils.hasText(dto.getFirstName()) || !StringUtils.hasText(dto.getLastName())) {
                 throw new BadRequestException("First name and Last name are required for all imported contacts");
             }
-            createContactInternal(user, dto);
+            createContactInternal(user, dto, knownPhones);
             count++;
         }
         log.info("Successfully imported {} contacts for user ID: {}", count, userId);
@@ -381,21 +406,30 @@ public class ContactService {
      * @param excludeContactId contact ID to exclude from existing lookup (null for create)
      */
     private void validatePhoneNumbers(User user, List<ContactPhoneDto> phones, Long excludeContactId) {
+        validatePhoneNumbers(user, phones, excludeContactId, null);
+    }
+
+    private void validatePhoneNumbers(User user, List<ContactPhoneDto> phones, Long excludeContactId, Set<String> knownPhones) {
         if (phones == null || phones.isEmpty()) {
             return;
         }
 
         Set<String> seenInPayload = new java.util.HashSet<>();
-        List<String> existingPhones = (excludeContactId == null)
-                ? contactRepository.findPhoneNumbersByUser(user)
-                : contactRepository.findPhoneNumbersByUserAndContactIdNot(user, excludeContactId);
-        Set<String> normalizedExisting = existingPhones.stream()
-                .filter(StringUtils::hasText)
-                .map(this::normalizePhoneNumber)
-                .collect(java.util.stream.Collectors.toSet());
+        Set<String> normalizedExisting;
+        if (knownPhones != null) {
+            normalizedExisting = knownPhones;
+        } else {
+            List<String> existingPhones = (excludeContactId == null)
+                    ? contactRepository.findPhoneNumbersByUser(user)
+                    : contactRepository.findPhoneNumbersByUserAndContactIdNot(user, excludeContactId);
+            normalizedExisting = existingPhones.stream()
+                    .filter(StringUtils::hasText)
+                    .map(this::normalizePhoneNumber)
+                    .collect(java.util.stream.Collectors.toSet());
 
-        if (user != null && StringUtils.hasText(user.getPhone())) {
-            normalizedExisting.add(normalizePhoneNumber(user.getPhone()));
+            if (user != null && StringUtils.hasText(user.getPhone())) {
+                normalizedExisting.add(normalizePhoneNumber(user.getPhone()));
+            }
         }
 
         for (ContactPhoneDto phoneDto : phones) {
@@ -416,6 +450,10 @@ public class ContactService {
                 handleDuplicateStrikeAndThrow(user, rawPhone);
             }
         }
+
+        if (knownPhones != null) {
+            knownPhones.addAll(seenInPayload);
+        }
     }
 
     /**
@@ -426,48 +464,10 @@ public class ContactService {
      * @param rawPhone duplicate phone number
      */
     private void handleDuplicateStrikeAndThrow(User user, String rawPhone) {
-        if (user == null) {
-            throw new DuplicatePhoneNumberException("Duplicate phone number detected: " + rawPhone);
-        }
-
-        User targetUser = user;
-        if (user.getId() != null) {
-            targetUser = userRepository.findByIdForUpdate(user.getId()).orElse(user);
-        }
-
-        int currentStrikes = targetUser.getDuplicateStrikeCount();
-        int nextStrike = currentStrikes + 1;
-        targetUser.setDuplicateStrikeCount(nextStrike);
-
-        if (nextStrike >= 2) {
-            List<Contact> contacts = contactRepository.findByUser(targetUser);
-            if (contacts != null && !contacts.isEmpty()) {
-                contactRepository.deleteAll(contacts);
-                contactRepository.flush();
-            }
-            userRepository.delete(targetUser);
-            userRepository.flush();
-            log.warn("User ID: {} permanently closed and deleted due to repeat duplicate phone violation", targetUser.getId());
-            throw new DuplicatePhoneNumberException(
-                    "Account Terminated: Repeated duplicate phone number violation (\"" + rawPhone + "\").",
-                    2,
-                    true,
-                    rawPhone
-            );
-        } else {
-            userRepository.saveAndFlush(targetUser);
-            log.warn("User ID: {} received duplicate phone strike {}", targetUser.getId(), nextStrike);
-            throw new DuplicatePhoneNumberException(
-                    "Warning (1/2): Duplicate phone number \"" + rawPhone + "\" is strictly prohibited.",
-                    1,
-                    false,
-                    rawPhone
-            );
-        }
+        duplicatePhonePolicyService.handleDuplicateStrikeAndThrow(user, rawPhone);
     }
 
     private String normalizePhoneNumber(String phone) {
-        if (phone == null) return "";
-        return phone.replaceAll("[\\s\\-\\(\\)\\.]", "").toLowerCase(java.util.Locale.ROOT);
+        return duplicatePhonePolicyService.normalizePhoneNumber(phone);
     }
 }

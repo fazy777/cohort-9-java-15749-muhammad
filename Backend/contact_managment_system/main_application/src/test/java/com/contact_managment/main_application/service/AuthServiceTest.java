@@ -44,13 +44,15 @@ class AuthServiceTest {
     @Mock
     private JwtTokenProvider tokenProvider;
 
-    @InjectMocks
     private AuthService authService;
 
     private User sampleUser;
 
     @BeforeEach
     void setUp() {
+        DuplicatePhonePolicyService duplicatePhonePolicyService = new DuplicatePhonePolicyService(userRepository, contactRepository);
+        authService = new AuthService(userRepository, passwordEncoder, tokenProvider, contactRepository, duplicatePhonePolicyService);
+
         sampleUser = User.builder()
                 .id(1L)
                 .firstName("John")

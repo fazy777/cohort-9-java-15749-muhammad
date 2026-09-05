@@ -181,3 +181,44 @@ export const enforceDuplicatePolicy = async ({
     error: serverError || `Account Terminated: Repeated duplicate phone number violation ("${duplicateNumber}").`
   };
 };
+
+/**
+ * Processes errors resulting from user profile phone update requests.
+ * @param {any} err - caught error
+ * @param {{
+ *   onAccountClosed?: (reason?: string) => Promise<void> | void,
+ *   onClose?: () => void,
+ *   logout?: () => Promise<void>,
+ *   showToast?: (msg: string, type: string) => void,
+ *   setIsEditingPhone?: (isEditing: boolean) => void
+ * }} [options]
+ */
+export const handleProfilePhoneError = async (err, {
+  onAccountClosed,
+  onClose,
+  logout,
+  showToast,
+  setIsEditingPhone
+} = {}) => {
+  if (err?.accountClosed) {
+    setIsEditingPhone?.(false);
+    if (typeof onAccountClosed === 'function') {
+      await onAccountClosed(err?.message);
+    } else {
+      safeStorage.setItem(
+        ACCOUNT_CLOSED_NOTICE_KEY,
+        DEFAULT_ACCOUNT_CLOSED_MESSAGE
+      );
+      onClose?.();
+      try {
+        await logout?.();
+      } catch {
+        // ignore
+      }
+      showToast?.('Account permanently closed due to policy violations.', 'error');
+    }
+    return;
+  }
+  showToast?.(err?.message || 'Failed to update phone number', 'error');
+};
+

@@ -2,8 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { safeStorage } from '../utils/storage';
-import { ACCOUNT_CLOSED_NOTICE_KEY, DEFAULT_ACCOUNT_CLOSED_MESSAGE } from '../utils/duplicatePolicy';
+import { handleProfilePhoneError } from '../utils/duplicatePolicy';
 import { User, Mail, Phone, LogOut, KeyRound, X, RotateCcw } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
 
@@ -89,26 +88,13 @@ export const UserProfileModal = ({ isOpen, onClose, showToast, onAccountClosed }
       showToast?.('Phone number added to account successfully!', 'success');
       setIsEditingPhone(false);
     } catch (err) {
-      if (err?.accountClosed) {
-        setIsEditingPhone(false);
-        if (typeof onAccountClosed === 'function') {
-          await onAccountClosed(err?.message);
-        } else {
-          safeStorage.setItem(
-            ACCOUNT_CLOSED_NOTICE_KEY,
-            DEFAULT_ACCOUNT_CLOSED_MESSAGE
-          );
-          onClose?.();
-          try {
-            await logout?.();
-          } catch {
-            // ignore
-          }
-          showToast?.('Account permanently closed due to policy violations.', 'error');
-        }
-        return;
-      }
-      showToast?.(err?.message || 'Failed to update phone number', 'error');
+      await handleProfilePhoneError(err, {
+        onAccountClosed,
+        onClose,
+        logout,
+        showToast,
+        setIsEditingPhone
+      });
     } finally {
       setPhoneSubmitting(false);
     }
