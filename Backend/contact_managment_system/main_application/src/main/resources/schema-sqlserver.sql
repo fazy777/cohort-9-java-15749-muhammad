@@ -222,7 +222,19 @@ BEGIN TRY
             )
             WHERE phone IS NOT NULL;
 
-            -- 3. Ensure filtered unique index on users.phone exists
+            -- 3. Guard against duplicate non-NULL phone collisions before creating unique index
+            IF EXISTS (
+                SELECT phone 
+                FROM dbo.users 
+                WHERE phone IS NOT NULL 
+                GROUP BY phone 
+                HAVING COUNT(*) > 1
+            )
+            BEGIN
+                THROW 50001, N'Cannot create unique index UQ_users_phone: Duplicate non-NULL phone numbers detected in dbo.users after canonicalization.', 1;
+            END;
+
+            -- 4. Ensure filtered unique index on users.phone exists
             IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UQ_users_phone' AND object_id = OBJECT_ID(N'dbo.users'))
             BEGIN
                 CREATE UNIQUE NONCLUSTERED INDEX UQ_users_phone

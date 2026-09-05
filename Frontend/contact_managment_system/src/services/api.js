@@ -472,7 +472,7 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data)
     });
-    if (!result || typeof result !== 'object' || !result.data) {
+    if (!result || typeof result !== 'object' || !result.data || !isValidUserData(result.data)) {
       throw new Error('Invalid update phone response shape from server');
     }
     return result.data;

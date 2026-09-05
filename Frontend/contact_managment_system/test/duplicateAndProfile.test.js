@@ -66,6 +66,38 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
     assert.equal(updated.phone, '+15551234567');
   });
 
+  test('api.updatePhone rejects when response profile shape is malformed', async () => {
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (h) => (h.toLowerCase() === 'content-type' ? 'application/json' : null)
+      },
+      json: async () => ({
+        success: true,
+        data: { incomplete: 'user without id or firstName' }
+      })
+    });
+
+    await assert.rejects(
+      async () => {
+        await api.updatePhone({ phone: '+15551234567' });
+      },
+      {
+        name: 'Error',
+        message: 'Invalid update phone response shape from server'
+      }
+    );
+  });
+
+  test('findDuplicatePhone handles null, undefined, and non-array phones gracefully', () => {
+    assert.equal(findDuplicatePhone(null), null);
+    assert.equal(findDuplicatePhone(undefined), null);
+    assert.equal(findDuplicatePhone('invalid'), null);
+    assert.equal(findDuplicatePhone(12345), null);
+    assert.equal(findDuplicatePhone({}), null);
+  });
+
   test('api.deleteAccount sends DELETE /auth/account and clears session storage', async () => {
     safeStorage.setItem('cms_user', JSON.stringify({ id: 1, firstName: 'John' }));
     safeStorage.setItem('cms_auth_token', 'mock-token-xyz');
@@ -433,12 +465,11 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
   });
 
   test('UserProfileModal updatePhone rejection with accountClosed invokes closure flow and avoids generic error toast', async () => {
-    let closedNoticeRecorded = null;
     let onAccountClosedCalled = false;
     let logoutCalled = false;
     let toasts = [];
 
-    const mockOnAccountClosed = async (reason) => {
+    const mockOnAccountClosed = async (_reason) => {
       onAccountClosedCalled = true;
       safeStorage.setItem('cms_account_closed_notice', 'Your account was permanently closed due to repeated duplicate phone number policy violations.');
       toasts.push({ msg: 'Account permanently closed due to policy violations.', type: 'error' });

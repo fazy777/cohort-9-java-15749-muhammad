@@ -48,9 +48,11 @@ export const findDuplicatePhone = (
   userPhone = null,
   currentContactId = null
 ) => {
+  const phoneList = Array.isArray(phones) ? phones : [];
+
   // Check 1: Duplicate phone numbers within the current form
   const seenFormPhones = new Map();
-  for (const phoneItem of phones) {
+  for (const phoneItem of phoneList) {
     const norm = normalizePhone(phoneItem?.phoneNumber);
     if (!norm) continue;
     if (seenFormPhones.has(norm)) {
@@ -67,7 +69,7 @@ export const findDuplicatePhone = (
         for (const ep of ec.phones) {
           const normExisting = normalizePhone(ep?.phoneNumber);
           if (!normExisting) continue;
-          for (const phoneItem of phones) {
+          for (const phoneItem of phoneList) {
             const normNew = normalizePhone(phoneItem?.phoneNumber);
             if (normNew && normNew === normExisting) {
               return phoneItem.phoneNumber;
@@ -82,7 +84,7 @@ export const findDuplicatePhone = (
   if (userPhone) {
     const normUserPhone = normalizePhone(userPhone);
     if (normUserPhone) {
-      for (const phoneItem of phones) {
+      for (const phoneItem of phoneList) {
         const normNew = normalizePhone(phoneItem?.phoneNumber);
         if (normNew && normNew === normUserPhone) {
           return phoneItem.phoneNumber;
