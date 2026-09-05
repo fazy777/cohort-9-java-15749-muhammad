@@ -22,7 +22,7 @@ jobs:
 
     env:
       SONAR_AVAILABLE: ${{ secrets.SONAR_TOKEN != '' }}
-      SONAR_HOST_IS_HTTPS: ${{ startsWith(secrets.SONAR_HOST_URL || 'https://sonarcloud.io', 'https://') }}
+      SONAR_HOST_IS_HTTPS: ${{ startsWith(secrets.SONAR_HOST_URL, 'https://') }}
 
     defaults:
       run:
@@ -58,7 +58,7 @@ jobs:
         if: env.SONAR_AVAILABLE == 'true' && env.SONAR_HOST_IS_HTTPS == 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           ./mvnw sonar:sonar \
             -Dsonar.projectKey=contact-management-system-backend \
@@ -75,7 +75,7 @@ jobs:
 
     env:
       SONAR_AVAILABLE: ${{ secrets.SONAR_TOKEN != '' }}
-      SONAR_HOST_IS_HTTPS: ${{ startsWith(secrets.SONAR_HOST_URL || 'https://sonarcloud.io', 'https://') }}
+      SONAR_HOST_IS_HTTPS: ${{ startsWith(secrets.SONAR_HOST_URL, 'https://') }}
 
     defaults:
       run:
@@ -114,4 +114,4 @@ jobs:
             -Dsonar.organization=fazy777
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

@@ -1,5 +1,58 @@
 import { safeStorage } from '../utils/storage.js';
 
+/**
+ * Checks if a hostname corresponds to a local loopback origin.
+ * @param {string} [hostname]
+ * @returns {boolean}
+ */
+export const isLocalHostname = (hostname) => {
+  if (!hostname || typeof hostname !== 'string') return false;
+  const host = hostname.trim().toLowerCase();
+  return (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host === '127.0.0.1' ||
+    host === '[::1]' ||
+    host === '::1' ||
+    /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)
+  );
+};
+
+/**
+ * Checks if a URL is secure (HTTPS or same-origin relative URL) or a local development HTTP origin.
+ * @param {string} [urlString]
+ * @returns {boolean}
+ */
+export const isLocalOrSecureUrl = (urlString) => {
+  if (!urlString || typeof urlString !== 'string') return false;
+  const trimmed = urlString.trim();
+  // Same-origin relative URLs are permitted
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+    return true;
+  }
+  try {
+    const base = typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'http://localhost';
+    const parsed = new URL(trimmed, base);
+    if (parsed.protocol === 'https:') {
+      return true;
+    }
+    if (parsed.protocol === 'http:') {
+      return isLocalHostname(parsed.hostname);
+    }
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Normalizes an API base URL, enforcing HTTPS for non-local remote origins
+ * while preserving local development HTTP origins and relative URLs.
+ * @param {string} [url]
+ * @returns {string}
+ */
 export const normalizeApiUrl = (url) => {
   if (!url || typeof url !== 'string' || !url.trim()) {
     return 'http://localhost:8080/api';
@@ -7,6 +60,16 @@ export const normalizeApiUrl = (url) => {
   let clean = url.trim().replace(/\/+$/, '');
   if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('/')) {
     clean = `https://${clean}`;
+  }
+  if (clean.startsWith('http://')) {
+    try {
+      const parsed = new URL(clean);
+      if (!isLocalHostname(parsed.hostname)) {
+        clean = clean.replace(/^http:\/\//i, 'https://');
+      }
+    } catch {
+      clean = clean.replace(/^http:\/\//i, 'https://');
+    }
   }
   if (!clean.endsWith('/api')) {
     clean += '/api';
@@ -242,13 +305,22 @@ const isValidUserData = (user) => {
 /**
  * Performs an HTTP fetch request with timeout abort signal, credentials for HttpOnly cookies,
  * centralized CSRF headers, and error handling.
+ * Rejects insecure HTTP requests to non-local origins before dispatching.
  * @param {string} endpoint - API path relative to BASE_URL
- * @param {RequestInit} [options={}] - fetch options (method, body, headers)
+ * @param {RequestInit & { baseUrl?: string }} [options={}] - fetch options (method, body, headers, optional baseUrl)
  * @param {number} [timeoutMs=15000] - request timeout in milliseconds
  * @returns {Promise<unknown>}
  */
-const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) => {
+export const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) => {
   const requestGeneration = getSessionGeneration();
+  const { signal: callerSignal, baseUrl, ...fetchOptions } = options;
+  const targetBaseUrl = typeof baseUrl === 'string' ? baseUrl : BASE_URL;
+  const targetUrl = `${targetBaseUrl}${endpoint}`;
+
+  if (!isLocalOrSecureUrl(targetUrl)) {
+    throw new Error('Insecure HTTP request to non-local origin rejected');
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -256,16 +328,15 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
   const method = (options.method || 'GET').toUpperCase();
   const isMutating = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
   const csrfToken = isMutating ? getCsrfToken() : null;
-  const authToken = safeStorage.getItem('cms_auth_token');
+  const authToken = isLocalOrSecureUrl(targetUrl) ? safeStorage.getItem('cms_auth_token') : null;
 
   const headers = {
     'Content-Type': 'application/json',
     ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
     ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
-    ...(options.headers || {})
+    ...(fetchOptions.headers || {})
   };
 
-  const { signal: callerSignal, ...fetchOptions } = options;
   if (callerSignal) {
     if (callerSignal.aborted) {
       controller.abort();
@@ -275,7 +346,7 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
   }
 
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
+    const response = await fetch(targetUrl, {
       ...fetchOptions,
       headers,
       credentials: 'include',
