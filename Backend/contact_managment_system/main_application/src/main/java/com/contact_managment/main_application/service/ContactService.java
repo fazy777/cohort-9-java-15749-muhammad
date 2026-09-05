@@ -294,7 +294,7 @@ public class ContactService {
      * @param contactDtos list of contact DTOs to import
      * @return total count of imported contacts
      */
-    @Transactional
+    @Transactional(noRollbackFor = DuplicatePhoneNumberException.class)
     public int importContacts(Long userId, List<ContactDto> contactDtos) {
         if (contactDtos == null || contactDtos.isEmpty()) {
             throw new BadRequestException("Contacts list cannot be empty");
@@ -439,7 +439,7 @@ public class ContactService {
             }
             userRepository.delete(targetUser);
             userRepository.flush();
-            log.warn("User ID: {} permanently closed and deleted due to repeat duplicate phone violation: {}", targetUser.getId(), rawPhone);
+            log.warn("User ID: {} permanently closed and deleted due to repeat duplicate phone violation", targetUser.getId());
             throw new DuplicatePhoneNumberException(
                     "Account Terminated: Repeated duplicate phone number violation (\"" + rawPhone + "\").",
                     2,
@@ -448,7 +448,7 @@ public class ContactService {
             );
         } else {
             userRepository.saveAndFlush(targetUser);
-            log.warn("User ID: {} received duplicate phone strike {} for number: {}", targetUser.getId(), nextStrike, rawPhone);
+            log.warn("User ID: {} received duplicate phone strike {}", targetUser.getId(), nextStrike);
             throw new DuplicatePhoneNumberException(
                     "Warning (1/2): Duplicate phone number \"" + rawPhone + "\" is strictly prohibited.",
                     1,

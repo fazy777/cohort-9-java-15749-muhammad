@@ -330,6 +330,7 @@ const MainDashboard = () => {
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         showToast={showToast}
+        onAccountClosed={handleAccountClosed}
       />
 
       {/* Import / Export Modal */}

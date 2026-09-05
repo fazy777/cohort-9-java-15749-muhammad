@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
+import { safeStorage } from '../utils/storage';
 import { User, Mail, Phone, LogOut, KeyRound, X, RotateCcw } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
 
@@ -11,11 +12,12 @@ import { useModalA11y } from '../hooks/useModalA11y';
  * @param {{
  *   isOpen: boolean,
  *   onClose: () => void,
- *   showToast?: (msg: string, type: string) => void
+ *   showToast?: (msg: string, type: string) => void,
+ *   onAccountClosed?: (reason?: string) => Promise<void> | void
  * }} props
  * @returns {JSX.Element|null}
  */
-export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
+export const UserProfileModal = ({ isOpen, onClose, showToast, onAccountClosed }) => {
   const { user, logout, updateUser, refreshProfile } = useAuth();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -85,6 +87,25 @@ export const UserProfileModal = ({ isOpen, onClose, showToast }) => {
       showToast?.('Phone number added to account successfully!', 'success');
       setIsEditingPhone(false);
     } catch (err) {
+      if (err?.accountClosed) {
+        setIsEditingPhone(false);
+        if (typeof onAccountClosed === 'function') {
+          await onAccountClosed(err?.message);
+        } else {
+          safeStorage.setItem(
+            'cms_account_closed_notice',
+            'Your account was permanently closed due to repeated duplicate phone number policy violations.'
+          );
+          onClose?.();
+          try {
+            await logout?.();
+          } catch {
+            // ignore
+          }
+          showToast?.('Account permanently closed due to policy violations.', 'error');
+        }
+        return;
+      }
       showToast?.(err?.message || 'Failed to update phone number', 'error');
     } finally {
       setPhoneSubmitting(false);

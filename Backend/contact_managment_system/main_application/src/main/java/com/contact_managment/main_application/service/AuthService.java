@@ -66,7 +66,23 @@ public class AuthService {
         validatePassword(request.getPassword(), "Password");
 
         String email = StringUtils.hasText(request.getEmail()) ? request.getEmail().trim().toLowerCase(java.util.Locale.ROOT) : null;
-        String phone = StringUtils.hasText(request.getPhone()) ? request.getPhone().trim() : null;
+        String phone = null;
+        if (StringUtils.hasText(request.getPhone())) {
+            String rawPhone = request.getPhone().trim();
+            if (rawPhone.length() < 7) {
+                throw new BadRequestException("Phone number must be at least 7 characters");
+            }
+            if (rawPhone.length() > 30) {
+                throw new BadRequestException("Phone number cannot exceed 30 characters");
+            }
+            phone = normalizePhoneNumber(rawPhone);
+            if (phone.length() < 7) {
+                throw new BadRequestException("Phone number must be at least 7 characters");
+            }
+            if (phone.length() > 30) {
+                throw new BadRequestException("Phone number cannot exceed 30 characters");
+            }
+        }
 
         if (!StringUtils.hasText(email) && !StringUtils.hasText(phone)) {
             throw new BadRequestException("Either Email or Phone number must be provided for registration");
@@ -374,7 +390,7 @@ public class AuthService {
             }
             userRepository.delete(user);
             userRepository.flush();
-            log.warn("User ID: {} permanently closed and deleted due to repeat duplicate phone violation: {}", user.getId(), rawPhone);
+            log.warn("User ID: {} permanently closed and deleted due to repeat duplicate phone violation", user.getId());
             throw new DuplicatePhoneNumberException(
                     "Account Terminated: Repeated duplicate phone number violation (\"" + rawPhone + "\").",
                     2,
@@ -383,7 +399,7 @@ public class AuthService {
             );
         } else {
             userRepository.saveAndFlush(user);
-            log.warn("User ID: {} received duplicate phone strike {} for number: {}", user.getId(), nextStrike, rawPhone);
+            log.warn("User ID: {} received duplicate phone strike {}", user.getId(), nextStrike);
             throw new DuplicatePhoneNumberException(
                     "Warning (1/2): Duplicate phone number \"" + rawPhone + "\" is strictly prohibited.",
                     1,

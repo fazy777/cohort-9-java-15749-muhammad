@@ -282,6 +282,13 @@ cohort-9-java-15749-muhammad/
 To run code quality scans locally using SonarQube and Maven:
 
 1. Start your local SonarQube server with HTTPS enabled (e.g., `https://localhost:9000` via a local TLS reverse proxy or certificate).
+   > [!NOTE]
+   > **TLS / HTTPS Certificate Trust:** When connecting via HTTPS with a self-signed certificate or private CA, the certificate must be trusted by the JVM and scanner. You can import the certificate into the JVM truststore (`$JAVA_HOME/lib/security/cacerts`) using `keytool`:
+   > ```bash
+   > keytool -importcert -alias sonarqube -keystore "$JAVA_HOME/lib/security/cacerts" -file /path/to/server.crt -storepass changeit -noprompt
+   > ```
+   > or pass the truststore parameters directly via Maven JVM properties (`-Djavax.net.ssl.trustStore=/path/to/truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit`) and scanner properties (`-Dsonar.scanner.truststorePath=/path/to/truststore.p12 -Dsonar.scanner.truststorePassword=changeit`).
+
 2. Export your token and run the Maven goal:
    ```bash
    cd Backend/contact_managment_system/main_application

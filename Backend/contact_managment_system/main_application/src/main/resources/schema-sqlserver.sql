@@ -80,6 +80,7 @@ BEGIN TRY
                 phone NVARCHAR(30) NULL,
                 password NVARCHAR(255) NOT NULL,
                 token_version BIGINT NOT NULL CONSTRAINT DF_users_token_version DEFAULT (1),
+                duplicate_strike_count INT NOT NULL CONSTRAINT DF_users_duplicate_strike_count DEFAULT (0),
                 version BIGINT NULL,
                 created_at DATETIME2 NOT NULL CONSTRAINT DF_users_created_at DEFAULT (SYSUTCDATETIME()),
                 updated_at DATETIME2 NULL,
@@ -181,6 +182,59 @@ BEGIN TRY
         DECLARE @DurationMs BIGINT = DATEDIFF(MILLISECOND, @StartTime, SYSUTCDATETIME());
         INSERT INTO dbo.schema_migrations (version, description, installed_on, execution_time_ms, success)
         VALUES (@MigrationVersion, N'Initial Relational Schema (Users, Contacts, Emails, Phones)', SYSUTCDATETIME(), @DurationMs, 1);
+    END
+
+    -- Migration V1.1.0: Add duplicate_strike_count and canonicalize existing users.phone values
+    DECLARE @MigrationVersion110 NVARCHAR(50) = N'1.1.0';
+    DECLARE @StartTime110 DATETIME2 = SYSUTCDATETIME();
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.schema_migrations WHERE version = @MigrationVersion110 AND success = 1)
+    BEGIN
+        IF OBJECT_ID(N'dbo.users', N'U') IS NOT NULL
+        BEGIN
+            -- 1. Add duplicate_strike_count column if missing (non-null integer with default 0)
+            IF NOT EXISTS (
+                SELECT 1 FROM sys.columns 
+                WHERE object_id = OBJECT_ID(N'dbo.users') AND name = N'duplicate_strike_count'
+            )
+            BEGIN
+                ALTER TABLE dbo.users
+                ADD duplicate_strike_count INT NOT NULL CONSTRAINT DF_users_duplicate_strike_count DEFAULT (0);
+            END
+
+            -- Ensure any existing nulls are set to default 0
+            UPDATE dbo.users
+            SET duplicate_strike_count = 0
+            WHERE duplicate_strike_count IS NULL;
+
+            -- 2. Canonicalize existing users.phone values (strip whitespace, hyphens, parentheses, and dots)
+            UPDATE dbo.users
+            SET phone = LOWER(
+                REPLACE(
+                    REPLACE(
+                        REPLACE(
+                            REPLACE(
+                                REPLACE(phone, N' ', N''),
+                            N'-', N''),
+                        N'(', N''),
+                    N')', N''),
+                N'.', N'')
+            )
+            WHERE phone IS NOT NULL;
+
+            -- 3. Ensure filtered unique index on users.phone exists
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UQ_users_phone' AND object_id = OBJECT_ID(N'dbo.users'))
+            BEGIN
+                CREATE UNIQUE NONCLUSTERED INDEX UQ_users_phone
+                ON dbo.users (phone ASC)
+                WHERE phone IS NOT NULL;
+            END
+        END
+
+        -- Record migration execution
+        DECLARE @DurationMs110 BIGINT = DATEDIFF(MILLISECOND, @StartTime110, SYSUTCDATETIME());
+        INSERT INTO dbo.schema_migrations (version, description, installed_on, execution_time_ms, success)
+        VALUES (@MigrationVersion110, N'Add duplicate_strike_count and canonicalize existing phone numbers', SYSUTCDATETIME(), @DurationMs110, 1);
     END
 
     COMMIT TRANSACTION;

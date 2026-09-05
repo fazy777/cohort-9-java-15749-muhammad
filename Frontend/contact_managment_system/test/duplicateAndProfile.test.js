@@ -384,4 +384,109 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
     assert.equal(deleteCalled, true);
     assert.equal(safeStorage.getItem(warningKey), null);
   });
+
+  test('enforceDuplicatePolicy: failed required deletion propagates error and preserves stored warning', async () => {
+    const userId = 503;
+    const warningKey = getDuplicateWarningKey(userId);
+    safeStorage.setItem(warningKey, '1');
+
+    await assert.rejects(
+      async () => {
+        await enforceDuplicatePolicy({
+          userId,
+          duplicateNumber: '+15550008888',
+          // Backend has NOT confirmed closure; local fallback deletion triggered via stored warning count
+          deleteAccountFn: async () => {
+            throw new Error('Database connection failed during account deletion');
+          }
+        });
+      },
+      {
+        name: 'Error',
+        message: 'Database connection failed during account deletion'
+      }
+    );
+
+    // Stored warning is preserved because deletion failed
+    assert.equal(safeStorage.getItem(warningKey), '1');
+  });
+
+  test('enforceDuplicatePolicy: backend-confirmed closure tolerates deleteAccountFn failure and returns isAccountClosed: true', async () => {
+    const userId = 504;
+    const warningKey = getDuplicateWarningKey(userId);
+    safeStorage.setItem(warningKey, '1');
+
+    const result = await enforceDuplicatePolicy({
+      userId,
+      duplicateNumber: '+15550007777',
+      strike: 2,
+      isAccountClosed: true,
+      error: 'Account Terminated: Repeated duplicate phone number violation ("+15550007777").',
+      deleteAccountFn: async () => {
+        throw new Error('Account not found (already purged on server)');
+      }
+    });
+
+    assert.equal(result.isAccountClosed, true);
+    assert.equal(result.strike, 2);
+    assert.equal(safeStorage.getItem(warningKey), null);
+  });
+
+  test('UserProfileModal updatePhone rejection with accountClosed invokes closure flow and avoids generic error toast', async () => {
+    let closedNoticeRecorded = null;
+    let onAccountClosedCalled = false;
+    let logoutCalled = false;
+    let toasts = [];
+
+    const mockOnAccountClosed = async (reason) => {
+      onAccountClosedCalled = true;
+      safeStorage.setItem('cms_account_closed_notice', 'Your account was permanently closed due to repeated duplicate phone number policy violations.');
+      toasts.push({ msg: 'Account permanently closed due to policy violations.', type: 'error' });
+    };
+
+    const mockShowToast = (msg, type) => {
+      toasts.push({ msg, type });
+    };
+
+    // Simulate handleUpdatePhone rejection handler logic from UserProfileModal
+    const simulateUpdatePhoneHandler = async (err, onAccountClosed) => {
+      if (err?.accountClosed) {
+        if (typeof onAccountClosed === 'function') {
+          await onAccountClosed(err?.message);
+        } else {
+          safeStorage.setItem(
+            'cms_account_closed_notice',
+            'Your account was permanently closed due to repeated duplicate phone number policy violations.'
+          );
+          logoutCalled = true;
+          mockShowToast('Account permanently closed due to policy violations.', 'error');
+        }
+        return;
+      }
+      mockShowToast(err?.message || 'Failed to update phone number', 'error');
+    };
+
+    const terminationErr = new Error('Account Terminated: Repeated duplicate phone number violation ("+15552345678").');
+    terminationErr.accountClosed = true;
+
+    // Test with onAccountClosed prop passed
+    await simulateUpdatePhoneHandler(terminationErr, mockOnAccountClosed);
+    assert.equal(onAccountClosedCalled, true);
+    assert.equal(safeStorage.getItem('cms_account_closed_notice'), 'Your account was permanently closed due to repeated duplicate phone number policy violations.');
+    assert.equal(toasts.some(t => t.msg === 'Failed to update phone number'), false);
+
+    // Test fallback when onAccountClosed is not passed
+    toasts = [];
+    safeStorage.clear();
+    await simulateUpdatePhoneHandler(terminationErr, null);
+    assert.equal(logoutCalled, true);
+    assert.equal(safeStorage.getItem('cms_account_closed_notice'), 'Your account was permanently closed due to repeated duplicate phone number policy violations.');
+    assert.equal(toasts.some(t => t.msg === 'Failed to update phone number'), false);
+
+    // Test normal error without accountClosed shows generic toast
+    toasts = [];
+    const regularErr = new Error('Phone number already associated with another account');
+    await simulateUpdatePhoneHandler(regularErr, mockOnAccountClosed);
+    assert.equal(toasts.some(t => t.msg === 'Phone number already associated with another account'), true);
+  });
 });

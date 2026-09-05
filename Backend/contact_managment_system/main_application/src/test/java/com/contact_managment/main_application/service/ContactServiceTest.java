@@ -350,4 +350,83 @@ class ContactServiceTest {
         verify(contactRepository).deleteAll(List.of(sampleContact));
         verify(userRepository).delete(sampleUser);
     }
+
+    @Test
+    @DisplayName("Should configure importContacts with noRollbackFor DuplicatePhoneNumberException")
+    void importContacts_TransactionConfiguredWithNoRollbackForDuplicateException() throws NoSuchMethodException {
+        java.lang.reflect.Method method = ContactService.class.getMethod("importContacts", Long.class, List.class);
+        org.springframework.transaction.annotation.Transactional tx =
+                method.getAnnotation(org.springframework.transaction.annotation.Transactional.class);
+        assertNotNull(tx, "importContacts should be annotated with @Transactional");
+        assertArrayEquals(new Class<?>[]{DuplicatePhoneNumberException.class}, tx.noRollbackFor());
+    }
+
+    @Test
+    @DisplayName("Should import valid contacts successfully")
+    void importContacts_Success() {
+        ContactDto dto1 = ContactDto.builder()
+                .firstName("Alice")
+                .lastName("Smith")
+                .phones(List.of(ContactPhoneDto.builder().phoneNumber("+15551112222").label("WORK").build()))
+                .build();
+        ContactDto dto2 = ContactDto.builder()
+                .firstName("Bob")
+                .lastName("Jones")
+                .phones(List.of(ContactPhoneDto.builder().phoneNumber("+15553334444").label("HOME").build()))
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        when(contactRepository.save(any(Contact.class))).thenReturn(sampleContact);
+
+        int count = contactService.importContacts(1L, List.of(dto1, dto2));
+
+        assertEquals(2, count);
+        verify(contactRepository, times(2)).save(any(Contact.class));
+    }
+
+    @Test
+    @DisplayName("Should save prior valid contact and apply strike when subsequent contact in batch is duplicate")
+    void importContacts_ValidContactThenDuplicate_SavesPriorContactAndAppliesStrike() {
+        sampleUser.setDuplicateStrikeCount(0);
+        ContactDto validDto = ContactDto.builder()
+                .firstName("Valid")
+                .lastName("Contact")
+                .phones(List.of(ContactPhoneDto.builder().phoneNumber("+15551112222").label("WORK").build()))
+                .build();
+        ContactDto duplicateDto = ContactDto.builder()
+                .firstName("Duplicate")
+                .lastName("Contact")
+                .phones(List.of(ContactPhoneDto.builder().phoneNumber("+15559998888").label("WORK").build()))
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        when(contactRepository.save(any(Contact.class))).thenReturn(sampleContact);
+        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null))
+                .thenReturn(List.of())
+                .thenReturn(List.of("+15559998888"));
+
+        DuplicatePhoneNumberException ex = assertThrows(DuplicatePhoneNumberException.class,
+                () -> contactService.importContacts(1L, List.of(validDto, duplicateDto)));
+
+        assertEquals(1, ex.getStrike());
+        assertFalse(ex.isAccountClosed());
+        assertEquals(1, sampleUser.getDuplicateStrikeCount());
+
+        // Verify valid contact was persisted before the duplicate exception
+        verify(contactRepository, times(1)).save(any(Contact.class));
+        // Verify strike update was persisted
+        verify(userRepository).saveAndFlush(sampleUser);
+    }
+
+    @Test
+    @DisplayName("Should throw BadRequestException on empty list or null contact in importContacts")
+    void importContacts_ValidationPreserved() {
+        assertThrows(com.contact_managment.main_application.exception.BadRequestException.class,
+                () -> contactService.importContacts(1L, List.of()));
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        List<ContactDto> listWithNull = java.util.Collections.singletonList(null);
+        assertThrows(com.contact_managment.main_application.exception.BadRequestException.class,
+                () -> contactService.importContacts(1L, listWithNull));
+    }
 }

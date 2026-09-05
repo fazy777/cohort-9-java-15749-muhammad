@@ -151,13 +151,23 @@ export const enforceDuplicatePolicy = async ({
   }
 
   // Strike 2: Account closure
+  const backendConfirmedClosed = Boolean(isAccountClosed);
+
   if (typeof deleteAccountFn === 'function') {
-    try {
+    if (backendConfirmedClosed) {
+      try {
+        await deleteAccountFn();
+      } catch {
+        // Backend already confirmed account was purged during atomic strike enforcement
+      }
+    } else {
+      // Local fallback deletion is required: propagate any deletion failure
       await deleteAccountFn();
-    } catch {
-      // Backend may already have purged account during atomic strike enforcement
     }
+  } else if (!backendConfirmedClosed) {
+    throw new Error('Account deletion required but deleteAccountFn is not available.');
   }
+
   safeStorage.removeItem(warningKey);
   return {
     isAccountClosed: true,

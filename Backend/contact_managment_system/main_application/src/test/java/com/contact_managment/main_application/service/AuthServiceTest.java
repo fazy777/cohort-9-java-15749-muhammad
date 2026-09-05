@@ -565,5 +565,66 @@ class AuthServiceTest {
         inOrder.verify(userRepository).delete(sampleUser);
         inOrder.verify(userRepository).flush();
     }
+
+    @Test
+    @DisplayName("Should canonicalize formatted phone number and check existsByPhone with canonical representation during registration")
+    void register_FormattedPhoneCanonicalized_Success() {
+        RegisterRequest request = RegisterRequest.builder()
+                .firstName("Jane")
+                .lastName("Doe")
+                .phone("+1 (555) 234-5678")
+                .password("password123")
+                .build();
+
+        when(userRepository.existsByPhone("+15552345678")).thenReturn(false);
+        when(userRepository.existsByEmail("+15552345678")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> {
+            User u = invocation.getArgument(0);
+            u.setId(2L);
+            u.setTokenVersion(1L);
+            return u;
+        });
+        when(tokenProvider.generateToken(2L, 1L)).thenReturn("jwt-token-formatted");
+
+        AuthResult response = authService.register(request);
+
+        assertNotNull(response);
+        assertEquals("jwt-token-formatted", response.getToken());
+        org.mockito.ArgumentCaptor<User> userCaptor = org.mockito.ArgumentCaptor.forClass(User.class);
+        verify(userRepository).saveAndFlush(userCaptor.capture());
+        assertEquals("+15552345678", userCaptor.getValue().getPhone());
+        verify(userRepository).existsByPhone("+15552345678");
+    }
+
+    @Test
+    @DisplayName("Should reject registration with formatted phone when canonical equivalent already exists")
+    void register_FormattedPhoneMatchesExistingCanonical_ThrowsUserAlreadyExists() {
+        RegisterRequest request = RegisterRequest.builder()
+                .firstName("Jane")
+                .lastName("Doe")
+                .phone("+1 (555) 234-5678")
+                .password("password123")
+                .build();
+
+        when(userRepository.existsByPhone("+15552345678")).thenReturn(true);
+
+        assertThrows(UserAlreadyExistsException.class, () -> authService.register(request));
+        verify(userRepository, never()).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should reject updatePhone with formatted phone when canonical equivalent belongs to another user")
+    void updatePhone_FormattedPhoneMatchesExistingCanonical_ThrowsUserAlreadyExists() {
+        UpdatePhoneRequest request = UpdatePhoneRequest.builder()
+                .phone("+1 (555) 234-5678")
+                .build();
+
+        User anotherUser = User.builder().id(2L).phone("+15552345678").build();
+        when(userRepository.findByPhone("+15552345678")).thenReturn(Optional.of(anotherUser));
+
+        assertThrows(UserAlreadyExistsException.class, () -> authService.updatePhone(1L, request));
+        verify(userRepository, never()).findByIdForUpdate(anyLong());
+    }
 }
 
