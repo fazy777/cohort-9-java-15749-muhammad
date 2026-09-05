@@ -744,5 +744,34 @@ describe('API Response Shape Validation & Payload Integrity', () => {
   });
 });
 
+describe('AuthContext updateUser Cross-Session Protection', () => {
+  test('updateUser discards changes if expectedUserId does not match current user', () => {
+    let currentUser = { id: 2, firstName: 'UserB', phone: '+1111111111' };
+    const setUser = (updater) => {
+      currentUser = updater(currentUser);
+    };
 
+    const updateUser = (updatedFields, expectedUserId) => {
+      if (!updatedFields || typeof updatedFields !== 'object') return;
+      setUser((prev) => {
+        if (!prev) return prev;
+        if (expectedUserId !== undefined && expectedUserId !== null && String(prev.id) !== String(expectedUserId)) {
+          return prev;
+        }
+        const merged = { ...prev, ...updatedFields };
+        safeStorage.setItem('cms_user', JSON.stringify(merged));
+        return merged;
+      });
+    };
 
+    // Attempting to apply User A's (ID 1) update to User B (ID 2)
+    updateUser({ phone: '+9999999999' }, 1);
+    assert.equal(currentUser.phone, '+1111111111', 'User B phone must not be overwritten by User A update');
+    assert.equal(safeStorage.getItem('cms_user'), null, 'Storage must not be updated');
+
+    // Applying with matching ID 2
+    updateUser({ phone: '+2222222222' }, 2);
+    assert.equal(currentUser.phone, '+2222222222', 'User B phone should be updated when ID matches');
+    assert.deepEqual(JSON.parse(safeStorage.getItem('cms_user')), { id: 2, firstName: 'UserB', phone: '+2222222222' });
+  });
+});

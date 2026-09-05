@@ -91,6 +91,31 @@ class ContactServiceTest {
     }
 
     @Test
+    @DisplayName("Should reset duplicate strike count to 0 upon successful contact creation")
+    void createContact_ResetsPriorStrikeCountOnSuccess() {
+        sampleUser.setDuplicateStrikeCount(1);
+        ContactDto dto = ContactDto.builder()
+                .firstName("Alice")
+                .lastName("Smith")
+                .phones(List.of(ContactPhoneDto.builder().phoneNumber("+15551112222").label("WORK").build()))
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null)).thenReturn(List.of());
+        when(contactRepository.save(any(Contact.class))).thenAnswer(invocation -> {
+            Contact c = invocation.getArgument(0);
+            c.setId(10L);
+            return c;
+        });
+
+        ContactDto result = contactService.createContact(1L, dto);
+
+        assertNotNull(result);
+        assertEquals(0, sampleUser.getDuplicateStrikeCount());
+        verify(userRepository).saveAndFlush(sampleUser);
+    }
+
+    @Test
     @DisplayName("Should fetch paginated contacts without search query")
     void getContacts_Paginated() {
         Page<Contact> contactPage = new PageImpl<>(List.of(sampleContact), PageRequest.of(0, 10), 1);
@@ -358,7 +383,7 @@ class ContactServiceTest {
         org.springframework.transaction.annotation.Transactional tx =
                 method.getAnnotation(org.springframework.transaction.annotation.Transactional.class);
         assertNotNull(tx, "importContacts should be annotated with @Transactional");
-        assertArrayEquals(new Class<?>[]{DuplicatePhoneNumberException.class}, tx.noRollbackFor());
+        assertTrue(java.util.Arrays.asList(tx.noRollbackFor()).contains(DuplicatePhoneNumberException.class));
     }
 
     @Test

@@ -185,6 +185,10 @@ public class ContactService {
         }
 
         Contact savedContact = contactRepository.save(contact);
+        if (user != null && user.getDuplicateStrikeCount() > 0) {
+            user.setDuplicateStrikeCount(0);
+            userRepository.saveAndFlush(user);
+        }
         log.info("Contact created successfully with ID: {}", savedContact.getId());
         return mapToDto(savedContact);
     }
@@ -249,6 +253,10 @@ public class ContactService {
         }
 
         Contact updatedContact = contactRepository.save(contact);
+        if (user != null && user.getDuplicateStrikeCount() > 0) {
+            user.setDuplicateStrikeCount(0);
+            userRepository.saveAndFlush(user);
+        }
         log.info("Contact ID: {} updated successfully", updatedContact.getId());
         return mapToDto(updatedContact);
     }
@@ -430,12 +438,10 @@ public class ContactService {
         targetUser.setDuplicateStrikeCount(nextStrike);
 
         if (nextStrike >= 2) {
-            if (contactRepository != null) {
-                List<Contact> contacts = contactRepository.findByUser(targetUser);
-                if (contacts != null && !contacts.isEmpty()) {
-                    contactRepository.deleteAll(contacts);
-                    contactRepository.flush();
-                }
+            List<Contact> contacts = contactRepository.findByUser(targetUser);
+            if (contacts != null && !contacts.isEmpty()) {
+                contactRepository.deleteAll(contacts);
+                contactRepository.flush();
             }
             userRepository.delete(targetUser);
             userRepository.flush();

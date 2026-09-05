@@ -308,6 +308,9 @@ sonar-scanner \
   -Dsonar.host.url=https://localhost:9000
 ```
 
+> [!NOTE]
+> **Frontend Scanner CLI Truststore:** SonarScanner CLI (v5+) includes its own embedded JRE and may not read `$JAVA_HOME/lib/security/cacerts`. When using HTTPS with custom certificates, configure truststore parameters directly via `-Dsonar.scanner.truststorePath=/path/to/truststore.p12 -Dsonar.scanner.truststorePassword=changeit` or via `SONAR_SCANNER_OPTS="-Djavax.net.ssl.trustStore=/path/to/truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit"`.
+
 ---
 
 ## Unit Testing

@@ -350,6 +350,7 @@ export const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOU
       ...fetchOptions,
       headers,
       credentials: 'include',
+      redirect: 'error',
       signal: controller.signal
     });
 

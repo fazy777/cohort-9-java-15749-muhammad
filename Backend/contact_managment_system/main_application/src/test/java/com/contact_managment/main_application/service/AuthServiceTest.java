@@ -442,6 +442,26 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Should reset duplicate strike count to 0 upon successful phone update")
+    void updatePhone_ResetsPriorStrikeCountOnSuccess() {
+        sampleUser.setDuplicateStrikeCount(1);
+        UpdatePhoneRequest request = UpdatePhoneRequest.builder()
+                .phone("+9876543210")
+                .build();
+
+        when(userRepository.findByPhone("+9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
+        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null)).thenReturn(List.of());
+        when(userRepository.saveAndFlush(any(User.class))).thenReturn(sampleUser);
+
+        UserProfileDto result = authService.updatePhone(1L, request);
+
+        assertNotNull(result);
+        assertEquals(0, sampleUser.getDuplicateStrikeCount());
+        verify(userRepository).saveAndFlush(sampleUser);
+    }
+
+    @Test
     @DisplayName("Should throw BadRequestException when updatePhone receives phone shorter than 7 characters")
     void updatePhone_TooShort_ThrowsBadRequest() {
         UpdatePhoneRequest request = UpdatePhoneRequest.builder()

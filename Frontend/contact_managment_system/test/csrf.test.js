@@ -260,4 +260,25 @@ describe('Authenticated Request Security (request)', () => {
     assert.equal(capturedUrl, 'https://cohort-9-java-15749-muhammad-production.up.railway.app/api/auth/phone');
     assert.equal(capturedHeaders?.Authorization, 'Bearer remote-secret-token');
   });
+
+  test('enforces redirect error option and prevents callers from overriding it', async () => {
+    let capturedOptions = null;
+    globalThis.fetch = async (url, options) => {
+      capturedOptions = options;
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({ success: true })
+      };
+    };
+
+    await request('/auth/profile', {
+      method: 'GET',
+      baseUrl: 'http://localhost:8080/api',
+      redirect: 'follow'
+    });
+
+    assert.equal(capturedOptions?.redirect, 'error');
+  });
 });

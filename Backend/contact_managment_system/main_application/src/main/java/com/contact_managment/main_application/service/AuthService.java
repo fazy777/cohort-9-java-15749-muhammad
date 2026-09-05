@@ -64,20 +64,7 @@ public class AuthService {
         String email = StringUtils.hasText(request.getEmail()) ? request.getEmail().trim().toLowerCase(java.util.Locale.ROOT) : null;
         String phone = null;
         if (StringUtils.hasText(request.getPhone())) {
-            String rawPhone = request.getPhone().trim();
-            if (rawPhone.length() < 7) {
-                throw new BadRequestException("Phone number must be at least 7 characters");
-            }
-            if (rawPhone.length() > 30) {
-                throw new BadRequestException("Phone number cannot exceed 30 characters");
-            }
-            phone = normalizePhoneNumber(rawPhone);
-            if (phone.length() < 7) {
-                throw new BadRequestException("Phone number must be at least 7 characters");
-            }
-            if (phone.length() > 30) {
-                throw new BadRequestException("Phone number cannot exceed 30 characters");
-            }
+            phone = validateAndNormalizePhone(request.getPhone());
         }
 
         if (!StringUtils.hasText(email) && !StringUtils.hasText(phone)) {
@@ -261,20 +248,7 @@ public class AuthService {
         }
 
         String phone = request.getPhone().trim();
-        if (phone.length() < 7) {
-            throw new BadRequestException("Phone number must be at least 7 characters");
-        }
-        if (phone.length() > 30) {
-            throw new BadRequestException("Phone number cannot exceed 30 characters");
-        }
-
-        String canonicalPhone = normalizePhoneNumber(phone);
-        if (canonicalPhone.length() < 7) {
-            throw new BadRequestException("Phone number must be at least 7 characters");
-        }
-        if (canonicalPhone.length() > 30) {
-            throw new BadRequestException("Phone number cannot exceed 30 characters");
-        }
+        String canonicalPhone = validateAndNormalizePhone(phone);
 
         userRepository.findByPhone(canonicalPhone).ifPresent(existing -> {
             if (!existing.getId().equals(userId)) {
@@ -297,6 +271,9 @@ public class AuthService {
         }
 
         user.setPhone(canonicalPhone);
+        if (user.getDuplicateStrikeCount() > 0) {
+            user.setDuplicateStrikeCount(0);
+        }
         User saved;
         try {
             saved = userRepository.saveAndFlush(user);
@@ -397,6 +374,24 @@ public class AuthService {
                     rawPhone
             );
         }
+    }
+
+    private String validateAndNormalizePhone(String rawInput) {
+        String trimmed = rawInput.trim();
+        if (trimmed.length() < 7) {
+            throw new BadRequestException("Phone number must be at least 7 characters");
+        }
+        if (trimmed.length() > 30) {
+            throw new BadRequestException("Phone number cannot exceed 30 characters");
+        }
+        String canonical = normalizePhoneNumber(trimmed);
+        if (canonical.length() < 7) {
+            throw new BadRequestException("Phone number must be at least 7 characters");
+        }
+        if (canonical.length() > 30) {
+            throw new BadRequestException("Phone number cannot exceed 30 characters");
+        }
+        return canonical;
     }
 
     private String normalizePhoneNumber(String phone) {

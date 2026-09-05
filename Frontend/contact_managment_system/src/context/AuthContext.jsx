@@ -201,11 +201,15 @@ export const AuthProvider = ({ children }) => {
   /**
    * Directly updates user profile fields in memory and persistent storage.
    * @param {Partial<import('../services/api').UserProfile>} updatedFields
+   * @param {number|string} [expectedUserId] - optional user ID to guard against stale updates across sessions
    */
-  const updateUser = useCallback((updatedFields) => {
+  const updateUser = useCallback((updatedFields, expectedUserId) => {
     if (!updatedFields || typeof updatedFields !== 'object') return;
     setUser((prev) => {
       if (!prev) return prev;
+      if (expectedUserId !== undefined && expectedUserId !== null && String(prev.id) !== String(expectedUserId)) {
+        return prev;
+      }
       const merged = { ...prev, ...updatedFields };
       safeStorage.setItem('cms_user', JSON.stringify(merged));
       return merged;

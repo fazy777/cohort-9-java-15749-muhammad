@@ -79,10 +79,11 @@ export const UserProfileModal = ({ isOpen, onClose, showToast, onAccountClosed }
       return;
     }
 
+    const submittingUserId = user?.id;
     setPhoneSubmitting(true);
     try {
       const updatedProfile = await api.updatePhone({ phone: trimmed });
-      updateUser?.({ phone: updatedProfile?.phone || trimmed });
+      updateUser?.({ phone: updatedProfile?.phone || trimmed }, submittingUserId);
       await refreshProfile?.();
       showToast?.('Phone number added to account successfully!', 'success');
       setIsEditingPhone(false);
