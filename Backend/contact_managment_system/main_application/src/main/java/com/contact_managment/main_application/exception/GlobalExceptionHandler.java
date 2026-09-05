@@ -89,9 +89,12 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.CONFLICT.value())
-                .error("Duplicate Phone Number")
+                .error(ex.isAccountClosed() ? "Account Terminated" : "Duplicate Phone Number")
                 .message(ex.getMessage())
                 .path(request.getRequestURI())
+                .strike(ex.getStrike())
+                .accountClosed(ex.isAccountClosed())
+                .duplicateNumber(ex.getDuplicateNumber())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }

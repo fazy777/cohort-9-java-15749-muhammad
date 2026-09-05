@@ -344,4 +344,44 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
     assert.equal(stored, genericMessage);
     assert.equal(/\+?\d[\d\s\-()]{6,}/.test(stored), false);
   });
+
+  test('enforceDuplicatePolicy uses backend-driven strike: strike 1 returns warning without termination', async () => {
+    const userId = 501;
+    let deleteCalled = false;
+    const result = await enforceDuplicatePolicy({
+      userId,
+      duplicateNumber: '+15550009999',
+      strike: 1,
+      isAccountClosed: false,
+      error: 'Warning (1/2): Duplicate phone number "+15550009999" is strictly prohibited.',
+      deleteAccountFn: async () => { deleteCalled = true; }
+    });
+
+    assert.equal(result.isAccountClosed, false);
+    assert.equal(result.strike, 1);
+    assert.match(result.error, /Warning \(1\/2\)/);
+    assert.equal(deleteCalled, false);
+  });
+
+  test('enforceDuplicatePolicy uses backend-driven strike: strike 2 terminates and cleans up', async () => {
+    const userId = 502;
+    const warningKey = getDuplicateWarningKey(userId);
+    safeStorage.setItem(warningKey, '1');
+
+    let deleteCalled = false;
+    const result = await enforceDuplicatePolicy({
+      userId,
+      duplicateNumber: '+15550009999',
+      strike: 2,
+      isAccountClosed: true,
+      error: 'Account Terminated: Repeated duplicate phone number violation ("+15550009999").',
+      deleteAccountFn: async () => { deleteCalled = true; }
+    });
+
+    assert.equal(result.isAccountClosed, true);
+    assert.equal(result.strike, 2);
+    assert.match(result.error, /Account Terminated/);
+    assert.equal(deleteCalled, true);
+    assert.equal(safeStorage.getItem(warningKey), null);
+  });
 });

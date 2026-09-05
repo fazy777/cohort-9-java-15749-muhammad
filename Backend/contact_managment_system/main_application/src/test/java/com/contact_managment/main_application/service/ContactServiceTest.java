@@ -299,4 +299,55 @@ class ContactServiceTest {
 
         assertThrows(DuplicatePhoneNumberException.class, () -> contactService.updateContact(1L, 10L, dto));
     }
+
+    @Test
+    @DisplayName("Should increment strike count to 1 and persist warning when first duplicate phone is rejected")
+    void createContact_Strike1_PersistsStrikeAndReturnsWarning() {
+        sampleUser.setDuplicateStrikeCount(0);
+        ContactDto dto = ContactDto.builder()
+                .firstName("Test")
+                .lastName("User")
+                .phones(List.of(
+                        ContactPhoneDto.builder().phoneNumber("+15551234567").label("WORK").build(),
+                        ContactPhoneDto.builder().phoneNumber("+15551234567").label("HOME").build()
+                ))
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+
+        DuplicatePhoneNumberException ex = assertThrows(DuplicatePhoneNumberException.class,
+                () -> contactService.createContact(1L, dto));
+
+        assertEquals(1, ex.getStrike());
+        assertFalse(ex.isAccountClosed());
+        assertEquals(1, sampleUser.getDuplicateStrikeCount());
+        verify(userRepository).saveAndFlush(sampleUser);
+        verify(userRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("Should increment strike to 2, purge contacts, and delete user account on repeat duplicate violation")
+    void createContact_Strike2_PurgesContactsAndDeletesAccount() {
+        sampleUser.setDuplicateStrikeCount(1);
+        ContactDto dto = ContactDto.builder()
+                .firstName("Test")
+                .lastName("User")
+                .phones(List.of(
+                        ContactPhoneDto.builder().phoneNumber("+15551234567").label("WORK").build(),
+                        ContactPhoneDto.builder().phoneNumber("+15551234567").label("HOME").build()
+                ))
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(sampleUser));
+        when(contactRepository.findByUser(sampleUser)).thenReturn(List.of(sampleContact));
+
+        DuplicatePhoneNumberException ex = assertThrows(DuplicatePhoneNumberException.class,
+                () -> contactService.createContact(1L, dto));
+
+        assertEquals(2, ex.getStrike());
+        assertTrue(ex.isAccountClosed());
+        assertEquals(2, sampleUser.getDuplicateStrikeCount());
+        verify(contactRepository).deleteAll(List.of(sampleContact));
+        verify(userRepository).delete(sampleUser);
+    }
 }

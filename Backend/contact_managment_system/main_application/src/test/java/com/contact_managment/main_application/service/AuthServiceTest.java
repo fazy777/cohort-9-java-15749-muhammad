@@ -479,6 +479,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("Should throw DuplicatePhoneNumberException when phone number already exists in user's contacts")
     void updatePhone_DuplicateInContacts() {
+        sampleUser.setDuplicateStrikeCount(0);
         UpdatePhoneRequest request = UpdatePhoneRequest.builder()
                 .phone("+1 (555) 234-5678")
                 .build();
@@ -487,7 +488,32 @@ class AuthServiceTest {
         when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null))
                 .thenReturn(List.of("+15552345678"));
 
-        assertThrows(DuplicatePhoneNumberException.class, () -> authService.updatePhone(1L, request));
+        DuplicatePhoneNumberException ex = assertThrows(DuplicatePhoneNumberException.class,
+                () -> authService.updatePhone(1L, request));
+        assertEquals(1, ex.getStrike());
+        assertFalse(ex.isAccountClosed());
+        assertEquals(1, sampleUser.getDuplicateStrikeCount());
+        verify(userRepository).saveAndFlush(sampleUser);
+    }
+
+    @Test
+    @DisplayName("Should purge contacts and delete account on repeat duplicate phone violation during updatePhone")
+    void updatePhone_DuplicateInContacts_Strike2_DeletesAccount() {
+        sampleUser.setDuplicateStrikeCount(1);
+        UpdatePhoneRequest request = UpdatePhoneRequest.builder()
+                .phone("+1 (555) 234-5678")
+                .build();
+
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(sampleUser));
+        when(contactRepository.findPhoneNumbersByUserExcludingContact(sampleUser, null))
+                .thenReturn(List.of("+15552345678"));
+
+        DuplicatePhoneNumberException ex = assertThrows(DuplicatePhoneNumberException.class,
+                () -> authService.updatePhone(1L, request));
+        assertEquals(2, ex.getStrike());
+        assertTrue(ex.isAccountClosed());
+        assertEquals(2, sampleUser.getDuplicateStrikeCount());
+        verify(userRepository).delete(sampleUser);
     }
 
     @Test

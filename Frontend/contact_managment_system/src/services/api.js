@@ -313,7 +313,15 @@ const request = async (endpoint, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) =
       const errorMessage = (result && typeof result === 'object' && ('message' in result || 'error' in result))
         ? (result.message || result.error)
         : `Request failed with status ${response.status}`;
-      throw new Error(errorMessage);
+      const err = new Error(errorMessage);
+      if (result && typeof result === 'object') {
+        err.status = response.status;
+        err.response = result;
+        if (result.strike !== undefined) err.strike = result.strike;
+        if (result.accountClosed !== undefined) err.accountClosed = Boolean(result.accountClosed);
+        if (result.duplicateNumber !== undefined) err.duplicateNumber = result.duplicateNumber;
+      }
+      throw err;
     }
 
     if (result != null && typeof result !== 'object') {

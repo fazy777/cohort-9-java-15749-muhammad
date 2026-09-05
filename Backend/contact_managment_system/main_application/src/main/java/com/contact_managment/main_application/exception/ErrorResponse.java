@@ -20,4 +20,7 @@ public class ErrorResponse {
     private String message;
     private String path;
     private Map<String, String> errors;
+    private Integer strike;
+    private Boolean accountClosed;
+    private String duplicateNumber;
 }

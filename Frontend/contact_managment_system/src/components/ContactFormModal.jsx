@@ -301,16 +301,27 @@ export const ContactFormModal = ({
   };
 
   /**
-   * Handles policy enforcement for duplicate phone numbers.
+   * Handles policy enforcement for duplicate phone numbers based on backend response.
    * Strike 1: Displays warning dialog informing user of strict policy.
-   * Strike 2: Permanently deletes user account, clears session, and enforces termination.
-   * @param {string} duplicateNumber
+   * Strike 2: Permanently closes user account, clears session, and enforces termination.
+   * @param {string | { duplicateNumber?: string, strike?: number, isAccountClosed?: boolean, error?: string }} violationArg
    */
-  const handleDuplicateViolation = async (duplicateNumber) => {
+  const handleDuplicateViolation = async (violationArg) => {
+    const violation = typeof violationArg === 'string'
+      ? { duplicateNumber: violationArg }
+      : (violationArg || {});
+    const duplicateNumber = violation.duplicateNumber || 'number';
+    const strike = violation.strike;
+    const isAccountClosed = violation.isAccountClosed;
+    const violationError = violation.error;
+
     try {
       const result = await enforceDuplicatePolicy({
         userId: user?.id,
         duplicateNumber,
+        strike,
+        isAccountClosed,
+        error: violationError,
         deleteAccountFn: api.deleteAccount
       });
 
@@ -350,23 +361,6 @@ export const ContactFormModal = ({
       .filter((item) => item?.phoneNumber && item.phoneNumber.trim() !== '')
       .map(({ rowId: _rowId, ...rest }) => rest);
 
-    // Check duplicate phone numbers across current form, existing contacts, and user profile phone
-    const duplicateNumber = findDuplicatePhone(
-      filteredPhones,
-      existingContacts,
-      user?.phone,
-      contact?.id
-    );
-
-    if (duplicateNumber) {
-      try {
-        await handleDuplicateViolation(duplicateNumber);
-      } finally {
-        setSubmitting(false);
-      }
-      return;
-    }
-
     const payload = {
       firstName: firstName?.trim() || '',
       lastName: lastName?.trim() || '',
@@ -386,9 +380,20 @@ export const ContactFormModal = ({
     } catch (err) {
       console.error('Failed to submit contact form:', err);
       const errMsg = err?.message || '';
-      if (errMsg.toLowerCase().includes('duplicate phone') || errMsg.toLowerCase().includes('already belongs')) {
-        const dupNum = filteredPhones[0]?.phoneNumber || 'number';
-        await handleDuplicateViolation(dupNum);
+      const isDuplicateError =
+        err?.strike !== undefined ||
+        err?.accountClosed !== undefined ||
+        errMsg.toLowerCase().includes('duplicate phone') ||
+        errMsg.toLowerCase().includes('already belongs');
+
+      if (isDuplicateError) {
+        const dupNum = err?.duplicateNumber || findDuplicatePhone(filteredPhones, existingContacts, user?.phone, contact?.id) || filteredPhones[0]?.phoneNumber || 'number';
+        await handleDuplicateViolation({
+          duplicateNumber: dupNum,
+          strike: err?.strike,
+          isAccountClosed: err?.accountClosed,
+          error: errMsg
+        });
       } else {
         setError(errMsg || 'Failed to save contact. Please try again.');
       }

@@ -95,13 +95,17 @@ export const findDuplicatePhone = (
 };
 
 /**
- * Enforces the two-strike duplicate phone policy.
- * - Strike 1: Records first warning in storage, returns warning violation state.
- * - Strike 2: Calls deleteAccountFn, cleans up storage warning key, returns account-closed state.
+ * Enforces the two-strike duplicate phone policy based on backend-driven strike state.
+ * Enforcement is driven by backend persistence rather than mutable session storage.
+ * - Strike 1: Records/caches warning for display, returns warning violation state.
+ * - Strike 2: Calls deleteAccountFn cleanup, clears warning key, returns account-closed state.
  *
  * @param {{
  *   userId?: string | number,
  *   duplicateNumber: string,
+ *   strike?: number,
+ *   isAccountClosed?: boolean,
+ *   error?: string,
  *   deleteAccountFn?: () => Promise<any>
  * }} params
  * @returns {Promise<{
@@ -115,29 +119,49 @@ export const findDuplicatePhone = (
 export const enforceDuplicatePolicy = async ({
   userId,
   duplicateNumber,
+  strike,
+  isAccountClosed,
+  error: serverError,
   deleteAccountFn = api.deleteAccount
-}) => {
+} = {}) => {
   const warningKey = getDuplicateWarningKey(userId);
-  const currentWarnings = getDuplicateWarningCount(userId);
 
-  if (currentWarnings === 0) {
+  // Authoritative strike determination: prefer backend strike/isAccountClosed result
+  // Fall back to storage count only when backend strike is not provided (e.g. legacy/mock calls).
+  const isTerminated = isAccountClosed !== undefined
+    ? Boolean(isAccountClosed)
+    : strike !== undefined
+      ? Number(strike) >= 2
+      : getDuplicateWarningCount(userId) >= 1;
+
+  const resolvedStrike = strike != null
+    ? Number(strike)
+    : (isTerminated ? 2 : 1);
+
+  if (!isTerminated) {
     // Strike 1: First warning
     safeStorage.setItem(warningKey, '1');
     return {
       isAccountClosed: false,
-      strike: 1,
-      error: `Warning (1/2): Duplicate phone number "${duplicateNumber}" is strictly prohibited.`,
+      strike: resolvedStrike,
+      error: serverError || `Warning (1/2): Duplicate phone number "${duplicateNumber}" is strictly prohibited.`,
       toastMessage: `⚠️ First Warning: Duplicate phone number detected. Next violation terminates account!`,
       toastType: 'error'
     };
   }
 
   // Strike 2: Account closure
-  await deleteAccountFn();
+  if (typeof deleteAccountFn === 'function') {
+    try {
+      await deleteAccountFn();
+    } catch {
+      // Backend may already have purged account during atomic strike enforcement
+    }
+  }
   safeStorage.removeItem(warningKey);
   return {
     isAccountClosed: true,
     strike: 2,
-    error: `Account Terminated: Repeated duplicate phone number violation ("${duplicateNumber}").`
+    error: serverError || `Account Terminated: Repeated duplicate phone number violation ("${duplicateNumber}").`
   };
 };

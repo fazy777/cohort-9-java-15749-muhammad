@@ -40,6 +40,10 @@ public class User {
     @Builder.Default
     private Long tokenVersion = 1L;
 
+    @Column(name = "duplicate_strike_count", nullable = false)
+    @Builder.Default
+    private Integer duplicateStrikeCount = 0;
+
     @Version
     private Long version;
 
@@ -57,5 +61,9 @@ public class User {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public int getDuplicateStrikeCount() {
+        return duplicateStrikeCount != null ? duplicateStrikeCount : 0;
     }
 }

@@ -241,7 +241,7 @@ public class AuthService {
      * @throws UserAlreadyExistsException if phone number is already registered to another account
      * @throws ResourceNotFoundException if user is not found
      */
-    @Transactional
+    @Transactional(noRollbackFor = DuplicatePhoneNumberException.class)
     public UserProfileDto updatePhone(Long userId, UpdatePhoneRequest request) {
         log.info("Updating phone number for user ID: {}", userId);
         if (request == null || !StringUtils.hasText(request.getPhone())) {
@@ -281,7 +281,7 @@ public class AuthService {
                         .map(this::normalizePhoneNumber)
                         .anyMatch(p -> p.equals(canonicalPhone));
                 if (conflict) {
-                    throw new DuplicatePhoneNumberException("Duplicate phone number detected: " + phone + " already belongs to an existing contact.");
+                    handleDuplicateStrikeAndThrow(user, phone);
                 }
             }
         }
@@ -345,6 +345,51 @@ public class AuthService {
         }
         if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
             throw new BadRequestException(fieldName + " cannot exceed 72 bytes");
+        }
+    }
+
+    /**
+     * Atomically increments the user's duplicate strike count, persists the change,
+     * and either throws a strike-1 warning or terminates the user account on strike 2.
+     *
+     * @param user owning user
+     * @param rawPhone duplicate phone number
+     */
+    private void handleDuplicateStrikeAndThrow(User user, String rawPhone) {
+        if (user == null) {
+            throw new DuplicatePhoneNumberException("Duplicate phone number detected: " + rawPhone);
+        }
+
+        int currentStrikes = user.getDuplicateStrikeCount();
+        int nextStrike = currentStrikes + 1;
+        user.setDuplicateStrikeCount(nextStrike);
+
+        if (nextStrike >= 2) {
+            if (contactRepository != null) {
+                List<Contact> contacts = contactRepository.findByUser(user);
+                if (contacts != null && !contacts.isEmpty()) {
+                    contactRepository.deleteAll(contacts);
+                    contactRepository.flush();
+                }
+            }
+            userRepository.delete(user);
+            userRepository.flush();
+            log.warn("User ID: {} permanently closed and deleted due to repeat duplicate phone violation: {}", user.getId(), rawPhone);
+            throw new DuplicatePhoneNumberException(
+                    "Account Terminated: Repeated duplicate phone number violation (\"" + rawPhone + "\").",
+                    2,
+                    true,
+                    rawPhone
+            );
+        } else {
+            userRepository.saveAndFlush(user);
+            log.warn("User ID: {} received duplicate phone strike {} for number: {}", user.getId(), nextStrike, rawPhone);
+            throw new DuplicatePhoneNumberException(
+                    "Warning (1/2): Duplicate phone number \"" + rawPhone + "\" is strictly prohibited.",
+                    1,
+                    false,
+                    rawPhone
+            );
         }
     }
 
