@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, Mail, Phone, User, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
-import { safeStorage } from '../utils/storage.js';
 import { api } from '../services/api.js';
+import { findDuplicatePhone, enforceDuplicatePolicy } from '../utils/duplicatePolicy.js';
 
 /**
  * Generates a unique stable row ID for dynamic form rows.
@@ -122,8 +122,6 @@ const ContactValueRow = ({
 /**
  * @typedef {Omit<import('../services/api').ContactDto, 'id' | 'createdAt' | 'updatedAt'>} ContactFormPayload
  */
-
-const normalizePhone = (num) => (num ? String(num).replace(/[\s\-().]/g, '').toLowerCase() : '');
 
 /**
  * Modal form component for creating and updating contacts with dynamic email and phone rows.
@@ -309,36 +307,27 @@ export const ContactFormModal = ({
    * @param {string} duplicateNumber
    */
   const handleDuplicateViolation = async (duplicateNumber) => {
-    const warningKey = `cms_dup_warning_${user?.id || 'default'}`;
-    const currentWarnings = Number(safeStorage.getItem(warningKey) || 0);
+    try {
+      const result = await enforceDuplicatePolicy({
+        userId: user?.id,
+        duplicateNumber,
+        deleteAccountFn: api.deleteAccount
+      });
 
-    if (currentWarnings === 0) {
-      // Strike 1: First warning
-      safeStorage.setItem(warningKey, '1');
       setViolationState({
         isOpen: true,
-        isAccountClosed: false,
+        isAccountClosed: result.isAccountClosed,
         phoneNumber: duplicateNumber
       });
-      setError(`Warning (1/2): Duplicate phone number "${duplicateNumber}" is strictly prohibited.`);
-      showToast?.(`⚠️ First Warning: Duplicate phone number detected. Next violation terminates account!`, 'error');
-    } else {
-      // Strike 2: Account closure
-      try {
-        await api.deleteAccount();
-        setViolationState({
-          isOpen: true,
-          isAccountClosed: true,
-          phoneNumber: duplicateNumber
-        });
-        setError(`Account Terminated: Repeated duplicate phone number violation ("${duplicateNumber}").`);
-        safeStorage.removeItem(warningKey);
-      } catch (err) {
-        console.error('Backend account deletion error:', err);
-        setViolationState({ isOpen: false, isAccountClosed: false, phoneNumber: '' });
-        setError(err?.message || 'Failed to process account closure policy. Please contact support.');
-        showToast?.(err?.message || 'Failed to process account closure. Please try again.', 'error');
+      setError(result.error);
+      if (result.toastMessage) {
+        showToast?.(result.toastMessage, result.toastType);
       }
+    } catch (err) {
+      console.error('Backend account deletion error:', err);
+      setViolationState({ isOpen: false, isAccountClosed: false, phoneNumber: '' });
+      setError(err?.message || 'Failed to process account closure policy. Please contact support.');
+      showToast?.(err?.message || 'Failed to process account closure. Please try again.', 'error');
     }
   };
 
@@ -361,60 +350,21 @@ export const ContactFormModal = ({
       .filter((item) => item?.phoneNumber && item.phoneNumber.trim() !== '')
       .map(({ rowId: _rowId, ...rest }) => rest);
 
-    // Check 1: Duplicate phone numbers within the current form
-    const seenFormPhones = new Map();
-    for (const phoneItem of filteredPhones) {
-      const norm = normalizePhone(phoneItem.phoneNumber);
-      if (!norm) continue;
-      if (seenFormPhones.has(norm)) {
-        try {
-          await handleDuplicateViolation(phoneItem.phoneNumber);
-        } finally {
-          setSubmitting(false);
-        }
-        return;
-      }
-      seenFormPhones.set(norm, phoneItem.phoneNumber);
-    }
+    // Check duplicate phone numbers across current form, existing contacts, and user profile phone
+    const duplicateNumber = findDuplicatePhone(
+      filteredPhones,
+      existingContacts,
+      user?.phone,
+      contact?.id
+    );
 
-    // Check 2: Duplicate phone numbers against existing contacts
-    if (Array.isArray(existingContacts)) {
-      for (const ec of existingContacts) {
-        if (contact && String(ec.id) === String(contact.id)) continue;
-        if (Array.isArray(ec.phones)) {
-          for (const ep of ec.phones) {
-            const normExisting = normalizePhone(ep.phoneNumber);
-            if (!normExisting) continue;
-            for (const phoneItem of filteredPhones) {
-              const normNew = normalizePhone(phoneItem.phoneNumber);
-              if (normNew && normNew === normExisting) {
-                try {
-                  await handleDuplicateViolation(phoneItem.phoneNumber);
-                } finally {
-                  setSubmitting(false);
-                }
-                return;
-              }
-            }
-          }
-        }
+    if (duplicateNumber) {
+      try {
+        await handleDuplicateViolation(duplicateNumber);
+      } finally {
+        setSubmitting(false);
       }
-    }
-
-    // Check 3: Duplicate phone number against user's own profile phone
-    if (user?.phone) {
-      const normUserPhone = normalizePhone(user.phone);
-      for (const phoneItem of filteredPhones) {
-        const normNew = normalizePhone(phoneItem.phoneNumber);
-        if (normNew && normNew === normUserPhone) {
-          try {
-            await handleDuplicateViolation(phoneItem.phoneNumber);
-          } finally {
-            setSubmitting(false);
-          }
-          return;
-        }
-      }
+      return;
     }
 
     const payload = {

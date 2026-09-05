@@ -2,6 +2,13 @@ import test, { describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { api } from '../src/services/api.js';
 import { safeStorage } from '../src/utils/storage.js';
+import {
+  normalizePhone,
+  getDuplicateWarningKey,
+  getDuplicateWarningCount,
+  findDuplicatePhone,
+  enforceDuplicatePolicy
+} from '../src/utils/duplicatePolicy.js';
 
 describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
   const originalFetch = globalThis.fetch;
@@ -124,8 +131,6 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
   });
 
   test('phone normalizer strips formatting correctly for duplicate comparisons', () => {
-    const normalizePhone = (num) => (num ? String(num).replace(/[\s\-().]/g, '').toLowerCase() : '');
-
     assert.equal(normalizePhone('+1 (555) 234-5678'), '+15552345678');
     assert.equal(normalizePhone('555-234-5678'), '5552345678');
     assert.equal(normalizePhone('+44 20 7946 0919'), '+442079460919');
@@ -133,76 +138,82 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
     assert.equal(normalizePhone(null), '');
   });
 
-  test('warning counter tracks first warning and escalates on repeat violation', () => {
+  test('warning counter tracks first warning, normalizes malformed counts, and escalates on repeat violation', () => {
     const userId = 42;
-    const warningKey = `cms_dup_warning_${userId}`;
+    const warningKey = getDuplicateWarningKey(userId);
 
     // Initially 0 warnings
-    let warnings = Number(safeStorage.getItem(warningKey) || 0);
-    assert.equal(warnings, 0);
+    assert.equal(getDuplicateWarningCount(userId), 0);
+
+    // Non-finite or malformed stored values normalize to 0
+    safeStorage.setItem(warningKey, 'invalid_number');
+    assert.equal(getDuplicateWarningCount(userId), 0);
+
+    safeStorage.setItem(warningKey, '-3');
+    assert.equal(getDuplicateWarningCount(userId), 0);
+
+    safeStorage.setItem(warningKey, 'NaN');
+    assert.equal(getDuplicateWarningCount(userId), 0);
+
+    safeStorage.setItem(warningKey, 'Infinity');
+    assert.equal(getDuplicateWarningCount(userId), 0);
 
     // Violation 1 -> Warn it!
     safeStorage.setItem(warningKey, '1');
-    warnings = Number(safeStorage.getItem(warningKey) || 0);
-    assert.equal(warnings, 1);
+    assert.equal(getDuplicateWarningCount(userId), 1);
 
     // Violation 2 -> Should trigger closure because warnings >= 1
-    const shouldCloseAccount = warnings >= 1;
+    const shouldCloseAccount = getDuplicateWarningCount(userId) >= 1;
     assert.equal(shouldCloseAccount, true);
 
     // Clean up
     safeStorage.removeItem(warningKey);
     assert.equal(safeStorage.getItem(warningKey), null);
+    assert.equal(getDuplicateWarningCount(userId), 0);
   });
 
   test('ContactFormModal duplicate flow: Strike 1 warns user and locks submission during check', async () => {
     const userId = 99;
-    const warningKey = `cms_dup_warning_${userId}`;
+    const warningKey = getDuplicateWarningKey(userId);
     safeStorage.removeItem(warningKey);
+
+    // Non-finite stored value should be normalized to 0, ensuring Strike 1 rather than deletion
+    safeStorage.setItem(warningKey, 'corrupt_strike_value');
 
     let submitting = false;
     let violationState = { isOpen: false, isAccountClosed: false, phoneNumber: '' };
     let error = '';
     let isSubmittingLockedDuringCheck = false;
 
-    const normalizePhone = (num) => (num ? String(num).replace(/[\s\-().]/g, '').toLowerCase() : '');
+    // Production duplicate detection across formatted phone numbers
+    const payloadPhones = [
+      { phoneNumber: '+1 (555) 000-1234' },
+      { phoneNumber: '+1-555-000-1234' } // duplicate normalized
+    ];
 
-    const handleDuplicateViolation = async (duplicateNumber) => {
-      isSubmittingLockedDuringCheck = submitting;
-      const currentWarnings = Number(safeStorage.getItem(warningKey) || 0);
-      if (currentWarnings === 0) {
-        safeStorage.setItem(warningKey, '1');
-        violationState = { isOpen: true, isAccountClosed: false, phoneNumber: duplicateNumber };
-        error = `Warning (1/2): Duplicate phone number "${duplicateNumber}" is strictly prohibited.`;
-      }
-    };
+    const duplicateNumber = findDuplicatePhone(payloadPhones);
+    assert.equal(duplicateNumber, '+1-555-000-1234');
 
-    const submitContact = async (filteredPhones) => {
+    // Simulate submission handling with production enforceDuplicatePolicy
+    const submitContact = async (phonesToSubmit) => {
       if (submitting || violationState.isOpen) return;
       submitting = true;
       try {
-        const seen = new Map();
-        for (const phoneItem of filteredPhones) {
-          const norm = normalizePhone(phoneItem.phoneNumber);
-          if (seen.has(norm)) {
-            try {
-              await handleDuplicateViolation(phoneItem.phoneNumber);
-            } finally {
-              submitting = false;
-            }
-            return;
-          }
-          seen.set(norm, phoneItem.phoneNumber);
+        const dup = findDuplicatePhone(phonesToSubmit);
+        if (dup) {
+          isSubmittingLockedDuringCheck = submitting;
+          const result = await enforceDuplicatePolicy({ userId, duplicateNumber: dup });
+          violationState = {
+            isOpen: true,
+            isAccountClosed: result.isAccountClosed,
+            phoneNumber: dup
+          };
+          error = result.error;
         }
       } finally {
         submitting = false;
       }
     };
-
-    const payloadPhones = [
-      { phoneNumber: '+1 (555) 000-1234' },
-      { phoneNumber: '+1-555-000-1234' } // duplicate normalized
-    ];
 
     await submitContact(payloadPhones);
 
@@ -227,7 +238,7 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
 
   test('ContactFormModal duplicate flow: Strike 2 deletes account and triggers closure callback', async () => {
     const userId = 100;
-    const warningKey = `cms_dup_warning_${userId}`;
+    const warningKey = getDuplicateWarningKey(userId);
     // Pre-set strike 1
     safeStorage.setItem(warningKey, '1');
 
@@ -249,46 +260,47 @@ describe('ContactSphere Profile Phone & Duplicate Policy Tests', () => {
       };
     };
 
-    const normalizePhone = (num) => (num ? String(num).replace(/[\s\-().]/g, '').toLowerCase() : '');
+    // Cross-contact duplicate detection using shared production findDuplicatePhone
+    const formPhones = [{ phoneNumber: '+1 (555) 999-8888' }];
+    const existingContacts = [{ id: 2, phones: [{ phoneNumber: '+1 555 999-8888' }] }];
 
-    const handleDuplicateViolation = async (duplicateNumber) => {
-      const currentWarnings = Number(safeStorage.getItem(warningKey) || 0);
-      if (currentWarnings > 0) {
-        await api.deleteAccount();
-        violationState = { isOpen: true, isAccountClosed: true, phoneNumber: duplicateNumber };
-        error = `Account Terminated: Repeated duplicate phone number violation ("${duplicateNumber}").`;
-        safeStorage.removeItem(warningKey);
-      }
-    };
+    // Verify self-exclusion when editing existing contact
+    const selfDup = findDuplicatePhone(formPhones, existingContacts, null, 2);
+    assert.equal(selfDup, null);
+
+    // Verify cross-contact detection
+    const crossDup = findDuplicatePhone(formPhones, existingContacts);
+    assert.equal(crossDup, '+1 (555) 999-8888');
+
+    // Verify user profile phone duplicate detection with formatting
+    const userPhoneDup = findDuplicatePhone([{ phoneNumber: '+1 (555) 123-4567' }], [], '+1 555-123-4567');
+    assert.equal(userPhoneDup, '+1 (555) 123-4567');
 
     const onAccountClosed = (reason) => {
       closedReason = reason;
     };
 
-    const submitContact = async (filteredPhones, existingPhones = []) => {
+    // Submit with production findDuplicatePhone and enforceDuplicatePolicy
+    const submitContact = async (filteredPhones, contactsList) => {
       if (submitting || violationState.isOpen) return;
       submitting = true;
       try {
-        for (const phoneItem of filteredPhones) {
-          const normNew = normalizePhone(phoneItem.phoneNumber);
-          for (const ep of existingPhones) {
-            const normExisting = normalizePhone(ep.phoneNumber);
-            if (normNew && normNew === normExisting) {
-              try {
-                await handleDuplicateViolation(phoneItem.phoneNumber);
-              } finally {
-                submitting = false;
-              }
-              return;
-            }
-          }
+        const dup = findDuplicatePhone(filteredPhones, contactsList);
+        if (dup) {
+          const result = await enforceDuplicatePolicy({ userId, duplicateNumber: dup });
+          violationState = {
+            isOpen: true,
+            isAccountClosed: result.isAccountClosed,
+            phoneNumber: dup
+          };
+          error = result.error;
         }
       } finally {
         submitting = false;
       }
     };
 
-    await submitContact([{ phoneNumber: '+1 (555) 999-8888' }], [{ phoneNumber: '+1 555 999-8888' }]);
+    await submitContact(formPhones, existingContacts);
 
     // Verify Strike 2 execution
     assert.equal(deleteAccountCalled, true);
